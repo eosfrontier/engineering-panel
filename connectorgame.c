@@ -21,7 +21,7 @@
 #include "leds.h"
 #include "audio.h"
 
-#define FRAMERATE 25
+#define FRAMERATE 50
 #define SLEEPTIME (1000000/FRAMERATE)
 
 static uint8_t running = 1;
@@ -62,6 +62,9 @@ int main(int argc, char *argv[])
     init_mcps();
     init_leds();
     init_audio();
+
+    led_set_blobs(0, 0x00ff00, 0x008888, 0x0000ff);
+    led_set_blobs(3*24, 0xff0000, 0x00ff00, 0x888800);
 
     running = 1;
     while (running) {

@@ -21,6 +21,7 @@
 int init_leds(void);
 int fini_leds(void);
 int ledshow_mastermind(int side, int colors, int correct);
+int led_set_blobs(int offset, unsigned int color1, unsigned int color2, unsigned int color3);
 int leds_mainloop(void);
 
 /* vim: ai:si:expandtab:ts=4:sw=4
