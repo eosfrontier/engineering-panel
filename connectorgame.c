@@ -16,6 +16,7 @@
 #include <signal.h>
 #include <time.h>
 #include <errno.h>
+#include <sys/time.h>
 #include "mcp.h"
 #include "leds.h"
 #include "audio.h"
@@ -42,8 +43,21 @@ static void setup_handlers(void)
     sigaction(SIGTERM, &sa, NULL);
 }
 
+static int start_time = 0;
+
+int getutime(void)
+{
+    struct timeval tv;
+    gettimeofday(&tv, NULL);
+    if (start_time == 0) start_time = tv.tv_sec;
+    return (((tv.tv_sec - start_time) * 1000000) + tv.tv_usec);
+}
+
 int main(int argc, char *argv[])
 {
+    int cycles = 0;
+    int timers[] = { 0, 0, 0, 0, 0, 0, 0, 0, 0 };
+
     setup_handlers();
     init_mcps();
     init_leds();
@@ -51,8 +65,11 @@ int main(int argc, char *argv[])
 
     running = 1;
     while (running) {
-        int timertime = clock();
+        int timertime = getutime();
+        int subtime = timertime;
         clist_t *conns = find_connections();
+        timers[0] += (getutime() - subtime);
+        subtime = getutime();
         int colcnts[2] = {0,0};
         int poscnts[2] = {0,0};
         for (int i = 0; i < conns->on; i++) {
@@ -66,17 +83,46 @@ int main(int argc, char *argv[])
                 colcnts[s2]++;
             }
         }
+        timers[1] += (getutime() - subtime);
+        subtime = getutime();
         ledshow_mastermind(0, colcnts[0], poscnts[0]);
+        timers[2] += (getutime() - subtime);
+        subtime = getutime();
         ledshow_mastermind(1, colcnts[1], poscnts[1]);
+        timers[3] += (getutime() - subtime);
+        subtime = getutime();
         if (conns->newon > 0) {
             audio_play_file("on.raw");
         } else if (conns->off > 0) {
             audio_play_file("off.raw");
         }
+        timers[4] += (getutime() - subtime);
+        subtime = getutime();
         free(conns);
+        timers[5] += (getutime() - subtime);
+        subtime = getutime();
         audio_mainloop();
-        usleep(SLEEPTIME - (((clock() - timertime) * 1000000) / CLOCKS_PER_SEC));
+        timers[6] += (getutime() - subtime);
+        subtime = getutime();
+        int sleeptime = SLEEPTIME - (getutime() - timertime);
+        if (sleeptime > 0) {
+            usleep(sleeptime);
+        }
+        timers[7] += (getutime() - subtime);
+        subtime = getutime();
+        timers[8] += (getutime() - timertime);
+        cycles++;
     }
+    printf("Timer times (%d cycles):\n", cycles);
+    printf(" find_connections(): %3.6f\n", (double)timers[0]/cycles/CLOCKS_PER_SEC);
+    printf(" count:              %3.6f\n", (double)timers[1]/cycles/CLOCKS_PER_SEC);
+    printf(" ledshow(0):         %3.6f\n", (double)timers[2]/cycles/CLOCKS_PER_SEC);
+    printf(" ledshow(1):         %3.6f\n", (double)timers[3]/cycles/CLOCKS_PER_SEC);
+    printf(" audio_play_file():  %3.6f\n", (double)timers[4]/cycles/CLOCKS_PER_SEC);
+    printf(" free(conns):        %3.6f\n", (double)timers[5]/cycles/CLOCKS_PER_SEC);
+    printf(" audio_mainloop():   %3.6f\n", (double)timers[6]/cycles/CLOCKS_PER_SEC);
+    printf(" usleep():           %3.6f\n", (double)timers[7]/cycles/CLOCKS_PER_SEC);
+    printf(" TOTAL:              %3.6f\n", (double)timers[8]/cycles/CLOCKS_PER_SEC);
     fini_leds();
     fini_mcps();
     fini_audio();
