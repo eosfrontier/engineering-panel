@@ -131,6 +131,11 @@ int ledshow_mastermind(int side, int colors, int correct)
             }
         }
     }
+}
+
+int leds_mainloop(void)
+{
+    int ret;
     if ((ret = ws2811_render(&ledstring)) != WS2811_SUCCESS)
     {
         fprintf(stderr, "ws2811_render failed: %s\n", ws2811_get_return_t_str(ret));

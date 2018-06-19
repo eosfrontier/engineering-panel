@@ -21,7 +21,7 @@
 #include "leds.h"
 #include "audio.h"
 
-#define FRAMERATE 50
+#define FRAMERATE 25
 #define SLEEPTIME (1000000/FRAMERATE)
 
 static uint8_t running = 1;
@@ -56,7 +56,7 @@ int getutime(void)
 int main(int argc, char *argv[])
 {
     int cycles = 0;
-    int timers[] = { 0, 0, 0, 0, 0, 0, 0, 0, 0 };
+    int timers[] = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
 
     setup_handlers();
     init_mcps();
@@ -104,25 +104,29 @@ int main(int argc, char *argv[])
         audio_mainloop();
         timers[6] += (getutime() - subtime);
         subtime = getutime();
+        leds_mainloop();
+        timers[7] += (getutime() - subtime);
+        subtime = getutime();
         int sleeptime = SLEEPTIME - (getutime() - timertime);
         if (sleeptime > 0) {
             usleep(sleeptime);
         }
-        timers[7] += (getutime() - subtime);
+        timers[8] += (getutime() - subtime);
         subtime = getutime();
-        timers[8] += (getutime() - timertime);
+        timers[9] += (getutime() - timertime);
         cycles++;
     }
     printf("Timer times (%d cycles):\n", cycles);
     printf(" find_connections(): %3.6f\n", (double)timers[0]/cycles/CLOCKS_PER_SEC);
     printf(" count:              %3.6f\n", (double)timers[1]/cycles/CLOCKS_PER_SEC);
-    printf(" ledshow(0):         %3.6f\n", (double)timers[2]/cycles/CLOCKS_PER_SEC);
-    printf(" ledshow(1):         %3.6f\n", (double)timers[3]/cycles/CLOCKS_PER_SEC);
+    printf(" ledset(0):          %3.6f\n", (double)timers[2]/cycles/CLOCKS_PER_SEC);
+    printf(" ledset(1):          %3.6f\n", (double)timers[3]/cycles/CLOCKS_PER_SEC);
     printf(" audio_play_file():  %3.6f\n", (double)timers[4]/cycles/CLOCKS_PER_SEC);
     printf(" free(conns):        %3.6f\n", (double)timers[5]/cycles/CLOCKS_PER_SEC);
     printf(" audio_mainloop():   %3.6f\n", (double)timers[6]/cycles/CLOCKS_PER_SEC);
-    printf(" usleep():           %3.6f\n", (double)timers[7]/cycles/CLOCKS_PER_SEC);
-    printf(" TOTAL:              %3.6f\n", (double)timers[8]/cycles/CLOCKS_PER_SEC);
+    printf(" leds_mainloop():    %3.6f\n", (double)timers[7]/cycles/CLOCKS_PER_SEC);
+    printf(" usleep():           %3.6f\n", (double)timers[8]/cycles/CLOCKS_PER_SEC);
+    printf(" TOTAL:              %3.6f\n", (double)timers[9]/cycles/CLOCKS_PER_SEC);
     fini_leds();
     fini_mcps();
     fini_audio();

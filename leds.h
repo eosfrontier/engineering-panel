@@ -10,7 +10,7 @@
 #define POS_COLOR               0x0040ff40
 #define NONE_COLOR              0x00100202
 
-#define CHSPEED                 0x19
+#define CHSPEED                 0x10
 
 #define NUM_GROUPS              4
 #define GROUP_STARTS            {1,23,1,23}
@@ -21,6 +21,7 @@
 int init_leds(void);
 int fini_leds(void);
 int ledshow_mastermind(int side, int colors, int correct);
+int leds_mainloop(void);
 
 /* vim: ai:si:expandtab:ts=4:sw=4
  */
