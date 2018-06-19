@@ -7,7 +7,7 @@
 
 #define PCM_BUFSIZE     (4410*2*2)
 
-#define PCM_PATH        "/home/pi/connectorgame/audio/"
+#define PCM_PATH        "/home/pi/shuttle-panels/audio/"
 
 int init_audio(void);
 int fini_audio(void);
