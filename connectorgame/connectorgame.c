@@ -25,6 +25,16 @@
 #define FRAMERATE 50
 #define SLEEPTIME (1000000/FRAMERATE)
 
+enum gamestates {
+    GAME_BOOT,
+    GAME_BOOTING,
+    GAME_OK,
+    GAME_BREAKING,
+    GAME_BROKEN,
+    GAME_FIXING,
+    GAME_FIXED
+};
+
 static uint8_t running = 1;
 
 static void ctrl_c_handler(int signum)
@@ -45,24 +55,84 @@ static void setup_handlers(void)
     sigaction(SIGTERM, &sa, NULL);
 }
 
-static int start_time = 0;
-
-/* Tijd ophalen in microseconden
- * start_time vastleggen om overflow te voorkomen
- * (Die wordt van de seconden afgetrokken)
- */
-int getutime(void)
+/* Tijd ophalen in microseconden */
+int64_t getutime(void)
 {
     struct timeval tv;
     gettimeofday(&tv, NULL);
-    if (start_time == 0) start_time = tv.tv_sec;
-    return (((tv.tv_sec - start_time) * 1000000) + tv.tv_usec);
+    return ((((int64_t)tv.tv_sec) * 1000000) + (int64_t)tv.tv_usec);
+}
+
+int bootcount = 0;
+int flashcount = 0;
+
+int game_booting(clist_t *conns)
+{
+    if (--bootcount > 0) {
+        return GAME_BOOTING;
+    } else if (conns->on >= 10) {
+        return GAME_OK;
+    } else {
+        return GAME_FIXING;
+    }
+}
+
+void flash_spark(void)
+{
+    audio_play_file("spark.wav");
+    led_set_flash(0, 5, 0, 2, 0xffffff, 3, 4, 0xccccff, 4, 3, 0xffcccc, 2, 10, 0x000000, 8, 3, 0x000000);
+    led_set_flash(3, 5, 0, 3, 0xffccff, 3, 2, 0xffccff, 5, 2, 0xffffff, 2, 6, 0x000000, 12, 2, 0x000000);
+    led_set_flash(1, 3, 0, 4, 0xff8888, 6, 2, 0xffffff, 6, 15, 0x000000);
+    led_set_flash(2, 3, 0, 3, 0xff8888, 4, 4, 0xffffff, 5, 12, 0x000000);
+}
+
+int game_ok(clist_t *conns)
+{
+    if (conns->off > 0) {
+        flash_spark();
+        flashcount = (int)(((double)(FRAMERATE/10 + (random() % (FRAMERATE * 4)))) * (1.0 + (((double)conns->on)/4)));
+        return GAME_FIXING;
+    } else {
+        return GAME_OK;
+    }
+}
+
+int game_fixing(clist_t *conns)
+{
+    if (conns->newon > 0) {
+        audio_play_file("on.wav");
+    } else if (conns->off > 0) {
+        audio_play_file("off.wav");
+    } else if (--flashcount <= 0) {
+        flash_spark();
+        flashcount = (int)(((double)(FRAMERATE/10 + (random() % (FRAMERATE * 4)))) * (1.0 + (((double)conns->on)/4)));
+    }
+    int colcnts[2] = {0,0};
+    int poscnts[2] = {0,0};
+    for (int i = 0; i < conns->on; i++) {
+        int s1 = (PIN_ROW(conns->pins[i].p1) >= 10);
+        int s2 = (PIN_ROW(conns->pins[i].p2) >= 10);
+        if (s1 == s2) {
+            poscnts[s1]++;
+            poscnts[s2]++;
+        } else {
+            colcnts[s1]++;
+            colcnts[s2]++;
+        }
+    }
+    ledshow_mastermind(0, colcnts[0], poscnts[0]);
+    ledshow_mastermind(1, colcnts[1], poscnts[1]);
+    if (conns->on < 10) {
+        return GAME_FIXING;
+    } else {
+        return GAME_BOOT;
+    }
 }
 
 int main(int argc, char *argv[])
 {
     int cycles = 0;
-    int timers[] = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
+    // int timers[] = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
 
     /* Alles initen */
     setup_handlers();
@@ -76,86 +146,48 @@ int main(int argc, char *argv[])
 
     /* Opstarten */
     running = 1;
-    audio_play_file("booting.wav");
-    /* Zorgen dat de initiele debounce er doorheen is
-     */
-    for (int booting = 0; booting < 10; booting++) {
-        int timertime = getutime();
-        clist_t *conns = find_connections();
-        free(conns);
-        leds_mainloop();
-        audio_mainloop();
-        int sleeptime = SLEEPTIME - (getutime() - timertime);
-        if (sleeptime > 0) usleep(sleeptime);
-    }
-    int flashcount = FRAMERATE*2; /* Voor de 'knetter' animaties en geluiden */
-    /* Mainloop */
+    int gamestate = GAME_BOOT;
     while (running) {
-        int timertime = getutime(); // Om de framerate gelijk te houden
-        int subtime = timertime; // Profiling
-        clist_t *conns = find_connections();
-        timers[0] += (getutime() - subtime);
-        subtime = getutime();
-        /* Tellen hoeveel posities en kleuren kloppen (TODO) */
-        int colcnts[2] = {0,0};
-        int poscnts[2] = {0,0};
-        for (int i = 0; i < conns->on; i++) {
-            int s1 = (PIN_ROW(conns->pins[i].p1) >= 10);
-            int s2 = (PIN_ROW(conns->pins[i].p2) >= 10);
-            if (s1 == s2) {
-                poscnts[s1]++;
-                poscnts[s2]++;
-            } else {
-                colcnts[s1]++;
-                colcnts[s2]++;
-            }
+        int64_t timertime = getutime(); // Om de framerate gelijk te houden
+        clist_t *conns = find_connections(); // Altijd uitlezen
+        switch (gamestate) {
+            case GAME_BOOT:
+                audio_play_file("booting.wav");
+                bootcount = FRAMERATE*2;
+            case GAME_BOOTING:
+                gamestate = game_booting(conns);
+                break;
+            case GAME_OK:
+                gamestate = game_ok(conns);
+                break;
+                /*
+            case GAME_BREAKING:
+                gamestate = game_breaking(conns);
+                break;
+            case GAME_BROKEN:
+                gamestate = game_broken(conns);
+                break;
+                */
+            case GAME_FIXING:
+                gamestate = game_fixing(conns);
+                break;
+                /*
+            case GAME_FIXED:
+                gamestate = game_fixed(conns);
+                break;
+                */
+            default:
+                gamestate = GAME_BOOTING;
+                break;
         }
-        timers[1] += (getutime() - subtime);
-        subtime = getutime();
-        ledshow_mastermind(0, colcnts[0], poscnts[0]);
-        timers[2] += (getutime() - subtime);
-        subtime = getutime();
-        ledshow_mastermind(1, colcnts[1], poscnts[1]);
-        timers[3] += (getutime() - subtime);
-        subtime = getutime();
-        if (conns->newon > 0) {
-            audio_play_file("on.wav");
-        } else if (conns->off > 0) {
-            audio_play_file("off.wav");
-        } else {
-            /* Om de zoveel tijd (random) geknetter laten horen
-             * TODO: Dit hoort in een aparte functie
-             */
-            flashcount--;
-            if (flashcount <= 0) {
-                audio_play_file("spark.wav");
-                led_set_flash(0, 5, 0, 2, 0xffffff, 3, 4, 0xccccff, 4, 3, 0xffcccc, 2, 10, 0x000000, 8, 3, 0x000000);
-                led_set_flash(3, 5, 0, 3, 0xffccff, 3, 2, 0xffccff, 5, 2, 0xffffff, 2, 6, 0x000000, 12, 2, 0x000000);
-                led_set_flash(1, 3, 0, 4, 0xff8888, 6, 2, 0xffffff, 6, 15, 0x000000);
-                led_set_flash(2, 3, 0, 3, 0xff8888, 4, 4, 0xffffff, 5, 12, 0x000000);
-                flashcount = (int)(((double)(FRAMERATE/10 + (random() % (FRAMERATE * 4)))) * (1.0 + (((double)conns->on)/4)));
-            }
-        }
-        timers[4] += (getutime() - subtime);
-        subtime = getutime();
         free(conns);
-        timers[5] += (getutime() - subtime);
-        subtime = getutime();
-        audio_mainloop();
-        timers[6] += (getutime() - subtime);
-        subtime = getutime();
         leds_mainloop();
-        timers[7] += (getutime() - subtime);
-        subtime = getutime();
-        /* usleep voor de tijd die nodig is om de framerate vol te maken */
-        int sleeptime = SLEEPTIME - (getutime() - timertime);
+        audio_mainloop();
+        int64_t sleeptime = SLEEPTIME - (getutime() - timertime);
         if (sleeptime > 0) usleep(sleeptime);
-        timers[8] += (getutime() - subtime);
-        subtime = getutime();
-        timers[9] += (getutime() - timertime);
-        cycles++;
     }
     /* Profiling */
+    /*
     printf("Timer times (%d cycles):\n", cycles);
     printf(" find_connections(): %3.6f\n", (double)timers[0]/cycles/CLOCKS_PER_SEC);
     printf(" count:              %3.6f\n", (double)timers[1]/cycles/CLOCKS_PER_SEC);
@@ -167,6 +199,7 @@ int main(int argc, char *argv[])
     printf(" leds_mainloop():    %3.6f\n", (double)timers[7]/cycles/CLOCKS_PER_SEC);
     printf(" usleep():           %3.6f\n", (double)timers[8]/cycles/CLOCKS_PER_SEC);
     printf(" TOTAL:              %3.6f\n", (double)timers[9]/cycles/CLOCKS_PER_SEC);
+    */
     fini_leds();
     fini_mcps();
     fini_audio();
