@@ -11,7 +11,7 @@
 #include <signal.h>
 #include <math.h>
 #include "leds.h"
-#include "../source/rpi_ws281x/ws2811.h"
+#include "../../source/rpi_ws281x/ws2811.h"
 
 enum led_animation_types {
     ANIMATION_PLASMA, ANIMATION_FLASH

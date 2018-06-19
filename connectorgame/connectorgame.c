@@ -33,6 +33,7 @@ static void ctrl_c_handler(int signum)
     running = 0;
 }
 
+/* Ctrl-C afvangen */
 static void setup_handlers(void)
 {
     struct sigaction sa =
@@ -46,6 +47,10 @@ static void setup_handlers(void)
 
 static int start_time = 0;
 
+/* Tijd ophalen in microseconden
+ * start_time vastleggen om overflow te voorkomen
+ * (Die wordt van de seconden afgetrokken)
+ */
 int getutime(void)
 {
     struct timeval tv;
@@ -59,16 +64,21 @@ int main(int argc, char *argv[])
     int cycles = 0;
     int timers[] = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
 
+    /* Alles initen */
     setup_handlers();
     init_mcps();
     init_leds();
     init_audio();
 
+    /* Wat leuke animaties */
     led_set_blobs(0, 3, 0x003300, 0x002211, 0x000033);
     led_set_blobs(3, 4, 0x000033, 0x003300, 0x001133, 0x003311);
 
+    /* Opstarten */
     running = 1;
     audio_play_file("booting.wav");
+    /* Zorgen dat de initiele debounce er doorheen is
+     */
     for (int booting = 0; booting < 10; booting++) {
         int timertime = getutime();
         clist_t *conns = find_connections();
@@ -78,13 +88,15 @@ int main(int argc, char *argv[])
         int sleeptime = SLEEPTIME - (getutime() - timertime);
         if (sleeptime > 0) usleep(sleeptime);
     }
-    int flashcount = FRAMERATE*2;
+    int flashcount = FRAMERATE*2; /* Voor de 'knetter' animaties en geluiden */
+    /* Mainloop */
     while (running) {
-        int timertime = getutime();
-        int subtime = timertime;
+        int timertime = getutime(); // Om de framerate gelijk te houden
+        int subtime = timertime; // Profiling
         clist_t *conns = find_connections();
         timers[0] += (getutime() - subtime);
         subtime = getutime();
+        /* Tellen hoeveel posities en kleuren kloppen (TODO) */
         int colcnts[2] = {0,0};
         int poscnts[2] = {0,0};
         for (int i = 0; i < conns->on; i++) {
@@ -111,6 +123,9 @@ int main(int argc, char *argv[])
         } else if (conns->off > 0) {
             audio_play_file("off.wav");
         } else {
+            /* Om de zoveel tijd (random) geknetter laten horen
+             * TODO: Dit hoort in een aparte functie
+             */
             flashcount--;
             if (flashcount <= 0) {
                 audio_play_file("spark.wav");
@@ -132,6 +147,7 @@ int main(int argc, char *argv[])
         leds_mainloop();
         timers[7] += (getutime() - subtime);
         subtime = getutime();
+        /* usleep voor de tijd die nodig is om de framerate vol te maken */
         int sleeptime = SLEEPTIME - (getutime() - timertime);
         if (sleeptime > 0) usleep(sleeptime);
         timers[8] += (getutime() - subtime);
@@ -139,6 +155,7 @@ int main(int argc, char *argv[])
         timers[9] += (getutime() - timertime);
         cycles++;
     }
+    /* Profiling */
     printf("Timer times (%d cycles):\n", cycles);
     printf(" find_connections(): %3.6f\n", (double)timers[0]/cycles/CLOCKS_PER_SEC);
     printf(" count:              %3.6f\n", (double)timers[1]/cycles/CLOCKS_PER_SEC);
