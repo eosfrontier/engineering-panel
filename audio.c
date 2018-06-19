@@ -91,7 +91,8 @@ int audio_play_file(char *name)
         fprintf(stderr, "Failed to mmap file %s: %s\n", pathname, strerror(errno));
         return -1;
     }
-    printf("Playing %s\n", pathname);
+    play_pos = 44;
+    // printf("Playing %s\n", pathname);
     return 0;
 }
 

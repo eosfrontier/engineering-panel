@@ -4,6 +4,7 @@
 
 #include <stdint.h>
 #include <stdio.h>
+#include <stdarg.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
@@ -11,6 +12,10 @@
 #include <math.h>
 #include "leds.h"
 #include "../source/rpi_ws281x/ws2811.h"
+
+enum led_animation_types {
+    ANIMATION_PLASMA, ANIMATION_FLASH
+};
 
 #define TARGET_FREQ             WS2811_TARGET_FREQ
 #define GPIO_PIN                12
@@ -147,34 +152,60 @@ int ledshow_mastermind(int side, int colors, int correct)
     return 0;
 }
 
-int led_animate(ledanim_t *an) {
-    switch (an->type) {
-        case 0:
-            an->pos += 1;
-            if (an->pos > (an->speed * an->size)) an->pos = 0;
+int led_animate_plasma(ledanim_t *an)
+{
+    an->pos += 1;
+    if (an->pos > (an->speed * an->size)) an->pos = 0;
+    for (int ip = 0; ip < an->size; ip++) {
+        double r = 0, g = 0, b = 0;
+        for (int dp = 1; dp < an->data[0]; dp += 3) {
+            unsigned int dcol = an->data[dp];
+            double dr = (dcol >> 16) & 0xff;
+            double dg = (dcol >> 8) & 0xff;
+            double db = (dcol) & 0xff;
+            double ddis = fmod((an->data[dp+1] + (((double)an->pos / an->speed) * (an->data[dp+2])) + (an->size * an->size) - ip), (double)an->size);
+            if (ddis >= (an->size/2)) ddis = an->size - ddis;
+            r += fmax(floor(dr - (fmax(ddis-1.0,0.001)*(3*dr/an->size))), 0);
+            g += fmax(floor(dg - (fmax(ddis-1.0,0.001)*(3*dg/an->size))), 0);
+            b += fmax(floor(db - (fmax(ddis-1.0,0.001)*(3*db/an->size))), 0);
+        }
+        if (r < 0) r = 0;
+        if (g < 0) g = 0;
+        if (b < 0) b = 0;
+        if (r > 0xff) r = 0xff;
+        if (g > 0xff) g = 0xff;
+        if (b > 0xff) b = 0xff;
+        int col = (((int)r) << 16) | (((int)g) << 8) | ((int)b);
+        ledstring.channel[0].leds[an->offset+ip] = col;
+    }
+    return 0;
+}
+
+int led_animate_flash(ledanim_t *an)
+{
+    an->pos += 1;
+    int dpos = 0;
+    for (int dp = 1; dp < an->data[0]; dp += 3) {
+        dpos += an->data[dp+0];
+        if (an->pos <= dpos) return 0;
+        dpos += an->data[dp+1];
+        int col = an->data[dp+2];
+        if (an->pos <= dpos) {
             for (int ip = 0; ip < an->size; ip++) {
-                double r = 0, g = 0, b = 0;
-                for (int dp = 1; dp < an->data[0]; dp += 3) {
-                    unsigned int dcol = an->data[dp];
-                    double dr = (dcol >> 16) & 0xff;
-                    double dg = (dcol >> 8) & 0xff;
-                    double db = (dcol) & 0xff;
-                    double ddis = fmod((an->data[dp+1] + (((double)an->pos / an->speed) * (an->data[dp+2])) + (an->size * an->size) - ip), (double)an->size);
-                    if (ddis >= (an->size/2)) ddis = an->size - ddis;
-                    r += fmax(floor(dr - (fmax(ddis-1.0,0.001)*(768/an->size))), 0);
-                    g += fmax(floor(dg - (fmax(ddis-1.0,0.001)*(768/an->size))), 0);
-                    b += fmax(floor(db - (fmax(ddis-1.0,0.001)*(768/an->size))), 0);
-                }
-                if (r < 0) r = 0;
-                if (g < 0) g = 0;
-                if (b < 0) b = 0;
-                if (r > 0xff) r = 0xff;
-                if (g > 0xff) g = 0xff;
-                if (b > 0xff) b = 0xff;
-                int col = (((int)r) << 16) | (((int)g) << 8) | ((int)b);
                 ledstring.channel[0].leds[an->offset+ip] = col;
             }
-            break;
+            return 0;
+        }
+    }
+    return 1;
+}
+
+int led_animate(ledanim_t *an) {
+    switch (an->type) {
+        case ANIMATION_PLASMA:
+            return led_animate_plasma(an);
+        case ANIMATION_FLASH:
+            return led_animate_flash(an);
         default:
             fprintf(stderr, "Unknown animation type %d\n", an->type);
             return -1;
@@ -182,30 +213,60 @@ int led_animate(ledanim_t *an) {
     return 0;
 }
 
-int led_set_blobs(int offset, unsigned int color1, unsigned int color2, unsigned int color3)
+int led_set_blobs(int ring, int num, ...)
 {
+    va_list argp;
+    va_start(argp, num);
     ledanim_t **an = &led_animations;
     while (*an) an = &((*an)->next);
-    ledanim_t *newan = malloc(sizeof(ledanim_t) + 10*sizeof(int));
+    ledanim_t *newan = malloc(sizeof(ledanim_t) + (1+(num*3))*sizeof(int));
     if (!newan) {
         fprintf(stderr, "Allocation for animation failed!\n");
         return -1;
     }
-    newan->type = 0;
-    newan->offset = offset;
-    newan->size = 24;
+    newan->next = NULL;
+    newan->type = ANIMATION_PLASMA;
+    newan->offset = ring*RING_SIZE;
+    newan->size = RING_SIZE;
     newan->speed = 128;
     newan->pos = 0;
-    newan->data[0] = 10;
-    newan->data[1] = color1;
-    newan->data[2] = 0;
-    newan->data[3] = 13;
-    newan->data[4] = color2;
-    newan->data[5] = 8;
-    newan->data[6] = -5;
-    newan->data[7] = color3;
-    newan->data[8] = 16;
-    newan->data[9] = 7;
+    newan->data[0] = 3*num+1;
+    float spd = 5;
+    for (int i = 0; i < num; i++) {
+        newan->data[3*i+1] = va_arg(argp, unsigned int);
+        newan->data[3*i+2] = RING_SIZE*i/num;
+        newan->data[3*i+3] = (int)spd;
+        spd = (-spd)*1.4;
+    }
+    va_end(argp);
+    *an = newan;
+    return 0;
+}
+
+int led_set_flash(int ring, int num, ...)
+{
+    va_list argp;
+    va_start(argp, num);
+    ledanim_t **an = &led_animations;
+    while (*an) an = &((*an)->next);
+    ledanim_t *newan = malloc(sizeof(ledanim_t) + (1+(num*3))*sizeof(int));
+    if (!newan) {
+        fprintf(stderr, "Allocation for animation failed!\n");
+        return -1;
+    }
+    newan->next = NULL;
+    newan->type = ANIMATION_FLASH;
+    newan->offset = ring*RING_SIZE;
+    newan->size = RING_SIZE;
+    newan->speed = 32;
+    newan->pos = 0;
+    newan->data[0] = 3*num+1;
+    for (int i = 0; i < num; i++) {
+        newan->data[3*i+1] = va_arg(argp, unsigned int);
+        newan->data[3*i+2] = va_arg(argp, unsigned int);
+        newan->data[3*i+3] = va_arg(argp, unsigned int);
+    }
+    va_end(argp);
     *an = newan;
     return 0;
 }
@@ -213,8 +274,10 @@ int led_set_blobs(int offset, unsigned int color1, unsigned int color2, unsigned
 int leds_mainloop(void)
 {
     for (ledanim_t **an = &led_animations; *an;) {
-        if (led_animate(*an)) {
+        if (led_animate(*an) != 0) {
+            ledanim_t *f = *an;
             *an = (*an)->next;
+            free(f);
         } else {
             an = &((*an)->next);
         }

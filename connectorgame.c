@@ -16,6 +16,7 @@
 #include <signal.h>
 #include <time.h>
 #include <errno.h>
+#include <math.h>
 #include <sys/time.h>
 #include "mcp.h"
 #include "leds.h"
@@ -63,10 +64,21 @@ int main(int argc, char *argv[])
     init_leds();
     init_audio();
 
-    led_set_blobs(0, 0x00ff00, 0x008888, 0x0000ff);
-    led_set_blobs(3*24, 0xff0000, 0x00ff00, 0x888800);
+    led_set_blobs(0, 3, 0x003300, 0x002211, 0x000033);
+    led_set_blobs(3, 4, 0x000033, 0x003300, 0x001133, 0x003311);
 
     running = 1;
+    audio_play_file("booting.wav");
+    for (int booting = 0; booting < 10; booting++) {
+        int timertime = getutime();
+        clist_t *conns = find_connections();
+        free(conns);
+        leds_mainloop();
+        audio_mainloop();
+        int sleeptime = SLEEPTIME - (getutime() - timertime);
+        if (sleeptime > 0) usleep(sleeptime);
+    }
+    int flashcount = FRAMERATE*2;
     while (running) {
         int timertime = getutime();
         int subtime = timertime;
@@ -95,9 +107,19 @@ int main(int argc, char *argv[])
         timers[3] += (getutime() - subtime);
         subtime = getutime();
         if (conns->newon > 0) {
-            audio_play_file("on.raw");
+            audio_play_file("on.wav");
         } else if (conns->off > 0) {
-            audio_play_file("off.raw");
+            audio_play_file("off.wav");
+        } else {
+            flashcount--;
+            if (flashcount <= 0) {
+                audio_play_file("spark.wav");
+                led_set_flash(0, 5, 0, 2, 0xffffff, 3, 4, 0xccccff, 4, 3, 0xffcccc, 2, 10, 0x000000, 8, 3, 0x000000);
+                led_set_flash(3, 5, 0, 3, 0xffccff, 3, 2, 0xffccff, 5, 2, 0xffffff, 2, 6, 0x000000, 12, 2, 0x000000);
+                led_set_flash(1, 3, 0, 4, 0xff8888, 6, 2, 0xffffff, 6, 15, 0x000000);
+                led_set_flash(2, 3, 0, 3, 0xff8888, 4, 4, 0xffffff, 5, 12, 0x000000);
+                flashcount = (int)(((double)(FRAMERATE + (random() % (FRAMERATE * 4)))) * (1.0 + (((double)conns->on)/4)));
+            }
         }
         timers[4] += (getutime() - subtime);
         subtime = getutime();
@@ -111,9 +133,7 @@ int main(int argc, char *argv[])
         timers[7] += (getutime() - subtime);
         subtime = getutime();
         int sleeptime = SLEEPTIME - (getutime() - timertime);
-        if (sleeptime > 0) {
-            usleep(sleeptime);
-        }
+        if (sleeptime > 0) usleep(sleeptime);
         timers[8] += (getutime() - subtime);
         subtime = getutime();
         timers[9] += (getutime() - timertime);
