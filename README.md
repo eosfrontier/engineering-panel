@@ -6,7 +6,7 @@ Collection of code to run 'shuttle panels' - physical panels that represent part
 
 NB: Currently only the connector panel exists
 
-# Connector panel
+### Connector panel
 
 35x50 panel with 100 banana plug sockets and 96 leds.
 
@@ -14,7 +14,7 @@ Uses a raspberry pi zero (or zeroW), seven MCP23017 chips, WS2812B leds (neopixe
 
 The MCP23017s interface with bananaplug connectors which the software reads to see which sockets are joined by a cable.  This then runs a mastermind-like puzzle where the LEDs give clues to the game.
 
-# Access panel
+### Access panel
 
 NB: To be designed, subject to change.
 
