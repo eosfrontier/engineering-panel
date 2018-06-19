@@ -118,7 +118,7 @@ int main(int argc, char *argv[])
                 led_set_flash(3, 5, 0, 3, 0xffccff, 3, 2, 0xffccff, 5, 2, 0xffffff, 2, 6, 0x000000, 12, 2, 0x000000);
                 led_set_flash(1, 3, 0, 4, 0xff8888, 6, 2, 0xffffff, 6, 15, 0x000000);
                 led_set_flash(2, 3, 0, 3, 0xff8888, 4, 4, 0xffffff, 5, 12, 0x000000);
-                flashcount = (int)(((double)(FRAMERATE + (random() % (FRAMERATE * 4)))) * (1.0 + (((double)conns->on)/4)));
+                flashcount = (int)(((double)(FRAMERATE/10 + (random() % (FRAMERATE * 4)))) * (1.0 + (((double)conns->on)/4)));
             }
         }
         timers[4] += (getutime() - subtime);
