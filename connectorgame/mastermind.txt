@@ -1,0 +1,90 @@
+
+Paneel voor shuttle reparatie spel
+
+Fysiek:
+
+- 2 velden van 10x50 contacten (in 5 kleuren)
+- 10 snoeren die twee contacten kunnen verbinden
+- 96 rgb ledpixels (2 enkele ringen van 24 en een dubbele ring van 2x24)
+- geluidseffecten
+- pi zero (met expansie chips) die alles aanstuurt
+
+Spellen die er op neer komen dat de juiste verbindingen moeten worden gemaakt
+
+Spel 'mastermind':
+
+- Links en rechts moet op elke rij de juiste kleur worden gekozen
+- Snoeren moeten dan van links naar rechts hangen
+- Dus 2x10 keuzes, of 1x20 (of misschien 4x5 ?)
+- ledpixels geven aan hoeveel posities goed en hoeveel kleuren goed
+- eventueel ook led kleur/knipper effecten voor de sjeu
+- Links en rechts apart of allemaal samen (moeilijker)
+- evt. Nadenken over extra moeilijkheid waar de combinatie van waar een snoer
+  inzit ook uitmakt
+- Moeilijkheidsgraad (hoe stuk is het) door al posities goed te hebben?
+
+Stappen:
+0 - Alles OK, licht op groen, evt. zoemend geluid oid?  Beetje pulserend effect?
+1 - Er gaat iets stuk (aansturing?  stekkers lostrekken/knopjes/bluetooth/wifi)
+2 - Geluidseffecten (geknetter / knallen / 'warning') en lichteffecten (knipperend wit, rood alarmlicht)
+3 - Bij de eerste nieuwe verbinding begint het spel
+4 - Speler lost spel op door nieuwe connecties te maken
+  - Na 10 minuten nietsdoen gaat het terug naar 2
+5 - Spel opgelost -> Licht op groen, geluidseffect?  (opstartende reactor, 'repairs complete', ...)
+
+Spel:
+- Leds geven aan X goede kleuren, Y goede posities.
+- 2x10 goede posities = gewonnen
+- Elke keer wanneer er 10 verbindingen zijn, licht/geluidseffect, en led update met goed/fout code
+- Alleen als het niet dezelfde 10 verbindingen zijn
+- evt. dubbele ring: 'oude' stand naar buiten, nieuwe stand in binnenste ring?  (dan zie je de vorige stand)
+- Andere ringen: links/rechts?
+- Led code: Rechterhelft (en linkerhelft) heeft 10 pizels, midboven en midonder leuk effectje of uit?
+
+main:
+   - setup
+   - mainloop
+     - startup-dingen (geluidje, ...)
+     - check/onthoud verbindingen
+     - loop while 10 verbindingen
+       - OK effecten (leds, geluid)
+       - check verbindingen
+       - check externe aansturing
+     - light/geluidseffect stukgaan
+     - loop while <10 verbindingen of 10 verbindingen gelijk aan vorige
+       - licht/geluidseffect stuk (afhankelik level)
+       - check externe aansturing
+       - check verbindingen
+       - als nog minder verbingingen of aansturing, extra 'stuk' effecten, stuklevel omhoog
+     - licht/geluidseffect starten reparatie
+     - juiste combinatie bepalen (adhv level)
+     - tijd onthouden
+     - loop while niet juiste combinatie
+       - toon led mastermind code
+       - loop while 10 verbindingen
+         - als meer dan 10 minuten verstreken dan terug naar 'stuk'
+         - licht/geluid tijdens reparatie
+         - check verbindingen
+         - juiste combinatie?  Dan einde lus
+       - loop while <10 verbindingen
+         - als meer dan 10 minuten verstreken dan terug naar 'stuk'
+         - licht/geluid tijdens reparatie
+         - check verbindingen
+         - juiste combinatie?  Dan einde lus
+       - licht/geluidseffect combinatiestap
+     - licht/geluidseffect reparatie klaar
+
+
+Externe communicatie:
+optie 1 - Via bestanden (moet dan wel tempdir in ram)
+optie 2 - Pipe (named pipe?  Moet ook via ram)
+optie 3 - Shared memory?
+
+optie 1 lijkt het makkelijkst:
+- status dir, wordt alleen geschreven door game-app
+  - statusfile: 'ok', 'broken', 'fixing', ...
+  - detailfile: alle verbindingen
+  - pidfile (doublechecken of game draait)
+- meerdere command dirs, wordt geschreven door externe controllers
+  - bijvoorbeeld discord bot, http-server, bluetooth app
+  - commandfile: 'break<level>', 'fix', ...
