@@ -215,6 +215,7 @@ int led_animate(ledanim_t *an) {
 
 int led_set_blobs(int ring, int num, ...)
 {
+    led_remove_animation(ring);
     va_list argp;
     va_start(argp, num);
     ledanim_t **an = &led_animations;
@@ -240,6 +241,20 @@ int led_set_blobs(int ring, int num, ...)
     }
     va_end(argp);
     *an = newan;
+    return 0;
+}
+
+int led_remove_animation(int ring)
+{
+    for (ledanim_t **an = &led_animations; *an;) {
+        if (((*an)->offset == ring*RING_SIZE) && ((*an)->type != ANIMATION_FLASH)) {
+            ledanim_t *f = *an;
+            *an = (*an)->next;
+            free(f);
+        } else {
+            an = &((*an)->next);
+        }
+    }
     return 0;
 }
 
