@@ -73,6 +73,8 @@ int main(int argc, char *argv[])
         debugging = 1;
     }
 
+    srandom(time(NULL));
+
     /* Alles initen */
     setup_handlers();
     init_mcps();

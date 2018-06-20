@@ -135,7 +135,7 @@ int game_mainloop(int gamestate, clist_t *conns)
         case GAME_BOOT:
             pdebug("GAME_BOOT");
             audio_play_file("booting.wav");
-            bootcount = FRAMERATE*2;
+            bootcount = FRAMERATE*2/SCANRATE;
         case GAME_BOOTING:
             return game_booting(conns);
             break;
