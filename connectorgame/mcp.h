@@ -2,7 +2,9 @@
 
 #define NUM_PINS 100
 #define PINS_PER_MCP 15
-#define PIN_ROW(p) ((((p) / 5) + 1) % 20)
+#define PINS_PER_ROW 5
+#define PIN_ROW(p) (((p) / PINS_PER_ROW) % 20)
+#define NUM_ROWS ((NUM_PINS+PINS+PER_ROW-1)/PINS_PER_ROW)
 #define NUM_MCPS ((NUM_PINS+PINS_PER_MCP-1)/PINS_PER_MCP)
 
 #define PIN_DEBOUNCE 8

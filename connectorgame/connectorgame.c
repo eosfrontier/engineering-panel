@@ -21,6 +21,7 @@
 #include "mcp.h"
 #include "leds.h"
 #include "audio.h"
+#include "connectors.h"
 
 #define FRAMERATE 50
 #define SLEEPTIME (1000000/FRAMERATE)
@@ -98,6 +99,26 @@ int game_oking(clist_t *conns)
     }
 }
 
+struct puzzle {
+    int solution[NUM_ROWS];
+} puzzle;
+
+int randint(int from, int to)
+{
+    return from + ((random() % (to - from)));
+}
+
+void game_set_puzzle(clist_t *conns, int from, int to)
+{
+    for (int i = 0; i < NUM_ROWS; i++) {
+        puzzle.solution[i] = -1;
+    }
+    for (int i = from; i < to; i++) {
+        int pos = randint(i*5, (i+1)*5);
+        puzzle.solution[i] = pos;
+    }
+}
+
 int game_fixing(clist_t *conns)
 {
     if (conns->newon > 0) {
@@ -110,20 +131,43 @@ int game_fixing(clist_t *conns)
     }
     int colcnts[2] = {0,0};
     int poscnts[2] = {0,0};
+    char seenpos[NUM_ROWS];
+    for (int i = 0; i < NUM_ROWS; i++) {
+        /* -1 is altijd goed */
+        seenpos[i] = ((puzzle.solution[i] < 0));
+    }
+    /* Eerst kijken voor juiste posities */
     for (int i = 0; i < conns->on; i++) {
-        int s1 = (PIN_ROW(conns->pins[i].p1) >= 10);
-        int s2 = (PIN_ROW(conns->pins[i].p2) >= 10);
-        if (s1 == s2) {
-            poscnts[s1]++;
-            poscnts[s2]++;
-        } else {
-            colcnts[s1]++;
-            colcnts[s2]++;
+        int s[2] = { conns->pins[i].p1, conns->pins[i].p2 };
+        for (int cc = 0; cc < 2; cc++) {
+            int r = PIN_ROW(s[cc]);
+            /* Kijken of de positie klopt */
+            if (!seenpos[r]) {
+                if (puzzle.solution[r] == s[cc]) {
+                    seenpos[r] = 1;
+                    poscnts[(r >= 10)]++;
+                }
+            }
+        }
+    }
+    /* Dan kijken voor de resterende juiste kleuren */
+    for (int i = 0; i < conns->on; i++) {
+        int s[2] = { conns->pins[i].p1, conns->pins[i].p2 };
+        for (int cc = 0; cc < 2; cc++) {
+            /* Kijken of de kleur klopt */
+            for (int r = 0; r < NUM_ROWS; r++) {
+                if (!seenpos[r]) {
+                    if (c_colors[puzzle.solutions[r]] == c_colors[s[cc]]) {
+                        seenpos[r] = 1;
+                        colcnts[(r >= 10)]++;
+                    }
+                }
+            }
         }
     }
     ledshow_mastermind(0, colcnts[0], poscnts[0]);
     ledshow_mastermind(1, colcnts[1], poscnts[1]);
-    if (conns->on < 10) {
+    if (poscnts[0] < 10 || poscnts[1] < 10) {
         return GAME_FIXING;
     } else {
         return GAME_BOOT;
@@ -167,10 +211,12 @@ int main(int argc, char *argv[])
                 break;
             case GAME_BREAK:
                 flashcount = 0;
-            case GAME_BREAKING:
-            case GAME_FIX:
                 led_set_blobs(0, 3, 0x330000, 0x221100, 0x000011);
                 led_set_blobs(3, 4, 0x330000, 0x003300, 0x331100, 0x113300);
+            case GAME_BREAKING:
+            case GAME_FIX:
+                game_set_puzzle(conns,0,10);
+                /* Rodere animaties */
                 led_remove_animation(1);
                 led_remove_animation(2);
             case GAME_FIXING:
