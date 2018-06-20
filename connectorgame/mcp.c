@@ -273,20 +273,24 @@ clist_t *find_connections(void)
     on = 0;
     for (int ip = 0; ip < NUM_PINS; ip++) {
         for (int op = 0; op < NUM_PINS; op++) {
+            int p1 = (ip + 5) % NUM_PINS;
+            int p2 = (ip + 5) % NUM_PINS;
+            if (p1 >= (NUM_PINS/2)) p1 = (NUM_PINS + NUM_PINS/2 - 1) - p1;
+            if (p2 >= (NUM_PINS/2)) p2 = (NUM_PINS + NUM_PINS/2 - 1) - p2;
             switch (connections[ip][op]) {
                 case PIN_ON:
-                    conns->pins[on].p1 = ip;
-                    conns->pins[on].p2 = op;
+                    conns->pins[on].p1 = p1;
+                    conns->pins[on].p2 = p2;
                     on++;
                     break;
                 case PIN_CHANGE_ON:
-                    conns->pins[newon].p1 = ip;
-                    conns->pins[newon].p2 = op;
+                    conns->pins[newon].p1 = p1;
+                    conns->pins[newon].p2 = p2;
                     newon++;
                     break;
                 case PIN_CHANGE_OFF:
-                    conns->pins[off].p1 = ip;
-                    conns->pins[off].p2 = op;
+                    conns->pins[off].p1 = p1;
+                    conns->pins[off].p2 = p2;
                     off++;
                     break;
             }
