@@ -124,10 +124,21 @@ int game_fixing(clist_t *conns)
     if (poscnts[0] < 10 || poscnts[1] < 10) {
         return GAME_FIXING;
     } else {
-        return GAME_OK;
+        return GAME_FIXED;
     }
 }
 
+int game_fixeding(clist_t *conns)
+{
+    if (bootcount > 0) {
+        bootcount--;
+        return GAME_FIXEDING;
+    } else if (conns->on >= 10) {
+        return GAME_OK;
+    } else {
+        return GAME_BREAK;
+    }
+}
 
 int game_mainloop(int gamestate, clist_t *conns)
 {
@@ -136,10 +147,10 @@ int game_mainloop(int gamestate, clist_t *conns)
         case GAME_BOOT:
             pdebug("GAME_BOOT");
             audio_play_file("booting.wav");
-            led_set_swipe(0, FRAMERATE*2, 3, 0xff0000, 0xff0000, 0xff0000);
-            led_set_swipe(1, FRAMERATE*2, 3, 0x00ff00, 0x00ff00, 0x00ff00);
-            led_set_swipe(2, FRAMERATE*2, 3, 0x888800, 0x888800, 0x888800);
-            led_set_swipe(3, FRAMERATE*2, 3, 0x0000ff, 0x0000ff, 0x0000ff);
+            led_set_swipe(0, FRAMERATE*2, 12, 3, 0xff0000, 0xff0000, 0xff0000);
+            led_set_swipe(1, FRAMERATE*2, 0, 3, 0x00ff00, 0x00ff00, 0x00ff00);
+            led_set_swipe(2, FRAMERATE*2, 0, 3, 0x888800, 0x888800, 0x888800);
+            led_set_swipe(3, FRAMERATE*2, 0, 3, 0x0000ff, 0x0000ff, 0x0000ff);
             bootcount = FRAMERATE*2/SCANRATE;
         case GAME_BOOTING:
             return game_booting(conns);
@@ -170,6 +181,16 @@ int game_mainloop(int gamestate, clist_t *conns)
             led_remove_animation(2);
         case GAME_FIXING:
             return game_fixing(conns);
+            break;
+        case GAME_FIXED:
+            pdebug("GAME_FIXED");
+            led_set_swipe(0, FRAMERATE, 12, 3, 0xff0000, 0xff0000, 0xff0000);
+            led_set_swipe(1, FRAMERATE, 0, 3, 0x00ff00, 0x00ff00, 0x00ff00);
+            led_set_swipe(2, FRAMERATE, 0, 3, 0x888800, 0x888800, 0x888800);
+            led_set_swipe(3, FRAMERATE, 0, 3, 0x0000ff, 0x0000ff, 0x0000ff);
+            bootcount = FRAMERATE/SCANRATE;
+        case GAME_FIXEDING:
+            return game_fixeding(conns);
             break;
     }
 }

@@ -56,6 +56,7 @@ typedef struct ledanim {
     int size;
     int speed;
     int fadein;
+    int fadepos;
     int pos;
     int data[0];
 } ledanim_t;
@@ -162,8 +163,10 @@ int ledshow_mastermind(int side, int colors, int correct)
 int led_animate_plasma(ledanim_t *an)
 {
     an->pos += 1;
-    if (an->fadein > 0) an->fadein -= 1;
     if (an->pos > (an->speed * an->size)) an->pos = 0;
+    if (an->fadepos < an->fadein) an->fadepos += 1;
+    int fade = 255;
+    if (an->fadein > 0) fade = (255 * an->fadepos) / an->fadein;
     for (int ip = 0; ip < an->size; ip++) {
         double r = 0, g = 0, b = 0;
         for (int dp = 1; dp < an->data[0]; dp += 3) {
@@ -184,7 +187,7 @@ int led_animate_plasma(ledanim_t *an)
         if (g > 0xff) g = 0xff;
         if (b > 0xff) b = 0xff;
         int col = (((int)r) << 16) | (((int)g) << 8) | ((int)b);
-        ledstring.channel[0].leds[an->offset+ip] = col;
+        ledstring.channel[0].leds[an->offset+ip] = scale(col, fade);
     }
     return 0;
 }
@@ -211,41 +214,27 @@ int led_animate_flash(ledanim_t *an)
 int led_animate_swipe(ledanim_t *an)
 {
     an->pos += 1;
+    int spos, onoff;
+
     if (an->pos <= an->speed/2) {
-        for (int dp = 1; dp < an->data[0]; dp++) {
-            int p1 = (an->size * (dp-1)) / (an->data[0]-1);
-            int p2 = (an->size * (dp)) / (an->data[0]-1);
-            int p = p1 + ((p2 - p1) * (an->speed/2)) / an->pos;
-            for (int ip = p1; ip < p2; ip++) {
-                if (ip < p) {
-                    ledstring.channel[0].leds[an->offset+ip] = an->data[dp];
-                } else if (ip == p) {
-                    ledstring.channel[0].leds[an->offset+ip] = scale(an->data[dp], 255);
-                } else {
-                    ledstring.channel[0].leds[an->offset+ip] = 0;
-                }
-            }
-        }
-        return 0;
+        onoff = 0;
+        spos = an->pos;
     } else if (an->pos <= an->speed) {
-        for (int dp = 1; dp < an->data[0]; dp++) {
-            int p1 = (an->size * (dp-1)) / (an->data[0]-1);
-            int p2 = (an->size * (dp)) / (an->data[0]-1);
-            int p = p1 + ((p2 - p1) * (an->speed/2)) / (an->pos - (an->speed/2));
-            for (int ip = p1; ip < p2; ip++) {
-                if (ip < p) {
-                    ledstring.channel[0].leds[an->offset+ip] = 0;
-                } else if (ip == p) {
-                    ledstring.channel[0].leds[an->offset+ip] = scale(an->data[dp], 255);
-                } else {
-                    ledstring.channel[0].leds[an->offset+ip] = an->data[dp];
-                }
-            }
-        }
-        return 0;
+        onoff = 1;
+        spos = an->pos - an->speed/2;
     } else {
         return 1;
     }
+    for (int dp = 2; dp < an->data[0]; dp++) {
+        int p1 = (an->size * (dp-2)) / (an->data[0]-2) + an->data[1];
+        int p2 = (an->size * (dp-1)) / (an->data[0]-2) + an->data[1];
+        int p = p1 + ((p2 - p1) * spos) / (an->speed/2);
+        int f = (((p2 - p1) * spos) % (an->speed/2)) * 255 / (an->speed/2);
+        for (int ip = p1; ip < p; ip++) ledstring.channel[0].leds[an->offset+(ip % an->size)] = onoff ? 0 : an->data[dp];
+        if (p1 <= p && p < p2) ledstring.channel[0].leds[an->offset+(p % an->size)] = scale(an->data[dp], onoff ? 255-f : f);
+        for (int ip = p+1; ip < p2; ip++) ledstring.channel[0].leds[an->offset+(ip % an->size)] = onoff ? an->data[dp] : 0;
+    }
+    return 0;
 }
 
 int led_animate(ledanim_t *an) {
@@ -282,6 +271,7 @@ int led_set_blobs(int ring, int fadein, int num, ...)
     newan->size = RING_SIZE;
     newan->speed = 128;
     newan->fadein = fadein;
+    newan->fadepos = 0;
     newan->pos = 0;
     newan->data[0] = 3*num+1;
     float spd = 5;
@@ -328,6 +318,7 @@ int led_set_flash(int ring, int num, ...)
     newan->size = RING_SIZE;
     newan->speed = 32;
     newan->fadein = 0;
+    newan->fadepos = 0;
     newan->pos = 0;
     newan->data[0] = 3*num+1;
     for (int i = 0; i < num; i++) {
@@ -340,13 +331,13 @@ int led_set_flash(int ring, int num, ...)
     return 0;
 }
 
-int led_set_swipe(int ring, int speed, int num, ...)
+int led_set_swipe(int ring, int speed, int offset, int num, ...)
 {
     va_list argp;
     va_start(argp, num);
     ledanim_t **an = &led_animations;
     while (*an) an = &((*an)->next);
-    ledanim_t *newan = malloc(sizeof(ledanim_t) + (1+(num))*sizeof(int));
+    ledanim_t *newan = malloc(sizeof(ledanim_t) + (2+(num))*sizeof(int));
     if (!newan) {
         fprintf(stderr, "Allocation for animation failed!\n");
         return -1;
@@ -357,10 +348,12 @@ int led_set_swipe(int ring, int speed, int num, ...)
     newan->size = RING_SIZE;
     newan->speed = speed;
     newan->fadein = 0;
+    newan->fadepos = 0;
     newan->pos = 0;
-    newan->data[0] = num+1;
+    newan->data[0] = num+2;
+    newan->data[1] = offset;
     for (int i = 0; i < num; i++) {
-        newan->data[i+1] = va_arg(argp, unsigned int);
+        newan->data[i+2] = va_arg(argp, unsigned int);
     }
     va_end(argp);
     *an = newan;
