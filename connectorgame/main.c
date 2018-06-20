@@ -10,6 +10,7 @@
 
 #include <stdint.h>
 #include <stdio.h>
+#include <stdarg.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
@@ -21,6 +22,8 @@
 #include "mcp.h"
 #include "leds.h"
 #include "audio.h"
+#include "main.h"
+
 #include "connectors.h"
 
 #define FRAMERATE 50
@@ -40,6 +43,20 @@ enum gamestates {
 };
 
 static uint8_t running = 1;
+static uint8_t debugging = 0;
+
+void pdebug(const char *format, ...)
+{
+    va_list args;
+    va_start (args, format);
+    if (debugging) {
+        fprintf(stdout, "DBG: ");
+        vfprintf(stdout, format, args);
+        fprintf(stdout, "\n");
+        fflush(stdout);
+    }
+    va_end(args);
+}
 
 static void ctrl_c_handler(int signum)
 {
@@ -110,17 +127,19 @@ int randint(int from, int to)
 
 void game_set_puzzle(clist_t *conns, int from, int to)
 {
+    pdebug("game_set_puzzle(%d/%d/%d, %d, %d)", conns->on, conns->newon, conns->off, from, to);
     for (int i = 0; i < NUM_ROWS; i++) {
-        puzzle.solution[i] = -1;
-    }
-    for (int i = from; i < to; i++) {
-        int pos = randint(i*5, (i+1)*5);
-        puzzle.solution[i] = pos;
+        if (i < from || i >= to) {
+            puzzle.solution[i] = -1;
+        } else {
+            puzzle.solution[i] = randint(i*5, (i+1)*5);
+        }
     }
 }
 
 int game_fixing(clist_t *conns)
 {
+    pdebug("game_fixing(%d,%d,%d)", conns->on, conns->newon, conns->off);
     if (conns->newon > 0) {
         audio_play_file("on.wav");
     } else if (conns->off > 0) {
@@ -176,8 +195,12 @@ int game_fixing(clist_t *conns)
 
 int main(int argc, char *argv[])
 {
-    int cycles = 0;
+    // int cycles = 0;
     // int timers[] = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
+    
+    if (argc > 1 && argv[1][0] == 'd') {
+        debugging = 1;
+    }
 
     /* Alles initen */
     setup_handlers();
@@ -194,12 +217,14 @@ int main(int argc, char *argv[])
         switch (gamestate) {
             default: /* Fallthrough to boot */
             case GAME_BOOT:
+                pdebug("GAME_BOOT");
                 audio_play_file("booting.wav");
                 bootcount = FRAMERATE*2;
             case GAME_BOOTING:
                 gamestate = game_booting(conns);
                 break;
             case GAME_OK:
+                pdebug("GAME_OK");
                 /* Wat leuke animaties */
                 led_set_blobs(0, FRAMERATE/2, 3, 0x003300, 0x002211, 0x000033);
                 led_set_blobs(3, FRAMERATE/2, 4, 0x000033, 0x003300, 0x001133, 0x003311);
@@ -211,11 +236,13 @@ int main(int argc, char *argv[])
                 gamestate = game_oking(conns);
                 break;
             case GAME_BREAK:
+                pdebug("GAME_BREAK");
                 flashcount = 0;
                 led_set_blobs(0, 3, 0x330000, 0x221100, 0x000011);
                 led_set_blobs(3, 4, 0x330000, 0x003300, 0x331100, 0x113300);
             case GAME_BREAKING:
             case GAME_FIX:
+                pdebug("GAME_FIX");
                 game_set_puzzle(conns,0,10);
                 /* Rodere animaties */
                 led_remove_animation(1);

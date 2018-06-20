@@ -6,6 +6,7 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 
+#include "main.h"
 #include "audio.h"
 
 static snd_pcm_t *pcm_handle = NULL;
@@ -92,7 +93,7 @@ int audio_play_file(char *name)
         return -1;
     }
     play_pos = 44;
-    // printf("Playing %s\n", pathname);
+    pdebug("Playing %s", pathname);
     return 0;
 }
 

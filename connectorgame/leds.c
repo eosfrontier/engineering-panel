@@ -10,6 +10,7 @@
 #include <unistd.h>
 #include <signal.h>
 #include <math.h>
+#include "main.h"
 #include "leds.h"
 #include "../../source/rpi_ws281x/ws2811.h"
 
