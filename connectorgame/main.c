@@ -133,15 +133,18 @@ void game_set_puzzle(clist_t *conns, int from, int to)
             puzzle.solution[i] = -1;
         } else {
             puzzle.solution[i] = randint(i*5, (i+1)*5);
+            pdebug("Suolution[%d] = %d", i, puzzle.solution[i]);
         }
     }
 }
 
 int game_fixing(clist_t *conns)
 {
-    pdebug("game_fixing(%d,%d,%d)", conns->on, conns->newon, conns->off);
     if (conns->newon > 0) {
         audio_play_file("on.wav");
+        for (int i = (conns->on - conns->newon); i < conns->on; i++) {
+            pdebug("New connection: %d - %d", conns->pins[i].p1, conns->pins[i].p2);
+        }
     } else if (conns->off > 0) {
         audio_play_file("off.wav");
     } else if (--flashcount <= 0) {
@@ -153,7 +156,12 @@ int game_fixing(clist_t *conns)
     char seenpos[NUM_ROWS];
     for (int i = 0; i < NUM_ROWS; i++) {
         /* -1 is altijd goed */
-        seenpos[i] = ((puzzle.solution[i] < 0));
+        if (puzzle.solution[i] < 0) {
+            seenpos[i] = 1;
+            poscnts[(i >= 10)]++;
+        } else {
+            seenpos[i] = 0;
+        }
     }
     /* Eerst kijken voor juiste posities */
     for (int i = 0; i < conns->on; i++) {
@@ -238,8 +246,8 @@ int main(int argc, char *argv[])
             case GAME_BREAK:
                 pdebug("GAME_BREAK");
                 flashcount = 0;
-                led_set_blobs(0, 3, 0x330000, 0x221100, 0x000011);
-                led_set_blobs(3, 4, 0x330000, 0x003300, 0x331100, 0x113300);
+                led_set_blobs(0, 0, 3, 0x330000, 0x221100, 0x000011);
+                led_set_blobs(3, 0, 4, 0x330000, 0x003300, 0x331100, 0x113300);
             case GAME_BREAKING:
             case GAME_FIX:
                 pdebug("GAME_FIX");

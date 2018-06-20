@@ -15,29 +15,18 @@
 #include <errno.h>
 #include <wiringPiI2C.h>
 #include "mcp.h"
+#include "main.h"
 
 static int mcps[NUM_MCPS];
 
 unsigned char connections[NUM_PINS][NUM_PINS];
-
-static inline void pdebug(const char *format, ...)
-{
-    va_list args;
-    va_start (args, format);
-#if REPEATS == 1
-    fprintf(stdout, "DBG: ");
-    vfprintf(stdout, format, args);
-    fprintf(stdout, "\n");
-#endif
-    va_end(args);
-}
 
 /* Alle MCPs initialiseren */
 void init_mcps(void)
 {
     memset(connections, 0, sizeof(connections));
     for (int m = 0; m < NUM_MCPS; m++) {
-        pdebug("Setting up MCP %d", m);
+        // pdebug("Setting up MCP %d", m);
         mcps[m] = wiringPiI2CSetup(0x20 + m);
         if (mcps[m] < 0) {
             fprintf(stderr, "Unable to start I2C %d: %s\n", m, strerror(errno));
@@ -79,7 +68,7 @@ clist_t *find_connections(void)
         if (odev < NUM_MCPS-1) {
             /* Stap 1: Hele MCP op output, andere MCPs checken */
             /* Alle pins naar output */
-            pdebug("Outputting all-zeros MCP %d", odev);
+            // pdebug("Outputting all-zeros MCP %d", odev);
             if (wiringPiI2CWriteReg16(mcps[odev], MCP_IODIR, 0x0000) < 0) {
                 // fprintf(stderr, "Unable to setup output I2C %d: %s\n", odev, strerror(errno));
                 // exit(1);
@@ -90,7 +79,7 @@ clist_t *find_connections(void)
                 if (idev == NUM_MCPS-1) {
                     numpins = (NUM_PINS-1) % PINS_PER_MCP + 1;
                 }
-                pdebug("Scanning all MCP %d", idev);
+                // pdebug("Scanning all MCP %d", idev);
                 if (numpins > 8) {
                     vallist[idev] = wiringPiI2CReadReg16(mcps[idev], MCP_GPIO);
                 } else {
@@ -101,7 +90,7 @@ clist_t *find_connections(void)
                     // exit(1);
                     vallist[idev] = 0xffff;
                 }
-                pdebug("  Input MCP %d = %x", idev, vallist[idev]);
+                // pdebug("  Input MCP %d = %x", idev, vallist[idev]);
             }
             /* Alle pins terug naar input */
             if (wiringPiI2CWriteReg16(mcps[odev], MCP_IODIR, 0xffff) < 0) {
@@ -120,32 +109,32 @@ clist_t *find_connections(void)
                         np = (numpins-1) % 8 + 1;
                     }
                     int hit = 0;
-                    pdebug("Scanning MCP %d/%d (%d-%d)", idev, ireg, 0, np);
+                    // pdebug("Scanning MCP %d/%d (%d-%d)", idev, ireg, 0, np);
                     for (int ipin = 0; ipin < np; ipin++) {
                         if (!(vallist[idev] & (1 << (ipin + 8*ireg)))) {
                             hit = 1;
-                            pdebug("Hit MCP %d/%d/%d, outputting zero", idev, ireg, ipin);
+                            // pdebug("Hit MCP %d/%d/%d, outputting zero", idev, ireg, ipin);
                             if (wiringPiI2CWriteReg8(mcps[idev], MCP_IODIR+ireg, (0x01 << ipin) ^ 0xff) < 0) {
                                 fprintf(stderr, "Failed to set output pin Direction (%d/%d/%d): %s\n", idev, ireg, ipin, strerror(errno));
                                 exit(1);
                             }
-                            pdebug("Scanning MCP %d for hit", odev);
+                            // pdebug("Scanning MCP %d for hit", odev);
                             int vals = wiringPiI2CReadReg16(mcps[odev], MCP_GPIO);
                             if (vals < 0) {
                                 fprintf(stderr, "Failed to read pins from mcp %d: %s\n", odev, strerror(errno));
                                 exit(1);
                             }
-                            pdebug("  Input MCP %d = %x", odev, vals);
+                            // pdebug("  Input MCP %d = %x", odev, vals);
                             for (int op = 0; op < PINS_PER_MCP; op++) {
                                 if (!(vals & (1 << op))) {
-                                    pdebug("  Hit back MCP %d/%d (from %d/%d/%d)", odev, op, idev, ireg, ipin);
+                                    // pdebug("  Hit back MCP %d/%d (from %d/%d/%d)", odev, op, idev, ireg, ipin);
                                     connections[op + (odev * PINS_PER_MCP)][8*ireg + ipin + (idev * PINS_PER_MCP)] |= 0x1;
                                 }
                             }
                         }
                     }
                     if (hit) {
-                        pdebug("Setting %d/%d back to input", idev, ireg);
+                        // pdebug("Setting %d/%d back to input", idev, ireg);
                         if (wiringPiI2CWriteReg8(mcps[idev], MCP_IODIR+ireg, 0xff) < 0) {
                             fprintf(stderr, "Failed to set input pin Direction (%d/%d): %s\n", idev, ireg, strerror(errno));
                             exit(1);
@@ -160,9 +149,9 @@ clist_t *find_connections(void)
         if (odev == NUM_MCPS-1) {
             numpins = (NUM_PINS-1) % PINS_PER_MCP + 1;
         }
-        pdebug("Scanning intradevice %d (%d pins)", odev, numpins);
+        // pdebug("Scanning intradevice %d (%d pins)", odev, numpins);
         for (int s = (numpins <= 8 ? 1 : 0); s < 4; s++) {
-            pdebug("Setting output on %d to pattern %x", odev, scanpatterns[s]);
+            // pdebug("Setting output on %d to pattern %x", odev, scanpatterns[s]);
             if (numpins <= 8) {
                 if (wiringPiI2CWriteReg8(mcps[odev], MCP_IODIR, scanpatterns[s] & 0xff) < 0) {
                     fprintf(stderr, "Failed to set IO pins Direction (%d): %s\n", odev, strerror(errno));
@@ -175,7 +164,7 @@ clist_t *find_connections(void)
                 }
             }
             int vals;
-            pdebug("  Scanning input on %d", odev, scanpatterns[s]);
+            // pdebug("  Scanning input on %d", odev, scanpatterns[s]);
             if (numpins > 8) {
                 vals = wiringPiI2CReadReg16(mcps[odev], MCP_GPIO);
             } else {
@@ -185,7 +174,7 @@ clist_t *find_connections(void)
                 fprintf(stderr, "Failed to read pins from mcp %d: %s\n", odev, strerror(errno));
                 exit(1);
             }
-            pdebug("Setting %d back to input", odev);
+            // pdebug("Setting %d back to input", odev);
             if (numpins <= 8) {
                 if (wiringPiI2CWriteReg8(mcps[odev], MCP_IODIR, 0xff) < 0) {
                     fprintf(stderr, "Failed to set IO pins Direction (%d): %s\n", odev, strerror(errno));
@@ -197,16 +186,16 @@ clist_t *find_connections(void)
                     exit(1);
                 }
             }
-            pdebug("  Input MCP %d = %x", odev, vals);
+            // pdebug("  Input MCP %d = %x", odev, vals);
             /* optput pins op 1 zetten zodat die niet scannen */
             vals |= (scanpatterns[s] ^ 0xffff);
-            pdebug("  Input MCP %d (masked) = %x", odev, vals);
+            // pdebug("  Input MCP %d (masked) = %x", odev, vals);
             for (int ip = 0; ip < numpins; ip++) {
                 if (!(vals & (1 << ip))) {
                     int ipin = ip;
                     int ireg = ip / 8;
                     ipin = ipin % 8;
-                    pdebug("Hit on pin %d/%d, setting to output", ireg, ipin);
+                    // pdebug("Hit on pin %d/%d, setting to output", ireg, ipin);
                     if (wiringPiI2CWriteReg8(mcps[odev], MCP_IODIR+ireg, (0x01 << ipin) ^ 0xff) < 0) {
                         fprintf(stderr, "Failed to set output pin Direction (%d/%d/%d %d): %s\n", ip, odev, ireg, ipin, strerror(errno));
                         exit(1);
@@ -225,17 +214,17 @@ clist_t *find_connections(void)
                             exit(1);
                         }
                     }
-                    pdebug("  Input MCP %d = %x", odev, rvals);
+                    // pdebug("  Input MCP %d = %x", odev, rvals);
                     int tpin = (ip & (0xff << (3-s)));
                     int fpin = (tpin - (1 << (3-s)));
-                    pdebug("  Scanning pins %d to %d (for %d step %d)", fpin, tpin, ip, s);
+                    // pdebug("  Scanning pins %d to %d (for %d step %d)", fpin, tpin, ip, s);
                     for (int op = fpin; op < tpin; op++) {
                         if (!(rvals & (1 << op))) {
-                            pdebug("  Hit back MCP %d/%d (from %d/%d)", odev, op, odev, ip);
+                            // pdebug("  Hit back MCP %d/%d (from %d/%d)", odev, op, odev, ip);
                             connections[op + (odev * PINS_PER_MCP)][ip + (odev * PINS_PER_MCP)] |= 0x1;
                         }
                     }
-                    pdebug("Set pin %d/%d/%d back to input", odev, ireg, ipin);
+                    // pdebug("Set pin %d/%d/%d back to input", odev, ireg, ipin);
                     if (wiringPiI2CWriteReg8(mcps[odev], MCP_IODIR+ireg, 0xff) < 0) {
                         fprintf(stderr, "Failed to set input pin Direction (%d/%d/%d): %s\n", odev, ireg, ipin, strerror(errno));
                         exit(1);
@@ -274,7 +263,7 @@ clist_t *find_connections(void)
     for (int ip = 0; ip < NUM_PINS; ip++) {
         for (int op = 0; op < NUM_PINS; op++) {
             int p1 = (ip + 5) % NUM_PINS;
-            int p2 = (ip + 5) % NUM_PINS;
+            int p2 = (op + 5) % NUM_PINS;
             if (p1 >= (NUM_PINS/2)) p1 = (NUM_PINS + NUM_PINS/2 - 1) - p1;
             if (p2 >= (NUM_PINS/2)) p2 = (NUM_PINS + NUM_PINS/2 - 1) - p2;
             switch (connections[ip][op]) {
