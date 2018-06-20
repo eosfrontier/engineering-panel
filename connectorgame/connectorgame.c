@@ -126,7 +126,7 @@ int game_fixing(clist_t *conns)
     if (conns->on < 10) {
         return GAME_FIXING;
     } else {
-        return GAME_BOOT;
+        return GAME_OK;
     }
 }
 
@@ -157,11 +157,12 @@ int main(int argc, char *argv[])
                 break;
             case GAME_OK:
                 /* Wat leuke animaties */
-                led_set_blobs(0, 3, 0x003300, 0x002211, 0x000033);
-                led_set_blobs(3, 4, 0x000033, 0x003300, 0x001133, 0x003311);
+                led_set_blobs(0, FRAMERATE/2, 3, 0x003300, 0x002211, 0x000033);
+                led_set_blobs(3, FRAMERATE/2, 4, 0x000033, 0x003300, 0x001133, 0x003311);
 
-                led_set_blobs(1, 3, 0x002222, 0x002200, 0x000022);
-                led_set_blobs(2, 3, 0x002222, 0x000022, 0x002200);
+                led_set_blobs(1, FRAMERATE/2, 3, 0x002222, 0x002200, 0x000022);
+                led_set_blobs(2, FRAMERATE/2, 3, 0x002222, 0x000022, 0x002200);
+                audio_play_file("ready.wav");
             case GAME_OKING:
                 gamestate = game_oking(conns);
                 break;
@@ -169,8 +170,8 @@ int main(int argc, char *argv[])
                 flashcount = 0;
             case GAME_BREAKING:
             case GAME_FIX:
-                led_set_blobs(0, 3, 0x330000, 0x221100, 0x000011);
-                led_set_blobs(3, 4, 0x330000, 0x003300, 0x331100, 0x113300);
+                led_set_blobs(0, 0, 3, 0x330000, 0x221100, 0x000011);
+                led_set_blobs(3, 0, 4, 0x330000, 0x003300, 0x331100, 0x113300);
                 led_remove_animation(1);
                 led_remove_animation(2);
             case GAME_FIXING:

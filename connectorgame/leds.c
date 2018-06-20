@@ -52,6 +52,7 @@ typedef struct ledanim {
     int offset;
     int size;
     int speed;
+    int fadein;
     int pos;
     int data[0];
 } ledanim_t;
@@ -155,6 +156,7 @@ int ledshow_mastermind(int side, int colors, int correct)
 int led_animate_plasma(ledanim_t *an)
 {
     an->pos += 1;
+    if (an->fadein > 0) an->fadein -= 1;
     if (an->pos > (an->speed * an->size)) an->pos = 0;
     for (int ip = 0; ip < an->size; ip++) {
         double r = 0, g = 0, b = 0;
@@ -213,7 +215,7 @@ int led_animate(ledanim_t *an) {
     return 0;
 }
 
-int led_set_blobs(int ring, int num, ...)
+int led_set_blobs(int ring, int fadein, int num, ...)
 {
     led_remove_animation(ring);
     va_list argp;
@@ -230,6 +232,7 @@ int led_set_blobs(int ring, int num, ...)
     newan->offset = ring*RING_SIZE;
     newan->size = RING_SIZE;
     newan->speed = 128;
+    newan->fadein = fadein;
     newan->pos = 0;
     newan->data[0] = 3*num+1;
     float spd = 5;

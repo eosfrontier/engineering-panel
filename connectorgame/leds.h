@@ -21,7 +21,7 @@
 int init_leds(void);
 int fini_leds(void);
 int ledshow_mastermind(int side, int colors, int correct);
-int led_set_blobs(int ring, int num, ...);
+int led_set_blobs(int ring, int fadein, int num, ...);
 int led_remove_animation(int ring);
 int led_set_flash(int ring, int num, ...);
 int leds_mainloop(void);
