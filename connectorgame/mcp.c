@@ -60,7 +60,7 @@ clist_t *find_connections(void)
 {
     for (int ip = 0; ip < NUM_PINS-1; ip++) {
         for (int op = ip; op < NUM_PINS; op++) {
-            connections[ip][op] = (connections[ip][op] << 1) & ((1 << PIN_DEBOUNCE) - 1);
+            connections[ip][op] = (connections[ip][op] & PIN_STATE) | ((connections[ip][op] << 1) & ((1 << PIN_DEBOUNCE) - 1));
         }
     }
     for (int odev = 0; odev < NUM_MCPS; odev++) {
@@ -237,17 +237,19 @@ clist_t *find_connections(void)
     /* Ronde 1: alles tellen voor de malloc */
     for (int ip = 0; ip < NUM_PINS; ip++) {
         for (int op = 0; op < NUM_PINS; op++) {
-            switch (connections[ip][op]) {
-                case PIN_ON:
-                    on++;
-                    break;
-                case PIN_CHANGE_ON:
-                    newon++;
-                    on++;
-                    break;
-                case PIN_CHANGE_OFF:
+            if (connections[ip][op] & PIN_STATE) {
+                /* Pin was on.  Check of ie al PIN_DEBOUNCE keer uit is */
+                if (connections[ip][op] == PIN_ON_OFF) {
                     off++;
-                    break;
+                } else {
+                    on++;
+                }
+            } else {
+                /* Pin was off.  Check of ie al PIN_DEBOUNCE keer aan is */
+                if (connections[ip][op] == PIN_OFF_ON) {
+                    on++;
+                    newon++;
+                }
             }
         }
     }
@@ -266,22 +268,28 @@ clist_t *find_connections(void)
             int p2 = (op + 5) % NUM_PINS;
             if (p1 >= (NUM_PINS/2)) p1 = (NUM_PINS + NUM_PINS/2 - 1) - p1;
             if (p2 >= (NUM_PINS/2)) p2 = (NUM_PINS + NUM_PINS/2 - 1) - p2;
-            switch (connections[ip][op]) {
-                case PIN_ON:
-                    conns->pins[on].p1 = p1;
-                    conns->pins[on].p2 = p2;
-                    on++;
-                    break;
-                case PIN_CHANGE_ON:
-                    conns->pins[newon].p1 = p1;
-                    conns->pins[newon].p2 = p2;
-                    newon++;
-                    break;
-                case PIN_CHANGE_OFF:
+            if (connections[ip][op] & PIN_STATE) {
+                /* Pin was on.  Check of ie al PIN_DEBOUNCE keer uit is */
+                if (connections[ip][op] == PIN_ON_OFF) {
+                    connections[ip][op] = 0;
+                    pdebug("Broke connection %d - %d", p1, p2);
                     conns->pins[off].p1 = p1;
                     conns->pins[off].p2 = p2;
                     off++;
-                    break;
+                } else {
+                    conns->pins[on].p1 = p1;
+                    conns->pins[on].p2 = p2;
+                    on++;
+                }
+            } else {
+                /* Pin was off.  Check of ie al PIN_DEBOUNCE keer aan is */
+                if (connections[ip][op] == PIN_OFF_ON) {
+                    connections[ip][op] |= PIN_STATE;
+                    pdebug("Made connection %d - %d", p1, p2);
+                    conns->pins[newon].p1 = p1;
+                    conns->pins[newon].p2 = p2;
+                    newon++;
+                }
             }
         }
     }

@@ -7,10 +7,12 @@
 #define NUM_ROWS ((NUM_PINS+PINS_PER_ROW-1)/PINS_PER_ROW)
 #define NUM_MCPS ((NUM_PINS+PINS_PER_MCP-1)/PINS_PER_MCP)
 
-#define PIN_DEBOUNCE 8
-#define PIN_ON ((1 << (PIN_DEBOUNCE)) - 1)
-#define PIN_CHANGE_ON ((1 << (PIN_DEBOUNCE-1)) - 1)
-#define PIN_CHANGE_OFF ((1 << (PIN_DEBOUNCE)) - 2)
+#define PIN_DEBOUNCE 7
+#define PIN_STATE (1 << PIN_DEBOUNCE)
+/* 1000.. */
+#define PIN_ON_OFF (1 << PIN_DEBOUNCE)
+/* 0111.. */
+#define PIN_OFF_ON (PIN_ON_OFF - 1)
 
 typedef struct connection {
     unsigned char p1, p2;
