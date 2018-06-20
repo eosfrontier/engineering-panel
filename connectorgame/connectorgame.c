@@ -157,7 +157,7 @@ int game_fixing(clist_t *conns)
             /* Kijken of de kleur klopt */
             for (int r = 0; r < NUM_ROWS; r++) {
                 if (!seenpos[r]) {
-                    if (c_colors[puzzle.solutions[r]] == c_colors[s[cc]]) {
+                    if (c_colors[puzzle.solution[r]] == c_colors[s[cc]]) {
                         seenpos[r] = 1;
                         colcnts[(r >= 10)]++;
                     }
