@@ -21,7 +21,8 @@ void flash_spark(void)
 
 int game_booting(clist_t *conns)
 {
-    if (--bootcount > 0) {
+    if (bootcount > 0) {
+        bootcount--;
         return GAME_BOOTING;
     } else if (conns->on >= 10) {
         return GAME_OK;
@@ -135,6 +136,10 @@ int game_mainloop(int gamestate, clist_t *conns)
         case GAME_BOOT:
             pdebug("GAME_BOOT");
             audio_play_file("booting.wav");
+            led_set_swipe(0, FRAMERATE*2, 3, 0xff0000, 0xff0000, 0xff0000);
+            led_set_swipe(1, FRAMERATE*2, 3, 0x00ff00, 0x00ff00, 0x00ff00);
+            led_set_swipe(2, FRAMERATE*2, 3, 0x888800, 0x888800, 0x888800);
+            led_set_swipe(3, FRAMERATE*2, 3, 0x0000ff, 0x0000ff, 0x0000ff);
             bootcount = FRAMERATE*2/SCANRATE;
         case GAME_BOOTING:
             return game_booting(conns);
@@ -142,11 +147,11 @@ int game_mainloop(int gamestate, clist_t *conns)
         case GAME_OK:
             pdebug("GAME_OK");
             /* Wat leuke animaties */
-            led_set_blobs(0, FRAMERATE/2, 3, 0x003300, 0x002211, 0x000033);
-            led_set_blobs(3, FRAMERATE/2, 4, 0x000033, 0x003300, 0x001133, 0x003311);
+            led_set_blobs(0, FRAMERATE*2, 3, 0x003300, 0x002211, 0x000033);
+            led_set_blobs(3, FRAMERATE*2, 4, 0x000033, 0x003300, 0x001133, 0x003311);
 
-            led_set_blobs(1, FRAMERATE/2, 3, 0x002222, 0x002200, 0x000022);
-            led_set_blobs(2, FRAMERATE/2, 3, 0x002222, 0x000022, 0x002200);
+            led_set_blobs(1, FRAMERATE*2, 3, 0x002222, 0x002200, 0x000022);
+            led_set_blobs(2, FRAMERATE*2, 3, 0x002222, 0x000022, 0x002200);
             audio_play_file("ready.wav");
         case GAME_OKING:
             return game_oking(conns);

@@ -15,7 +15,9 @@
 #include "../../source/rpi_ws281x/ws2811.h"
 
 enum led_animation_types {
-    ANIMATION_PLASMA, ANIMATION_FLASH
+    ANIMATION_PLASMA,
+    ANIMATION_FLASH,
+    ANIMATION_SWIPE
 };
 
 #define TARGET_FREQ             WS2811_TARGET_FREQ
@@ -60,17 +62,20 @@ typedef struct ledanim {
 
 static ledanim_t *led_animations = NULL;
 
-int degrade(int color)
+int scale(int color, int value)
 {
     int r = (color >> 16) & 0xff;
     int g = (color >> 8) & 0xff;
     int b = (color >> 0) & 0xff;
-    r = r * 100 / 110;
-    g = g * 100 / 110;
-    b = b * 100 / 110;
+    r = r * value / 255;
+    g = g * value / 255;
+    b = b * value / 255;
     if (r < 0) r = 0;
     if (g < 0) g = 0;
     if (b < 0) b = 0;
+    if (r > 255) r = 255;
+    if (g > 255) g = 255;
+    if (b > 255) b = 255;
     return (r << 16) + (g << 8) + b;
 }
 
@@ -203,12 +208,54 @@ int led_animate_flash(ledanim_t *an)
     return 1;
 }
 
+int led_animate_swipe(ledanim_t *an)
+{
+    an->pos += 1;
+    if (an->pos <= an->speed/2) {
+        for (int dp = 1; dp < an->data[0]; dp++) {
+            int p1 = (an->size * (dp-1)) / (an->data[0]-1);
+            int p2 = (an->size * (dp)) / (an->data[0]-1);
+            int p = p1 + ((p2 - p1) * (an->speed/2)) / an->pos;
+            for (int ip = p1; ip < p2; ip++) {
+                if (ip < p) {
+                    ledstring.channel[0].leds[an->offset+ip] = an->data[dp];
+                } else if (ip == p) {
+                    ledstring.channel[0].leds[an->offset+ip] = scale(an->data[dp], 255);
+                } else {
+                    ledstring.channel[0].leds[an->offset+ip] = 0;
+                }
+            }
+        }
+        return 0;
+    } else if (an->pos <= an->speed) {
+        for (int dp = 1; dp < an->data[0]; dp++) {
+            int p1 = (an->size * (dp-1)) / (an->data[0]-1);
+            int p2 = (an->size * (dp)) / (an->data[0]-1);
+            int p = p1 + ((p2 - p1) * (an->speed/2)) / (an->pos - (an->speed/2));
+            for (int ip = p1; ip < p2; ip++) {
+                if (ip < p) {
+                    ledstring.channel[0].leds[an->offset+ip] = 0;
+                } else if (ip == p) {
+                    ledstring.channel[0].leds[an->offset+ip] = scale(an->data[dp], 255);
+                } else {
+                    ledstring.channel[0].leds[an->offset+ip] = an->data[dp];
+                }
+            }
+        }
+        return 0;
+    } else {
+        return 1;
+    }
+}
+
 int led_animate(ledanim_t *an) {
     switch (an->type) {
         case ANIMATION_PLASMA:
             return led_animate_plasma(an);
         case ANIMATION_FLASH:
             return led_animate_flash(an);
+        case ANIMATION_SWIPE:
+            return led_animate_swipe(an);
         default:
             fprintf(stderr, "Unknown animation type %d\n", an->type);
             return -1;
@@ -280,12 +327,40 @@ int led_set_flash(int ring, int num, ...)
     newan->offset = ring*RING_SIZE;
     newan->size = RING_SIZE;
     newan->speed = 32;
+    newan->fadein = 0;
     newan->pos = 0;
     newan->data[0] = 3*num+1;
     for (int i = 0; i < num; i++) {
         newan->data[3*i+1] = va_arg(argp, unsigned int);
         newan->data[3*i+2] = va_arg(argp, unsigned int);
         newan->data[3*i+3] = va_arg(argp, unsigned int);
+    }
+    va_end(argp);
+    *an = newan;
+    return 0;
+}
+
+int led_set_swipe(int ring, int speed, int num, ...)
+{
+    va_list argp;
+    va_start(argp, num);
+    ledanim_t **an = &led_animations;
+    while (*an) an = &((*an)->next);
+    ledanim_t *newan = malloc(sizeof(ledanim_t) + (1+(num))*sizeof(int));
+    if (!newan) {
+        fprintf(stderr, "Allocation for animation failed!\n");
+        return -1;
+    }
+    newan->next = NULL;
+    newan->type = ANIMATION_SWIPE;
+    newan->offset = ring*RING_SIZE;
+    newan->size = RING_SIZE;
+    newan->speed = speed;
+    newan->fadein = 0;
+    newan->pos = 0;
+    newan->data[0] = num+1;
+    for (int i = 0; i < num; i++) {
+        newan->data[i+1] = va_arg(argp, unsigned int);
     }
     va_end(argp);
     *an = newan;
