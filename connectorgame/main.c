@@ -181,12 +181,15 @@ int game_fixing(clist_t *conns)
     for (int i = 0; i < conns->on; i++) {
         int s[2] = { conns->pins[i].p1, conns->pins[i].p2 };
         for (int cc = 0; cc < 2; cc++) {
+            int r = PIN_ROW(s[cc]);
             /* Kijken of de kleur klopt */
-            for (int r = 0; r < NUM_ROWS; r++) {
-                if (!seenpos[r]) {
-                    if (c_colors[puzzle.solution[r]] == c_colors[s[cc]]) {
-                        seenpos[r] = 1;
+            int side = (r >= (NUM_ROWS/2)) ? (NUM_ROWS/2) : 0;
+            for (int cr = side; cr < side + NUM_ROWS/2; cr++) {
+                if (!seenpos[cr]) {
+                    if (c_colors[puzzle.solution[cr]] == c_colors[s[cc]]) {
+                        seenpos[cr] = 1;
                         colcnts[(r >= 10)]++;
+                        break;
                     }
                 }
             }
