@@ -175,7 +175,7 @@ int game_mainloop(int gamestate, clist_t *conns)
         case GAME_BREAKING:
         case GAME_FIX:
             pdebug("GAME_FIX");
-            game_set_puzzle(conns,0,10);
+            game_set_puzzle(conns,0,20);
             /* Rodere animaties */
             led_remove_animation(1);
             led_remove_animation(2);
