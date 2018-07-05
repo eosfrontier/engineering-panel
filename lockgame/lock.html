@@ -1,3 +1,4 @@
+<!DOCTYPE html>
 <html>
     <head>
     <style>
@@ -5,6 +6,8 @@ div.lock {
     display: grid;
     grid-template-columns: 70px 70px 70px 70px 70px 70px;
     grid-template-rows: 70px 70px 70px 70px 70px 70px;
+    -ms-touch-action: none;
+    touch-action: none;
 }
 div.cell {
     display: grid;
@@ -17,11 +20,11 @@ div.cell {
     border-radius: 10px;
     overflow: hidden;
 }
-div.lock.selected div.cell:hover {
-    background-color: #eeeeff;
-}
 div.cell.selected {
-    background-color: #eeffee;
+    background-color: #446644;
+}
+div.cell.target {
+    background-color: #444466 !important;
 }
 div.side {
     background-color: #666666;
@@ -130,10 +133,13 @@ div.cell.red.green.blue {
 }
 
     </style>
+    <link rel="stylesheet" src="https://ajax.aspnetcdn.com/ajax/jquery.ui/1.10.4/themes/cupertino/jquery-ui.css">
     <script type="text/javascript" src="https://ajax.aspnetcdn.com/ajax/jQuery/jquery-3.3.1.min.js"></script>
+    <script type="text/javascript" src="https://ajax.aspnetcdn.com/ajax/jquery.ui/1.10.4/jquery-ui.min.js"></script>
     <script type="text/javascript">
 var wid = 4;
 var hei = 4;
+var cellgrid = [];
 $(function() {
     var html = [];
     var indiv = '<div class="tl"></div><div class="tm"></div><div class="tr"></div>'+
@@ -151,12 +157,29 @@ $(function() {
         }
     }
     $('#lock').html(html.join(''));
-    $('#lock').on('mousedown', 'div.cell', down_cell);
-    $('#lock').on('mouseup', 'div.cell', up_cell);
+    $('#lock').on('click', 'div.cell:not(.side)', click_cell);
+    $('#lock div.cell:not(.side)').draggable({
+        containment: 'parent'
+        //,grid: [20,20]
+        ,opacity: 0.6
+        ,start: start_cell
+        ,stop: stop_cell
+        ,drag: move_cell
+        ,revert: drop_cell
+        ,revertDuration: 500
+        ,zIndex: 10
+    });
+
     var types = ['tl','tr','bl','br','tb','lr','tlr','blr','tbl','tbr','tblr'];
+    for (var y = 0; y < hei+2; y++) {
+        cellgrid[y] = [];
+        for (var x = 0; x < wid+2; x++) {
+            cellgrid[y][x] = $('#lock div.col_'+x+'.row_'+y);
+        }
+    }
     for (var y = 1; y <= hei; y++) {
         for (var x = 1; x <= wid; x++) {
-            $('#lock div.row_'+x+'.col_'+y).addClass(types[(y*(wid-2)+x)%types.length]);
+            cellgrid[x][y].addClass(types[(y*(wid-2)+x)%types.length]);
         }
     }
     $('#lock div.top.col_2').addClass('red');
@@ -199,6 +222,44 @@ function get_type(elem) {
         }
     }
 }
+function start_cell(ev, ui) {
+    ui.helper.addClass('selected');
+    color_cells();
+}
+function stop_cell(ev, ui) {
+    $('#lock div.cell.selected').removeClass('selected');
+    $('#lock div.cell.target').removeClass('target');
+    color_cells();
+}
+function move_cell(ev, ui) {
+    var x = Math.round(ui.offset.left / 70);
+    var y = Math.round(ui.offset.top / 70);
+    var other = cellgrid[y][x].not('.side').not('.target');
+    if (other.length == 1) {
+        $('#lock .target').removeClass('target');
+        other.addClass('target');
+    }
+}
+function drop_cell() {
+    var other = $('#lock div.cell.target');
+    if (other.length == 1) {
+        var celltype = get_type(this);
+        var othertype = get_type(other);
+        this.removeClass(celltype).addClass(othertype);
+        other.removeClass(othertype).addClass(celltype);
+        color_cells();
+        this.removeClass('selected').addClass('target');
+        other.removeClass('target').addClass('selected');
+    }
+    return true;
+}
+function click_cell(ev) {
+    if (ev.button != 0) return;
+    var elem = $(this);
+    var tp = get_type(elem);
+    if (tp) { elem.removeClass(tp).addClass(rotates[tp]); }
+    color_cells();
+}
 function down_cell(ev) {
     if (ev.button != 0) return;
     $('#lock div.cell.selected').removeClass('selected');
@@ -227,10 +288,11 @@ function up_cell(ev) {
 
 function color_spread(cell, color, celllist, otherlist, x, y) {
     if (hasclasslist(cell, celllist)) {
-        var other = $('#lock div.cell.col_'+x+'.row_'+y+':not(.side):not(.'+color+')');
+        var other = cellgrid[y][x].not('.side').not('.'+color).not('.selected');
         if (hasclasslist(other, otherlist)) {
             other.addClass(color);
-            setTimeout(function() { color_cell(other, color); }, 100);
+            color_cell(other, color);
+            // setTimeout(function() { color_cell(other, color); }, 25);
         }
     }
 }
@@ -268,13 +330,15 @@ function color_cells(color) {
     <body>
         <div class="lock" id="lock">
         </div>
-        <p>Proof of concept voor een kleine console om fysiek een futuristisch slot te openen.
-        Soortement van pipe-mania, waarbij langs de zijkant in/uitgangen zijn met LEDs er achter waarvan er sommige oplichten.
-        In het midden zitten dan blokjes die verplaatst kunnen worden (en geroteerd) om er voor te zorgen dat de juiste kleuren met elkaar zijn verbonden.
-        </p>
-        <p>
-        Deze POC is om te kijken of dit een leuke puzzel oplevert, en hoe het eea. precies kan worden geprogrammeerd
-        </p>
+        <div class="text">
+            <p>Proof of concept voor een kleine console om fysiek een futuristisch slot te openen.
+            Soortement van pipe-mania, waarbij langs de zijkant in/uitgangen zijn met LEDs er achter waarvan er sommige oplichten.
+            In het midden zitten dan blokjes die verplaatst kunnen worden (en geroteerd) om er voor te zorgen dat de juiste kleuren met elkaar zijn verbonden.
+            </p>
+            <p>
+            Deze POC is om te kijken of dit een leuke puzzel oplevert, en hoe het eea. precies kan worden geprogrammeerd
+            </p>
+        </div>
     </body>
 </html>
 <!-- vim: ai:si:expandtab:ts=4:sw=4
