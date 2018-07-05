@@ -1,0 +1,281 @@
+<html>
+    <head>
+    <style>
+div.lock {
+    display: grid;
+    grid-template-columns: 70px 70px 70px 70px 70px 70px;
+    grid-template-rows: 70px 70px 70px 70px 70px 70px;
+}
+div.cell {
+    display: grid;
+    grid-template-columns: 20px 20px 20px;
+    grid-template-rows: 20px 20px 20px;
+    border: 2px solid #888888;
+    height: 60px;
+    width: 60px;
+    background-color: #444444;
+    border-radius: 10px;
+    overflow: hidden;
+}
+div.lock.selected div.cell:hover {
+    background-color: #eeeeff;
+}
+div.cell.selected {
+    background-color: #eeffee;
+}
+div.side {
+    background-color: #666666;
+}
+div.cell div,
+div.side div {
+    background-color: #aaaaaa;
+}
+div.cell div.mm,
+div.side div.mm {
+    background-color: inherit;
+}
+div.side.left div.mr,
+div.side.right div.ml,
+div.side.bottom div.tm,
+div.side.top div.bm {
+    background-color: inherit;
+}
+div.side.top.left,
+div.side.top.right,
+div.side.bottom.left,
+div.side.bottom.right {
+    background-color: inherit;
+    border: 0;
+}
+div.side.top.left div,
+div.side.top.right div,
+div.side.bottom.left div,
+div.side.bottom.right div {
+    background-color: inherit;
+    border: 0;
+}
+
+div.cell.tl div.tm,
+div.cell.tl div.ml {
+    background-color: inherit;
+}
+div.cell.tr div.tm,
+div.cell.tr div.mr {
+    background-color: inherit;
+}
+div.cell.bl div.bm,
+div.cell.bl div.ml {
+    background-color: inherit;
+}
+div.cell.br div.bm,
+div.cell.br div.mr {
+    background-color: inherit;
+}
+div.cell.tb div.tm,
+div.cell.tb div.bm {
+    background-color: inherit;
+}
+div.cell.lr div.ml,
+div.cell.lr div.mr {
+    background-color: inherit;
+}
+div.cell.tlr div.tm,
+div.cell.tlr div.ml,
+div.cell.tlr div.mr {
+    background-color: inherit;
+}
+div.cell.blr div.bm,
+div.cell.blr div.ml,
+div.cell.blr div.mr {
+    background-color: inherit;
+}
+div.cell.tbl div.tm,
+div.cell.tbl div.bm,
+div.cell.tbl div.ml {
+    background-color: inherit;
+}
+div.cell.tbr div.tm,
+div.cell.tbr div.bm,
+div.cell.tbr div.mr {
+    background-color: inherit;
+}
+div.cell.tblr div.tm,
+div.cell.tblr div.bm,
+div.cell.tblr div.ml,
+div.cell.tblr div.mr {
+    background-color: inherit;
+}
+
+
+div.cell.red {
+    background-color: #ff4444;
+}
+div.cell.green {
+    background-color: #44ff44;
+}
+div.cell.blue {
+    background-color: #4444ff;
+}
+div.cell.red.green {
+    background-color: #ffff44;
+}
+div.cell.red.blue {
+    background-color: #ff44ff;
+}
+div.cell.green.blue {
+    background-color: #44ffff;
+}
+div.cell.red.green.blue {
+    background-color: #ffffff;
+}
+
+    </style>
+    <script type="text/javascript" src="https://ajax.aspnetcdn.com/ajax/jQuery/jquery-3.3.1.min.js"></script>
+    <script type="text/javascript">
+var wid = 4;
+var hei = 4;
+$(function() {
+    var html = [];
+    var indiv = '<div class="tl"></div><div class="tm"></div><div class="tr"></div>'+
+                '<div class="ml"></div><div class="mm"></div><div class="mr"></div>'+
+                '<div class="bl"></div><div class="bm"></div><div class="br"></div>';
+    for (var y = 0; y < hei+2; y++) {
+        var clsy = '';
+        if (y == 0) clsy = 'top side';
+        if (y == (hei+1)) clsy = 'bottom side';
+        for (var x = 0; x < wid+2; x++) {
+            var clsx = '';
+            if (x == 0) clsx = 'left side';
+            if (x == (wid+1)) clsx = 'right side';
+            html.push('<div class="cell ',clsx,' ',clsy,' row_',y,' col_',x,'">',indiv,'</div>');
+        }
+    }
+    $('#lock').html(html.join(''));
+    $('#lock').on('mousedown', 'div.cell', down_cell);
+    $('#lock').on('mouseup', 'div.cell', up_cell);
+    var types = ['tl','tr','bl','br','tb','lr','tlr','blr','tbl','tbr','tblr'];
+    for (var y = 1; y <= hei; y++) {
+        for (var x = 1; x <= wid; x++) {
+            $('#lock div.row_'+x+'.col_'+y).addClass(types[(y*(wid-2)+x)%types.length]);
+        }
+    }
+    $('#lock div.top.col_2').addClass('red');
+    $('#lock div.bottom.col_1').addClass('red');
+    $('#lock div.left.row_1').addClass('green');
+    $('#lock div.right.row_3').addClass('green');
+    $('#lock div.left.row_2').addClass('blue');
+    $('#lock div.bottom.col_4').addClass('blue');
+    color_cells();
+});
+var rotates = {
+    tl: 'tr',
+    tr: 'br',
+    br: 'bl',
+    bl: 'tl',
+    tb: 'lr',
+    lr: 'tb',
+    tlr: 'tbr',
+    tbr: 'blr',
+    blr: 'tbl',
+    tbl: 'tlr',
+    tblr: 'tblr'
+};
+var toplist    = ['tl','tr','tb','tlr','tbr','tbl','tblr','bottom'];
+var bottomlist = ['bl','br','tb','blr','tbr','tbl','tblr','top'];
+var leftlist   = ['tl','bl','lr','tlr','blr','tbl','tblr','right'];
+var rightlist  = ['tr','br','lr','tlr','blr','tbr','tblr','left'];
+
+function hasclasslist(cell, list) {
+    for (i = list.length; --i >= 0; ) {
+        if (cell.hasClass(list[i])) { return true; }
+    }
+    return false;
+}
+
+function get_type(elem) {
+    for (var tp in rotates) {
+        if (elem.hasClass(tp)) {
+            return tp;
+        }
+    }
+}
+function down_cell(ev) {
+    if (ev.button != 0) return;
+    $('#lock div.cell.selected').removeClass('selected');
+    $(this).addClass('selected');
+    $('#lock').addClass('selected');
+}
+function up_cell(ev) {
+    if (ev.button != 0) return;
+    var elem = $(this);
+    if (elem.hasClass('selected')) {
+        var tp = get_type(elem);
+        if (tp) { elem.removeClass(tp).addClass(rotates[tp]); }
+    } else {
+        var sel = $('#lock div.cell.selected');
+        if (sel.length == 1) {
+            var seltp = get_type(sel);
+            var elemtp = get_type(elem);
+            sel.removeClass(seltp).addClass(elemtp);
+            elem.removeClass(elemtp).addClass(seltp);
+        }
+    }
+    $('#lock div.cell.selected').removeClass('selected');
+    $('#lock').removeClass('selected');
+    color_cells();
+}
+
+function color_spread(cell, color, celllist, otherlist, x, y) {
+    if (hasclasslist(cell, celllist)) {
+        var other = $('#lock div.cell.col_'+x+'.row_'+y+':not(.side):not(.'+color+')');
+        if (hasclasslist(other, otherlist)) {
+            other.addClass(color);
+            setTimeout(function() { color_cell(other, color); }, 100);
+        }
+    }
+}
+
+function color_cell(cell, color) {
+    cell.each(function() {
+        var m = this.className.match(/row_([0-9]+)/)
+        if (m) {
+            var y = parseInt(m[1]);
+            m = this.className.match(/col_([0-9]+)/)
+            if (m) {
+                var x = parseInt(m[1]);
+                color_spread($(this), color, toplist, bottomlist, x, y-1);
+                color_spread($(this), color, bottomlist, toplist, x, y+1);
+                color_spread($(this), color, leftlist, rightlist, x-1, y);
+                color_spread($(this), color, rightlist, leftlist, x+1, y);
+            }
+        }
+    });
+}
+
+function color_cells(color) {
+    if (!color) {
+        color_cells('red');
+        color_cells('green');
+        color_cells('blue');
+        return;
+    }
+    $('#lock div.cell:not(.side)').removeClass(color);
+    color_cell($('#lock div.cell.side.'+color), color);
+}
+
+    </script>
+    </head>
+    <body>
+        <div class="lock" id="lock">
+        </div>
+        <p>Proof of concept voor een kleine console om fysiek een futuristisch slot te openen.
+        Soortement van pipe-mania, waarbij langs de zijkant in/uitgangen zijn met LEDs er achter waarvan er sommige oplichten.
+        In het midden zitten dan blokjes die verplaatst kunnen worden (en geroteerd) om er voor te zorgen dat de juiste kleuren met elkaar zijn verbonden.
+        </p>
+        <p>
+        Deze POC is om te kijken of dit een leuke puzzel oplevert, en hoe het eea. precies kan worden geprogrammeerd
+        </p>
+    </body>
+</html>
+<!-- vim: ai:si:expandtab:ts=4:sw=4
+-->
