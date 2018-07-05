@@ -141,10 +141,12 @@ var wid = 4;
 var hei = 4;
 var cellgrid = [];
 var tiles = [
-    'tl', 'tb', 'tb', 'tbr',
-    'bl', 'tb', 'tr', 'tl',
-    'tl', 'tr', 'bl', 'br',
-    'br', 'lr', 'tl', 'tr'
+    '',     '',   '',   'red','',    '',
+    'green','tl', 'tb', 'tb', 'br',  '',
+    'blue', 'bl', 'tb', 'tbr','tl',  '',
+    '',     'tl', 'tr', 'tbl','br',  'green',
+    '',     'br', 'lr', 'tl', 'tr',  '',
+    '',     'red','',   '',   'blue',''
     ]
 
 $(function() {
@@ -183,17 +185,11 @@ $(function() {
             cellgrid[y][x] = $('#lock div.col_'+x+'.row_'+y);
         }
     }
-    for (var y = 1; y <= hei; y++) {
-        for (var x = 1; x <= wid; x++) {
-            cellgrid[y][x].addClass(tiles[((y-1)*wid+(x-1))%tiles.length]);
+    for (var y = 0; y < hei+2; y++) {
+        for (var x = 0; x < wid+2; x++) {
+            cellgrid[y][x].addClass(tiles[(y*(wid+2)+x)%tiles.length]);
         }
     }
-    $('#lock div.top.col_2').addClass('red');
-    $('#lock div.bottom.col_1').addClass('red');
-    $('#lock div.left.row_1').addClass('green');
-    $('#lock div.right.row_3').addClass('green');
-    $('#lock div.left.row_2').addClass('blue');
-    $('#lock div.bottom.col_4').addClass('blue');
     color_cells();
 });
 var rotates = {
