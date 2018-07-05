@@ -117,13 +117,13 @@ div.cell.green {
     background-color: #44ff44;
 }
 div.cell.blue {
-    background-color: #4444ff;
+    background-color: #4488ff;
 }
 div.cell.red.green {
     background-color: #ffff44;
 }
 div.cell.red.blue {
-    background-color: #ff44ff;
+    background-color: #cc44ff;
 }
 div.cell.green.blue {
     background-color: #44ffff;
@@ -140,6 +140,13 @@ div.cell.red.green.blue {
 var wid = 4;
 var hei = 4;
 var cellgrid = [];
+var tiles = [
+    'tl', 'tb', 'tb', 'tbr',
+    'bl', 'tb', 'tr', 'tl',
+    'tl', 'tr', 'bl', 'br',
+    'br', 'lr', 'tl', 'tr'
+    ]
+
 $(function() {
     var html = [];
     var indiv = '<div class="tl"></div><div class="tm"></div><div class="tr"></div>'+
@@ -160,17 +167,16 @@ $(function() {
     $('#lock').on('click', 'div.cell:not(.side)', click_cell);
     $('#lock div.cell:not(.side)').draggable({
         containment: 'parent'
-        //,grid: [20,20]
         ,opacity: 0.6
         ,start: start_cell
         ,stop: stop_cell
         ,drag: move_cell
         ,revert: drop_cell
-        ,revertDuration: 500
+        ,revertDuration: 250
         ,zIndex: 10
+        ,distance: 10
     });
 
-    var types = ['tl','tr','bl','br','tb','lr','tlr','blr','tbl','tbr','tblr'];
     for (var y = 0; y < hei+2; y++) {
         cellgrid[y] = [];
         for (var x = 0; x < wid+2; x++) {
@@ -179,7 +185,7 @@ $(function() {
     }
     for (var y = 1; y <= hei; y++) {
         for (var x = 1; x <= wid; x++) {
-            cellgrid[x][y].addClass(types[(y*(wid-2)+x)%types.length]);
+            cellgrid[y][x].addClass(tiles[((y-1)*wid+(x-1))%tiles.length]);
         }
     }
     $('#lock div.top.col_2').addClass('red');
@@ -234,10 +240,16 @@ function stop_cell(ev, ui) {
 function move_cell(ev, ui) {
     var x = Math.round(ui.offset.left / 70);
     var y = Math.round(ui.offset.top / 70);
-    var other = cellgrid[y][x].not('.side').not('.target');
-    if (other.length == 1) {
-        $('#lock .target').removeClass('target');
-        other.addClass('target');
+    if (x < wid+2 && y < hei+2) {
+        var other = cellgrid[y][x].not('.side');
+        if (other.length == 1) {
+            if (!other.hasClass('target')) {
+                $('#lock .target').removeClass('target');
+                other.addClass('target');
+            }
+        } else {
+                $('#lock .target').removeClass('target');
+        }
     }
 }
 function drop_cell() {
