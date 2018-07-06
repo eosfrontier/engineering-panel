@@ -2,6 +2,322 @@
 <html>
     <head>
     <meta charset="utf-8">
+    <link rel="stylesheet" src="https://ajax.aspnetcdn.com/ajax/jquery.ui/1.10.4/themes/cupertino/jquery-ui.css">
+    <script type="text/javascript" src="https://ajax.aspnetcdn.com/ajax/jQuery/jquery-3.3.1.min.js"></script>
+    <script type="text/javascript" src="https://ajax.aspnetcdn.com/ajax/jquery.ui/1.10.4/jquery-ui.min.js"></script>
+    <script type="text/javascript">
+var wid = 4;
+var hei = 4;
+var cellgrid = [];
+var tiles = [
+    '   R  ',
+    'G╝║║╔ ',
+    'B╗║╠╝ ',
+    ' ╝╚╣╔G',
+    ' ╔═╝╚ ',
+    ' R  B ',
+];
+
+var difficulty = 1;
+
+var tilechars = {
+    '═': 'lr',  // 2550 lr
+    '║': 'tb',  // 2551 tb
+    '╔': 'br',  // 2554 br
+    '╗': 'bl',  // 2557 bl
+    '╚': 'tr',  // 255a tr
+    '╝': 'tl',  // 255d tl
+    '╠': 'tbr', // 2560 vr
+    '╣': 'tbl', // 2563 vl
+    '╦': 'blr', // 2566 hb
+    '╩': 'tlr', // 2569 ht
+    '╬': 'tblr', // 256c hv
+    'R': 'red',
+    'G': 'green',
+    'B': 'blue'
+};
+
+$(function() {
+    var html = [];
+    var indiv = '<div class="tl"></div><div class="tm"></div><div class="tr"></div>'+
+                '<div class="ml"></div><div class="mm"></div><div class="mr"></div>'+
+                '<div class="bl"></div><div class="bm"></div><div class="br"></div>';
+    for (var y = 0; y < hei+2; y++) {
+        var clsy = '';
+        if (y == 0) clsy = 'top side';
+        if (y == (hei+1)) clsy = 'bottom side';
+        for (var x = 0; x < wid+2; x++) {
+            var clsx = '';
+            if (x == 0) clsx = 'left side';
+            if (x == (wid+1)) clsx = 'right side';
+            html.push('<div class="cell ',clsx,' ',clsy,' row_',y,' col_',x,'">',indiv,'</div>');
+        }
+    }
+    $('#lock').html(html.join(''));
+    $('#lock').on('click', 'div.cell:not(.side)', click_cell);
+    $('#lock div.cell:not(.side)').draggable({
+        containment: 'parent'
+        ,opacity: 0.6
+        ,start: start_cell
+        ,stop: stop_cell
+        ,drag: move_cell
+        ,revert: drop_cell
+        ,revertDuration: 250
+        ,zIndex: 10
+        ,distance: 10
+    });
+
+    for (var y = 0; y < hei+2; y++) {
+        cellgrid[y] = [];
+        for (var x = 0; x < wid+2; x++) {
+            cellgrid[y][x] = $('#lock div.col_'+x+'.row_'+y);
+        }
+    }
+    for (var y = 0; y < hei+2; y++) {
+        for (var x = 0; x < wid+2; x++) {
+            var tl = tilechars[tiles[y][x]];
+            if (tl) { cellgrid[y][x].addClass(tl); }
+        }
+    }
+    color_all();
+});
+var rotates = {
+    tl: 'tr',
+    tr: 'br',
+    br: 'bl',
+    bl: 'tl',
+    tb: 'lr',
+    lr: 'tb',
+    tlr: 'tbr',
+    tbr: 'blr',
+    blr: 'tbl',
+    tbl: 'tlr',
+    tblr: 'tblr'
+};
+var toplist    = ['tl','tr','tb','tlr','tbr','tbl','tblr','bottom'];
+var bottomlist = ['bl','br','tb','blr','tbr','tbl','tblr','top'];
+var leftlist   = ['tl','bl','lr','tlr','blr','tbl','tblr','right'];
+var rightlist  = ['tr','br','lr','tlr','blr','tbr','tblr','left'];
+
+function hasclasslist(cell, list) {
+    for (i = list.length; --i >= 0; ) {
+        if (cell.hasClass(list[i])) { return true; }
+    }
+    return false;
+}
+
+function get_type(elem) {
+    for (var tp in rotates) {
+        if (elem.hasClass(tp)) {
+            return tp;
+        }
+    }
+}
+function start_cell(ev, ui) {
+    ui.helper.addClass('selected');
+    color_all();
+}
+function stop_cell(ev, ui) {
+    $('#lock div.cell.selected').removeClass('selected');
+    $('#lock div.cell.target').removeClass('target');
+    color_all();
+}
+function move_cell(ev, ui) {
+    var x = Math.round(ui.offset.left / 70);
+    var y = Math.round(ui.offset.top / 70);
+    if (x < wid+2 && y < hei+2) {
+        var other = cellgrid[y][x].not('.side');
+        if (other.length == 1) {
+            if (!other.hasClass('target')) {
+                $('#lock .target').removeClass('target');
+                other.addClass('target');
+            }
+        } else {
+                $('#lock .target').removeClass('target');
+        }
+    }
+}
+function drop_cell() {
+    var other = $('#lock div.cell.target');
+    if (other.length == 1) {
+        var celltype = get_type(this);
+        var othertype = get_type(other);
+        this.removeClass(celltype).addClass(othertype);
+        other.removeClass(othertype).addClass(celltype);
+        color_all();
+        this.removeClass('selected').addClass('target');
+        other.removeClass('target').addClass('selected');
+    }
+    return true;
+}
+function click_cell(ev) {
+    if (ev.button != 0) return;
+    var elem = $(this);
+    var tp = get_type(elem);
+    if (tp) { elem.removeClass(tp).addClass(rotates[tp]); }
+    color_all();
+}
+function down_cell(ev) {
+    if (ev.button != 0) return;
+    $('#lock div.cell.selected').removeClass('selected');
+    $(this).addClass('selected');
+    $('#lock').addClass('selected');
+}
+function up_cell(ev) {
+    if (ev.button != 0) return;
+    var elem = $(this);
+    if (elem.hasClass('selected')) {
+        var tp = get_type(elem);
+        if (tp) { elem.removeClass(tp).addClass(rotates[tp]); }
+    } else {
+        var sel = $('#lock div.cell.selected');
+        if (sel.length == 1) {
+            var seltp = get_type(sel);
+            var elemtp = get_type(elem);
+            sel.removeClass(seltp).addClass(elemtp);
+            elem.removeClass(elemtp).addClass(seltp);
+        }
+    }
+    $('#lock div.cell.selected').removeClass('selected');
+    $('#lock').removeClass('selected');
+    color_all();
+}
+
+function color_spread(cell, color, celllist, otherlist, x, y) {
+    if (hasclasslist(cell, celllist)) {
+        var other = cellgrid[y][x].not('.side').not('.selected');
+        if (hasclasslist(other, otherlist)) {
+            var grp = cell.attr('mygroup');
+            var ogrp = other.attr('mygroup');
+            if (ogrp != grp) {
+                $('#lock div.cell[mygroup="'+ogrp+'"]').attr('mygroup', grp);
+            }
+            if (!other.hasClass(color)) {
+                other.addClass(color);
+                color_cell(other, color, x, y);
+                // setTimeout(function() { color_cell(other, color, x, y); }, 25);
+            }
+        }
+    }
+}
+
+function color_cell(cell, color, x, y) {
+    color_spread(cell, color, toplist, bottomlist, x, y-1);
+    color_spread(cell, color, bottomlist, toplist, x, y+1);
+    color_spread(cell, color, leftlist, rightlist, x-1, y);
+    color_spread(cell, color, rightlist, leftlist, x+1, y);
+}
+
+function color_all() {
+    var grp = 1;
+    $('#lock div.cell').each(function() {
+        $(this).attr('mygroup', grp++);
+    });
+    color_with('red');
+    color_with('green');
+    color_with('blue');
+    check_solution();
+}
+
+function color_with(color) {
+    $('#lock div.cell:not(.side)').removeClass(color);
+    $('#lock div.cell.side.'+color).each(function() {
+        var m = this.className.match(/row_([0-9]+)/)
+        if (m) {
+            var y = parseInt(m[1]);
+            m = this.className.match(/col_([0-9]+)/)
+            if (m) {
+                var x = parseInt(m[1]);
+                color_cell($(this), color, x, y)
+            }
+        }
+    });
+}
+
+/*
+ * Wanneer is de puzzel opgelost:
+ *
+ * Mogelijke criteria (te kiezen voor moeilijkheidsgraad)
+ *  - Groene/blauwe inlets (side cells) zijn verbonden
+ *      Dit is de basis.  Pulserend effect?
+ *  - Verschillende kleuren zijn niet met elkaar verbonden
+ *      Eventueel kleuren meng effect?
+ *      Als dit 'knalt' kun je ook met andere kleuren inlets werken
+ *      Als dit wel mag, dan hoe bepalen welk deel de ene en de andere kleur is?
+ *  - Mengkleuren zijn verbonden (alternatief)
+ *      Groen en blauw verbinden met cyaan, bijvoorbeeld
+ *  - Rode inlets zijn niet verbonden
+ *      Als ze elkaar kruisen is dit een given
+ *      (Behalve als er kruisende cellen zijn (kan dat?))
+ *      Initiele status: rood is verbonden.
+ *      Pulserend/alert efect
+ *  - Alle cellen zijn verbonden met een inlet
+ *      Oftewel: er zijn geen donkere cellen
+ *      Effect?  Misschien alarm-flitsend effect oid.
+ *  - Alle gekleurde inlets zijn ergens mee verbonden
+ *      Zeg maar dat het ergens heen gaat.
+ *      Eventueel knetterend effect op de inlet?
+ *  - Er zijn geen rode cellen (werkt niet met vorige)
+ *      Rode cellen alarm-efect?
+ *  - Er zijn geen halve verbindingen tussen cellen
+ *      Knetterend effect bij de halve verbinding (ala kortsluiting)
+ *
+ * Difficulty
+ *  Level1:
+ *    - Groen en/of blauw verbonden.
+ *    - Sublevel 1, 2 of 3 verbindingen ?
+ *    - Verschillende kleuren niet verbonden
+ *    - Rode inlets niet verbonden
+ *  Level2: (1 voor 1 aan te zetten, geen volgorde)
+ *    - Geen donkere cellen
+ *    - Alle gekleurde inlets verbonden /of/
+ *    - Geen rode cellen
+ *  Level3:
+ *    - Level 2 (met keuze alle gekleurde inlets verbonden)
+ *    - Geen halve verbindingen
+ */
+function check_solution() {
+    $('#lock div.cell').removeClass('connected');
+    /* Check verbinding groen en blauw */
+    var ok = true;
+    if (!check_connected($('#lock div.side.green'), ['red','blue'])) { ok = false; }
+    if (!check_connected($('#lock div.side.blue' ), ['red','green'])) { ok = false; }
+    if ( check_connected($('#lock div.side.red'  ), [])) { ok = false; }
+    if (ok) {
+        $('#lock').addClass('open');
+        $('#message').text('Open');
+    } else {
+        $('#lock').removeClass('open');
+        $('#message').text('Closed');
+    }
+}
+
+function check_connected(cells, othercolors) {
+    var con = true;
+    var grp = "";
+    cells.each(function() {
+        var cgrp = $(this).attr('mygroup');
+        if (grp != $(this).attr('mygroup')) {
+            if (grp) { con = false; }
+            grp = cgrp;
+        }
+    });
+    if (con && grp) {
+        var group = $('#lock div.cell[mygroup="'+grp+'"]');
+        for (o = 0; o < othercolors.length; o++) {
+            if (group.hasClass(othercolors[o])) {
+                con = false;
+                break;
+            }
+        }
+        if (con) {
+            group.addClass('connected');
+        }
+    }
+    return con;
+}
+
+    </script>
     <style>
 div.lock {
     display: grid;
@@ -9,6 +325,16 @@ div.lock {
     grid-template-rows: 70px 70px 70px 70px 70px 70px;
     -ms-touch-action: none;
     touch-action: none;
+    float: left;
+}
+/*
+div.lock.open {
+    background-color: #ccffcc;
+}
+*/
+div.cell.connected div {
+    background-color: #aaaaaa;
+    opacity: 0.7;
 }
 div.cell {
     display: grid;
@@ -134,238 +460,11 @@ div.cell.red.green.blue {
 }
 
     </style>
-    <link rel="stylesheet" src="https://ajax.aspnetcdn.com/ajax/jquery.ui/1.10.4/themes/cupertino/jquery-ui.css">
-    <script type="text/javascript" src="https://ajax.aspnetcdn.com/ajax/jQuery/jquery-3.3.1.min.js"></script>
-    <script type="text/javascript" src="https://ajax.aspnetcdn.com/ajax/jquery.ui/1.10.4/jquery-ui.min.js"></script>
-    <script type="text/javascript">
-var wid = 4;
-var hei = 4;
-var cellgrid = [];
-/*
-var tiles = [
-    '',     '',   '',   'red','',    '',
-    'green','tl', 'tb', 'tb', 'br',  '',
-    'blue', 'bl', 'tb', 'tbr','tl',  '',
-    '',     'tl', 'tr', 'tbl','br',  'green',
-    '',     'br', 'lr', 'tl', 'tr',  '',
-    '',     'red','',   '',   'blue',''
-    ]
-    */
-var tiles = [
-    '   R  ',
-    'G╝║║╔ ',
-    'B╗║╠╝ ',
-    ' ╝╚╣╔G',
-    ' ╔═╝╚ ',
-    ' R  B ',
-];
-var tilechars = {
-    '═': 'lr',  // 2550 lr
-    '║': 'tb',  // 2551 tb
-    '╔': 'br',  // 2554 br
-    '╗': 'bl',  // 2557 bl
-    '╚': 'tr',  // 255a tr
-    '╝': 'tl',  // 255d tl
-    '╠': 'tbr', // 2560 vr
-    '╣': 'tbl', // 2563 vl
-    '╦': 'blr', // 2566 hb
-    '╩': 'tlr', // 2569 ht
-    '╬': 'tblr', // 256c hv
-    'R': 'red',
-    'G': 'green',
-    'B': 'blue'
-};
-
-$(function() {
-    var html = [];
-    var indiv = '<div class="tl"></div><div class="tm"></div><div class="tr"></div>'+
-                '<div class="ml"></div><div class="mm"></div><div class="mr"></div>'+
-                '<div class="bl"></div><div class="bm"></div><div class="br"></div>';
-    for (var y = 0; y < hei+2; y++) {
-        var clsy = '';
-        if (y == 0) clsy = 'top side';
-        if (y == (hei+1)) clsy = 'bottom side';
-        for (var x = 0; x < wid+2; x++) {
-            var clsx = '';
-            if (x == 0) clsx = 'left side';
-            if (x == (wid+1)) clsx = 'right side';
-            html.push('<div class="cell ',clsx,' ',clsy,' row_',y,' col_',x,'">',indiv,'</div>');
-        }
-    }
-    $('#lock').html(html.join(''));
-    $('#lock').on('click', 'div.cell:not(.side)', click_cell);
-    $('#lock div.cell:not(.side)').draggable({
-        containment: 'parent'
-        ,opacity: 0.6
-        ,start: start_cell
-        ,stop: stop_cell
-        ,drag: move_cell
-        ,revert: drop_cell
-        ,revertDuration: 250
-        ,zIndex: 10
-        ,distance: 10
-    });
-
-    for (var y = 0; y < hei+2; y++) {
-        cellgrid[y] = [];
-        for (var x = 0; x < wid+2; x++) {
-            cellgrid[y][x] = $('#lock div.col_'+x+'.row_'+y);
-        }
-    }
-    for (var y = 0; y < hei+2; y++) {
-        for (var x = 0; x < wid+2; x++) {
-            var tl = tilechars[tiles[y][x]];
-            if (tl) { cellgrid[y][x].addClass(tl); }
-        }
-    }
-    color_cells();
-});
-var rotates = {
-    tl: 'tr',
-    tr: 'br',
-    br: 'bl',
-    bl: 'tl',
-    tb: 'lr',
-    lr: 'tb',
-    tlr: 'tbr',
-    tbr: 'blr',
-    blr: 'tbl',
-    tbl: 'tlr',
-    tblr: 'tblr'
-};
-var toplist    = ['tl','tr','tb','tlr','tbr','tbl','tblr','bottom'];
-var bottomlist = ['bl','br','tb','blr','tbr','tbl','tblr','top'];
-var leftlist   = ['tl','bl','lr','tlr','blr','tbl','tblr','right'];
-var rightlist  = ['tr','br','lr','tlr','blr','tbr','tblr','left'];
-
-function hasclasslist(cell, list) {
-    for (i = list.length; --i >= 0; ) {
-        if (cell.hasClass(list[i])) { return true; }
-    }
-    return false;
-}
-
-function get_type(elem) {
-    for (var tp in rotates) {
-        if (elem.hasClass(tp)) {
-            return tp;
-        }
-    }
-}
-function start_cell(ev, ui) {
-    ui.helper.addClass('selected');
-    color_cells();
-}
-function stop_cell(ev, ui) {
-    $('#lock div.cell.selected').removeClass('selected');
-    $('#lock div.cell.target').removeClass('target');
-    color_cells();
-}
-function move_cell(ev, ui) {
-    var x = Math.round(ui.offset.left / 70);
-    var y = Math.round(ui.offset.top / 70);
-    if (x < wid+2 && y < hei+2) {
-        var other = cellgrid[y][x].not('.side');
-        if (other.length == 1) {
-            if (!other.hasClass('target')) {
-                $('#lock .target').removeClass('target');
-                other.addClass('target');
-            }
-        } else {
-                $('#lock .target').removeClass('target');
-        }
-    }
-}
-function drop_cell() {
-    var other = $('#lock div.cell.target');
-    if (other.length == 1) {
-        var celltype = get_type(this);
-        var othertype = get_type(other);
-        this.removeClass(celltype).addClass(othertype);
-        other.removeClass(othertype).addClass(celltype);
-        color_cells();
-        this.removeClass('selected').addClass('target');
-        other.removeClass('target').addClass('selected');
-    }
-    return true;
-}
-function click_cell(ev) {
-    if (ev.button != 0) return;
-    var elem = $(this);
-    var tp = get_type(elem);
-    if (tp) { elem.removeClass(tp).addClass(rotates[tp]); }
-    color_cells();
-}
-function down_cell(ev) {
-    if (ev.button != 0) return;
-    $('#lock div.cell.selected').removeClass('selected');
-    $(this).addClass('selected');
-    $('#lock').addClass('selected');
-}
-function up_cell(ev) {
-    if (ev.button != 0) return;
-    var elem = $(this);
-    if (elem.hasClass('selected')) {
-        var tp = get_type(elem);
-        if (tp) { elem.removeClass(tp).addClass(rotates[tp]); }
-    } else {
-        var sel = $('#lock div.cell.selected');
-        if (sel.length == 1) {
-            var seltp = get_type(sel);
-            var elemtp = get_type(elem);
-            sel.removeClass(seltp).addClass(elemtp);
-            elem.removeClass(elemtp).addClass(seltp);
-        }
-    }
-    $('#lock div.cell.selected').removeClass('selected');
-    $('#lock').removeClass('selected');
-    color_cells();
-}
-
-function color_spread(cell, color, celllist, otherlist, x, y) {
-    if (hasclasslist(cell, celllist)) {
-        var other = cellgrid[y][x].not('.side').not('.'+color).not('.selected');
-        if (hasclasslist(other, otherlist)) {
-            other.addClass(color);
-            color_cell(other, color);
-            // setTimeout(function() { color_cell(other, color); }, 25);
-        }
-    }
-}
-
-function color_cell(cell, color) {
-    cell.each(function() {
-        var m = this.className.match(/row_([0-9]+)/)
-        if (m) {
-            var y = parseInt(m[1]);
-            m = this.className.match(/col_([0-9]+)/)
-            if (m) {
-                var x = parseInt(m[1]);
-                color_spread($(this), color, toplist, bottomlist, x, y-1);
-                color_spread($(this), color, bottomlist, toplist, x, y+1);
-                color_spread($(this), color, leftlist, rightlist, x-1, y);
-                color_spread($(this), color, rightlist, leftlist, x+1, y);
-            }
-        }
-    });
-}
-
-function color_cells(color) {
-    if (!color) {
-        color_cells('red');
-        color_cells('green');
-        color_cells('blue');
-        return;
-    }
-    $('#lock div.cell:not(.side)').removeClass(color);
-    color_cell($('#lock div.cell.side.'+color), color);
-}
-
-    </script>
     </head>
     <body>
         <div class="lock" id="lock">
         </div>
+        <div id="message">Start</div>
         <div class="text">
             <p>Proof of concept voor een kleine console om fysiek een futuristisch slot te openen.
             Soortement van pipe-mania, waarbij langs de zijkant in/uitgangen zijn met LEDs er achter waarvan er sommige oplichten.
