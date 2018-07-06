@@ -9,14 +9,30 @@
 var wid = 4;
 var hei = 4;
 var cellgrid = [];
-var tiles = [
+var tiles = [[
     '   R  ',
     'G╝║║╔ ',
     'B╗║╠╝ ',
     ' ╝╚╣╔G',
     ' ╔═╝╚ ',
     ' R  B ',
-];
+],
+[
+    '   R  ',
+    'G╔═╩╗ ',
+    'B╚╗╔╝ ',
+    ' ╔╝╚╗G',
+    ' ╠══╝ ',
+    ' R  B ',
+],
+[
+    ' R R  ',
+    'G║╔╩╗ ',
+    'B╚╩╗║ ',
+    ' ╔═╝║G',
+    ' ╠══╩R',
+    ' R  B ',
+]];
 
 var difficulty = 1;
 
@@ -73,9 +89,10 @@ $(function() {
             cellgrid[y][x] = $('#lock div.col_'+x+'.row_'+y);
         }
     }
+    var ts = tiles[Math.floor(Math.random()*tiles.length)];
     for (var y = 0; y < hei+2; y++) {
         for (var x = 0; x < wid+2; x++) {
-            var tl = tilechars[tiles[y][x]];
+            var tl = tilechars[ts[y][x]];
             if (tl) { cellgrid[y][x].addClass(tl); }
         }
     }
@@ -286,10 +303,10 @@ function check_solution() {
     if ( check_connected($('#lock div.side.red'  ), [])) { ok = false; closed = true; }
     if (ok) {
         $('#lock').addClass('open');
-        $('#message').text('Open');
+        $('#message').text('Lock is Open');
     } else if (closed) {
         $('#lock').removeClass('open');
-        $('#message').text('Closed');
+        $('#message').text('Lock is Closed');
     }
 }
 
@@ -321,7 +338,7 @@ function check_connected(cells, othercolors) {
     </script>
     <style>
 body {
-    background-color: #000000;
+    background-color: #555555;
     color: #aaaacc;
 }
 div.lock {
@@ -331,13 +348,13 @@ div.lock {
     -ms-touch-action: none;
     touch-action: none;
     float: left;
-    border: 20px solid black;
+    border: 20px solid #660000;
     border-radius: 70px;
     margin: 5px;
     width: 370px;
     height: 370px;
     overflow: hidden;
-    border-color: #660000;
+    background-color: #222222;
 }
 div.lock div.col_0 {
     margin-left: -22px;
@@ -356,7 +373,7 @@ div.cell {
     display: grid;
     grid-template-columns: 20px 20px 20px;
     grid-template-rows: 20px 20px 20px;
-    border: 2px solid #888888;
+    border: 2px solid #555555;
     height: 60px;
     width: 60px;
     background-color: #444444;
