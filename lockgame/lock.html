@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html>
     <head>
+    <meta charset="utf-8">
     <style>
 div.lock {
     display: grid;
@@ -140,6 +141,7 @@ div.cell.red.green.blue {
 var wid = 4;
 var hei = 4;
 var cellgrid = [];
+/*
 var tiles = [
     '',     '',   '',   'red','',    '',
     'green','tl', 'tb', 'tb', 'br',  '',
@@ -148,6 +150,31 @@ var tiles = [
     '',     'br', 'lr', 'tl', 'tr',  '',
     '',     'red','',   '',   'blue',''
     ]
+    */
+var tiles = [
+    '   R  ',
+    'G╝║║╔ ',
+    'B╗║╠╝ ',
+    ' ╝╚╣╔G',
+    ' ╔═╝╚ ',
+    ' R  B ',
+];
+var tilechars = {
+    '═': 'lr',  // 2550 lr
+    '║': 'tb',  // 2551 tb
+    '╔': 'br',  // 2554 br
+    '╗': 'bl',  // 2557 bl
+    '╚': 'tr',  // 255a tr
+    '╝': 'tl',  // 255d tl
+    '╠': 'tbr', // 2560 vr
+    '╣': 'tbl', // 2563 vl
+    '╦': 'blr', // 2566 hb
+    '╩': 'tlr', // 2569 ht
+    '╬': 'tblr', // 256c hv
+    'R': 'red',
+    'G': 'green',
+    'B': 'blue'
+};
 
 $(function() {
     var html = [];
@@ -187,7 +214,8 @@ $(function() {
     }
     for (var y = 0; y < hei+2; y++) {
         for (var x = 0; x < wid+2; x++) {
-            cellgrid[y][x].addClass(tiles[(y*(wid+2)+x)%tiles.length]);
+            var tl = tilechars[tiles[y][x]];
+            if (tl) { cellgrid[y][x].addClass(tl); }
         }
     }
     color_cells();
@@ -349,5 +377,6 @@ function color_cells(color) {
         </div>
     </body>
 </html>
-<!-- vim: ai:si:expandtab:ts=4:sw=4
+<!--
+vim: ai:si:expandtab:ts=4:sw=4
 -->
