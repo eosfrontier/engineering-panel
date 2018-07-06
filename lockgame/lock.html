@@ -280,13 +280,14 @@ function check_solution() {
     $('#lock div.cell').removeClass('connected');
     /* Check verbinding groen en blauw */
     var ok = true;
+    var closed = false;
     if (!check_connected($('#lock div.side.green'), ['red','blue'])) { ok = false; }
     if (!check_connected($('#lock div.side.blue' ), ['red','green'])) { ok = false; }
-    if ( check_connected($('#lock div.side.red'  ), [])) { ok = false; }
+    if ( check_connected($('#lock div.side.red'  ), [])) { ok = false; closed = true; }
     if (ok) {
         $('#lock').addClass('open');
         $('#message').text('Open');
-    } else {
+    } else if (closed) {
         $('#lock').removeClass('open');
         $('#message').text('Closed');
     }
@@ -319,19 +320,34 @@ function check_connected(cells, othercolors) {
 
     </script>
     <style>
+body {
+    background-color: #000000;
+    color: #aaaacc;
+}
 div.lock {
     display: grid;
-    grid-template-columns: 70px 70px 70px 70px 70px 70px;
-    grid-template-rows: 70px 70px 70px 70px 70px 70px;
+    grid-template-columns: 48px 70px 70px 70px 70px 70px;
+    grid-template-rows: 48px 70px 70px 70px 70px 70px;
     -ms-touch-action: none;
     touch-action: none;
     float: left;
+    border: 20px solid black;
+    border-radius: 70px;
+    margin: 5px;
+    width: 370px;
+    height: 370px;
+    overflow: hidden;
+    border-color: #660000;
 }
-/*
+div.lock div.col_0 {
+    margin-left: -22px;
+}
+div.lock div.row_0 {
+    margin-top: -22px;
+}
 div.lock.open {
-    background-color: #ccffcc;
+    border-color: #009900;
 }
-*/
 div.cell.connected div {
     background-color: #aaaaaa;
     opacity: 0.7;
