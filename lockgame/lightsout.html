@@ -7,6 +7,7 @@
 var wid = 5;
 var hei = 5;
 var cellgrid = [];
+var gametype = 0;
 
 $(function() {
     var html = [];
@@ -17,6 +18,7 @@ $(function() {
     }
     $('#lock').html(html.join(''));
     $('#lock').on('click', 'div.cell', click_cell);
+    $('#gametype').on('click', click_type);
 
     for (var y = 0; y < hei; y++) {
         cellgrid[y] = [];
@@ -24,18 +26,36 @@ $(function() {
             cellgrid[y][x] = $('#lock div.col_'+x+'.row_'+y);
         }
     }
-    for (var y = 0; y < hei; y++) {
-        for (var x = 0; x < wid; x++) {
-            cellgrid[y][x].addClass('red');
-        }
-    }
+    reset_grid();
     check_solution();
 });
 
+var typelist = [
+    'Small +',
+    'Large +',
+    'Small O'
+];
+
+function reset_grid() {
+    $('#gametype').text(typelist[gametype]);
+    for (var y = 0; y < hei; y++) {
+        for (var x = 0; x < wid; x++) {
+            cellgrid[y][x].removeClass('green blue').addClass('red');
+        }
+    }
+}
+
+function click_type(ev) {
+    if (ev.button != 0) return;
+    gametype = gametype+1;
+    if (gametype >= typelist.length) { gametype = 0; }
+    reset_grid();
+}
+
 var cycles = {
-    red: 'green',
-    green: 'blue',
-    blue: 'red'
+    red: 'blue',
+    blue: 'green',
+    green: 'red'
 };
 
 function get_color(cell) {
@@ -59,11 +79,30 @@ function click_cell(ev) {
     var cell = $(this);
     var x = parseInt(cell.attr('myx'));
     var y = parseInt(cell.attr('myy'));
-    cycle_cell(x,y);
-    cycle_cell(x,y+1);
-    cycle_cell(x,y-1);
-    cycle_cell(x+1,y);
-    cycle_cell(x-1,y);
+    if (gametype == 0) {
+        cycle_cell(x,y);
+        cycle_cell(x,y+1);
+        cycle_cell(x,y-1);
+        cycle_cell(x+1,y);
+        cycle_cell(x-1,y);
+    }
+    if (gametype == 1) {
+        cycle_cell(x,y);
+        cycle_cell(x,y+1);
+        cycle_cell(x,y-1);
+        cycle_cell(x+1,y);
+        cycle_cell(x-1,y);
+        cycle_cell(x,y+2);
+        cycle_cell(x,y-2);
+        cycle_cell(x+2,y);
+        cycle_cell(x-2,y);
+    }
+    if (gametype == 2) {
+        cycle_cell(x+1,y);
+        cycle_cell(x-1,y);
+        cycle_cell(x,y-1);
+        cycle_cell(x,y+1);
+    }
     check_solution();
 }
 
@@ -246,6 +285,7 @@ div.cell.red.green.blue {
         <div class="lock" id="lock">
         </div>
         <div id="message">Start</div>
+        <div id="type">Type: <span id="gametype"></span></div>
         <div class="text">
             <p>Proof of concept voor een kleine console om fysiek een futuristisch slot te openen.
             Soort van lights-out, met een raster van knoppen met led-pixels er achter die op een knopdruk zelf van kleur veranderen maar ook naastliggende cellen van kleur doen veranderen.
