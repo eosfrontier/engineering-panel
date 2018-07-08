@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html>
+    <head>
+    <meta charset="utf-8">
+    <script type="text/javascript" src="https://ajax.aspnetcdn.com/ajax/jQuery/jquery-3.3.1.min.js"></script>
+    <script type="text/javascript">
+var wid = 5;
+var hei = 5;
+var cellgrid = [];
+
+$(function() {
+    var html = [];
+    for (var y = 0; y < hei; y++) {
+        for (var x = 0; x < wid; x++) {
+            html.push('<div class="cell row_',y,' col_',x,'" myx="',x,'" myy="',y,'"></div>');
+        }
+    }
+    $('#lock').html(html.join(''));
+    $('#lock').on('click', 'div.cell', click_cell);
+
+    for (var y = 0; y < hei; y++) {
+        cellgrid[y] = [];
+        for (var x = 0; x < wid; x++) {
+            cellgrid[y][x] = $('#lock div.col_'+x+'.row_'+y);
+        }
+    }
+    for (var y = 0; y < hei; y++) {
+        for (var x = 0; x < wid; x++) {
+            cellgrid[y][x].addClass('red');
+        }
+    }
+    check_solution();
+});
+
+var cycles = {
+    red: 'green',
+    green: 'blue',
+    blue: 'red'
+};
+
+function get_color(cell) {
+    for (var c in cycles) {
+        if (cell.hasClass(c)) return c;
+    }
+}
+
+function cycle_cell(x,y) {
+    if (x >= 0 && x < wid && y >= 0 && y < hei) {
+        cell = cellgrid[y][x];
+        var col = get_color(cell);
+        if (col) {
+            cell.removeClass(col).addClass(cycles[col]);
+        }
+    }
+}
+
+function click_cell(ev) {
+    if (ev.button != 0) return;
+    var cell = $(this);
+    var x = parseInt(cell.attr('myx'));
+    var y = parseInt(cell.attr('myy'));
+    cycle_cell(x,y);
+    cycle_cell(x,y+1);
+    cycle_cell(x,y-1);
+    cycle_cell(x+1,y);
+    cycle_cell(x-1,y);
+    check_solution();
+}
+
+function check_solution() {
+    var open = true;
+    var closed = true;
+    for (var y = 0; y < hei; y++) {
+        for (var x = 0; x < wid; x++) {
+            if (!cellgrid[y][x].hasClass('red')) {
+                closed = false;
+            }
+            if (!cellgrid[y][x].hasClass('green')) {
+                open = false;
+            }
+        }
+    }
+    if (open) {
+        $('#lock').addClass('open');
+        $('#message').text('Lock is Open');
+    } else if (closed) {
+        $('#lock').removeClass('open');
+        $('#message').text('Lock is Closed');
+    }
+}
+    </script>
+    <style>
+body {
+    background-color: #555555;
+    color: #aaaacc;
+}
+div.lock {
+    display: grid;
+    grid-template-columns: 70px 70px 70px 70px 70px;
+    grid-template-rows: 70px 70px 70px 70px 70px;
+    -ms-touch-action: none;
+    touch-action: none;
+    float: left;
+    border: 20px solid #660000;
+    border-radius: 70px;
+    margin: 5px;
+    width: 344px;
+    height: 344px;
+    overflow: hidden;
+    background-color: #222222;
+    padding: 16px;
+}
+div.lock.open {
+    border-color: #009900;
+}
+div.cell.connected div {
+    background-color: #aaaaaa;
+    opacity: 0.7;
+}
+div.cell {
+    display: grid;
+    grid-template-columns: 20px 20px 20px;
+    grid-template-rows: 20px 20px 20px;
+    border: 2px solid #555555;
+    height: 60px;
+    width: 60px;
+    background-color: #444444;
+    border-radius: 10px;
+    overflow: hidden;
+}
+div.cell.selected {
+    background-color: #446644;
+}
+div.cell.target {
+    background-color: #444466 !important;
+}
+div.side {
+    background-color: #666666;
+}
+div.cell div,
+div.side div {
+    background-color: #aaaaaa;
+}
+div.cell div.mm,
+div.side div.mm {
+    background-color: inherit;
+}
+div.side.left div.mr,
+div.side.right div.ml,
+div.side.bottom div.tm,
+div.side.top div.bm {
+    background-color: inherit;
+}
+div.side.top.left,
+div.side.top.right,
+div.side.bottom.left,
+div.side.bottom.right {
+    background-color: inherit;
+    border: 0;
+}
+div.side.top.left div,
+div.side.top.right div,
+div.side.bottom.left div,
+div.side.bottom.right div {
+    background-color: inherit;
+    border: 0;
+}
+
+div.cell.tl div.tm,
+div.cell.tl div.ml {
+    background-color: inherit;
+}
+div.cell.tr div.tm,
+div.cell.tr div.mr {
+    background-color: inherit;
+}
+div.cell.bl div.bm,
+div.cell.bl div.ml {
+    background-color: inherit;
+}
+div.cell.br div.bm,
+div.cell.br div.mr {
+    background-color: inherit;
+}
+div.cell.tb div.tm,
+div.cell.tb div.bm {
+    background-color: inherit;
+}
+div.cell.lr div.ml,
+div.cell.lr div.mr {
+    background-color: inherit;
+}
+div.cell.tlr div.tm,
+div.cell.tlr div.ml,
+div.cell.tlr div.mr {
+    background-color: inherit;
+}
+div.cell.blr div.bm,
+div.cell.blr div.ml,
+div.cell.blr div.mr {
+    background-color: inherit;
+}
+div.cell.tbl div.tm,
+div.cell.tbl div.bm,
+div.cell.tbl div.ml {
+    background-color: inherit;
+}
+div.cell.tbr div.tm,
+div.cell.tbr div.bm,
+div.cell.tbr div.mr {
+    background-color: inherit;
+}
+div.cell.tblr div.tm,
+div.cell.tblr div.bm,
+div.cell.tblr div.ml,
+div.cell.tblr div.mr {
+    background-color: inherit;
+}
+
+
+div.cell.red {
+    background-color: #ff4444;
+}
+div.cell.green {
+    background-color: #44ff44;
+}
+div.cell.blue {
+    background-color: #4488ff;
+}
+div.cell.red.green {
+    background-color: #ffff44;
+}
+div.cell.red.blue {
+    background-color: #cc44ff;
+}
+div.cell.green.blue {
+    background-color: #44ffff;
+}
+div.cell.red.green.blue {
+    background-color: #ffffff;
+}
+
+    </style>
+    </head>
+    <body>
+        <div class="lock" id="lock">
+        </div>
+        <div id="message">Start</div>
+        <div class="text">
+            <p>Proof of concept voor een kleine console om fysiek een futuristisch slot te openen.
+            Soort van lights-out, met een raster van knoppen met led-pixels er achter die op een knopdruk zelf van kleur veranderen maar ook naastliggende cellen van kleur doen veranderen.
+            </p>
+            <p>
+            Deze POC is om te kijken of dit een leuke puzzel oplevert, en hoe het eea. precies kan worden geprogrammeerd
+            </p>
+        </div>
+    </body>
+</html>
+<!--
+vim: ai:si:expandtab:ts=4:sw=4
+-->
