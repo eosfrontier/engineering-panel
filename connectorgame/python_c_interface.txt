@@ -1,0 +1,32 @@
+
+Om het programmeren van verschillende 'games' makkelijker te maken, de timing-kritieke dingen in C doen,
+en dan de game-logica in Python.  Hiervoor moeten de twee goed interfacen zodat bepaalde dingen met de
+juiste framerate worden aangeroepen.
+Belangrijkst zijn de led-animaties, geluid is gebufferd dus minder belangrijk.
+Uitlezen van alle connecties is het meest tijdrovend, gevolgd door de led-animaties.
+Geluid kan belangrijker worden wanneer gesynthetiseerd geluid en mixing wordt gebruikt.
+(Gesynthetiseerd voor bijvoorbeeld reactor-hum, en harmonischen).
+
+Optie 1: Mainloop in Python, roept C aan, C doet een delay voor de juiste framerate.
+- Klaarzetten:
+  - Er zijn C functie interfaces voor het klaarzetten van animaties en geluiden
+  - Of al het klaarzetten gebeurt met Python datatypes die aan de C mainloop worden meegegeven
+- Uitlezen:
+  - Ook een C functie voor het uitlezen van de connectors
+  - Of de mainloop-update C functie doet daarna meteen het uitlezen
+- Een enkele C functie die de mainloop-updates doet.
+  - Geluid klaarzetten
+  - Wachten tot de volgende frame
+  - LEDS updaten
+  - Connectors uitlezen en verbindingen teruggeven (of aparte functie daarvoor?)
+Dit wordt dus bereikt door C functies naar Python te exporteren.
+Een van de functies (de mainloop) houdt intern timing bij en zorgt voor vasthouden van de framerate
+
+
+Optie 2: Mainloop in C, roept Python code aan voor game-logica
+- Alles in C
+- Een embedded functie die Python functie aanroept met de lijst met connecties
+- Embedded functie zet animaties en geluiden klaar?
+  - Als return waarde
+  - Door weer C functies aan te roepen
+Lijkt complexer, moet python embedden die weer C kan aanroepen of anders ingewikkelde callback voor animaties
