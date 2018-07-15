@@ -74,11 +74,14 @@ main:
        - licht/geluidseffect combinatiestap
      - licht/geluidseffect reparatie klaar
 
+Extra audio:
+  - Reactor-hum die omhoog gaat bij meer goede posities?
 
 Externe communicatie:
 optie 1 - Via bestanden (moet dan wel tempdir in ram)
 optie 2 - Pipe (named pipe?  Moet ook via ram)
 optie 3 - Shared memory?
+optie 4 - MQTT (internet-of-things protocol)
 
 optie 1 lijkt het makkelijkst:
 - status dir, wordt alleen geschreven door game-app
@@ -88,3 +91,35 @@ optie 1 lijkt het makkelijkst:
 - meerdere command dirs, wordt geschreven door externe controllers
   - bijvoorbeeld discord bot, http-server, bluetooth app
   - commandfile: 'break<level>', 'fix', ...
+
+
+Alternatieve spel opties:
+Balans:
+  - Vier kleuren, als 'balkjes' (middelste ringen, links en rechts)
+  - Reactor-niveau wordt aangegeven onder en/of boven, wordt loopt langzaam leger of voller
+  - Als het reactorniveau vol is is het opgelost.
+  - Kleuren-niveaus fluctueren op en neer, als ze in het midden zijn gaat het niveau omhoog
+  - Waarschuwing als kleur buiten marge (knipperen, geluidseffect?)
+  - Als ze te ver uit het midden zijn gaat het omlaag
+  - Kleuren-niveaus zijn afhankelijk van aantal connecties van die kleur, plus random fluctuaties
+  - Moeilijkheids opties:
+    - Marges van kleuren-niveaus (breder/smaller, vol/leegloop snelheid)
+    - Positieve/negatieve feedback van onbalans (Als uit balans, kleur verder uit balans laten raken)
+    - Zelfde kleuren verbonden laten zijn (anders spark-effect en leeglopen?)
+  - Audio extra: Eventueel harmonischen voor verschillende kleuren, en dan dissonant laten worden?
+    - C-E-G-c ?
+
+Kleur-MM:
+  - Exacte posities zijn voorgeschreven als in Mastermind, maar andere cues
+  - Buitenring pixels gekleurd als de kleuren van de huidige contacten
+  - Binnenring opties:
+    - Aan/uit of de connectie goed is of niet
+    - Kleur waarmee het snoer moet zijn verbonden
+    - Kleur die deze connectie moet zijn
+    - Bij bovenstaand, uit bij helemaal geen connectie
+  - Sortering van kleuren (moeilijkheidsgraad?)
+    - Van boven naar beneden op volgorde
+    - Gesorteerd bij kleur en dan op volgorde
+    - Gesorteerd op kleur, random
+    - Helemaal random
+
