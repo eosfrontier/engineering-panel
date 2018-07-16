@@ -8,3 +8,6 @@ connectorgame: main.o mcp.o leds.o audio.o game.o
 
 test: connectorgame
 	sudo ./connectorgame debug
+
+run: connectorgame
+	sudo ./connectorgame

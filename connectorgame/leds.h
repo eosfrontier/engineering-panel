@@ -10,7 +10,7 @@
 #define POS_COLOR               0x0040ff40
 #define NONE_COLOR              0x00100202
 
-#define BLACK_COLOR             0x00606060
+#define BLACK_COLOR             0x00101010
 #define BLUE_COLOR              0x000000ff
 #define GREEN_COLOR             0x0000ff00
 #define YELLOW_COLOR            0x00cccc00
