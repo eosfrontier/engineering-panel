@@ -10,7 +10,7 @@
 #define POS_COLOR               0x0040ff40
 #define NONE_COLOR              0x00100202
 
-#define BLACK_COLOR             0x00808080
+#define BLACK_COLOR             0x00606060
 #define BLUE_COLOR              0x000000ff
 #define GREEN_COLOR             0x0000ff00
 #define YELLOW_COLOR            0x00cccc00
@@ -21,10 +21,10 @@
 #define CHSPEED                 0x10
 
 #define NUM_GROUPS              4
-#define GROUP_STARTS            {1,23,1,23}
+#define GROUP_STARTS            {10,14,10,14}
 #define GROUP_RINGS             {48,48,24,24}
 #define RING_SIZE               24
-#define GROUP_DIRS              {1,-1,1,-1}
+#define GROUP_DIRS              {-1,1,-1,1}
 
 int init_leds(void);
 int fini_leds(void);

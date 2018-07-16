@@ -1,11 +1,12 @@
 #include <stdlib.h>
+#include <string.h>
 #include "mcp.h"
 #include "leds.h"
 #include "audio.h"
 #include "main.h"
 #include "game.h"
 
-static char *c_colors = CONNECTOR_COLORS;
+static char c_colors[NUM_PINS] = CONNECTOR_COLORS;
 
 int bootcount = 0;
 int flashcount = 0;
@@ -82,7 +83,7 @@ static int level = 0;
 
 int game_breaking(clist_t *conns)
 {
-    level = 2;
+    level = 1;
     return GAME_COLOR;
 }
 
@@ -116,19 +117,21 @@ int game_coloring(clist_t *conns)
         }
         for (int cc = 0; cc < 2; cc++) {
             int r = PIN_ROW(s[cc]);
-            /* Kleur zetten */
-            colors[r] |= c_colors[s[cc]];
-            correct[r] |= c_colors[puzzle.solution[r]];
             /* Kijken of de positie klopt */
             if (puzzle.solution[r] == s[cc]) {
                 okcnt++;
+                colors[r] |= GOOD;
                 correct[r] |= GOOD;
+            } else {
+                /* Kleur zetten */
+                colors[r] |= c_colors[s[cc]];
+                correct[r] |= c_colors[puzzle.solution[r]];
             }
         }
     }
     ledshow_colors(colors);
     if (okcnt < 20) {
-        return GAME_cOLORING;
+        return GAME_COLORING;
     } else {
         return GAME_FIXED;
     }

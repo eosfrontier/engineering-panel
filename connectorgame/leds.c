@@ -106,7 +106,7 @@ int fini_leds(void)
 }
 
 static int gstarts[] = GROUP_STARTS;
-static int gdirs[] = GROUP_STARTS;
+static int gdirs[] = GROUP_DIRS;
 static int grings[] = GROUP_RINGS;
 
 unsigned int colstep(unsigned int from, unsigned int to)
@@ -165,6 +165,7 @@ int ledshow_colors(int *colors)
             ledstring.channel[0].leds[pos] = colstep(curcol, newcol);
         }
     }
+    return 0;
 }
 
 static int prevcolors[] = {0,0,0,0};
