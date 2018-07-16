@@ -80,6 +80,7 @@ int main(int argc, char *argv[])
     init_mcps();
     init_leds();
     init_audio();
+    init_game();
 
     /* Opstarten */
     running = 1;

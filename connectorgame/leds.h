@@ -10,6 +10,14 @@
 #define POS_COLOR               0x0040ff40
 #define NONE_COLOR              0x00100202
 
+#define BLACK_COLOR             0x00808080
+#define BLUE_COLOR              0x000000ff
+#define GREEN_COLOR             0x0000ff00
+#define YELLOW_COLOR            0x00cccc00
+#define RED_COLOR               0x00ff0000
+#define GOOD_COLOR              0x00ffffff
+#define BAD_COLOR               0x00000000
+
 #define CHSPEED                 0x10
 
 #define NUM_GROUPS              4
@@ -20,6 +28,7 @@
 
 int init_leds(void);
 int fini_leds(void);
+int ledshow_colors(int *colors);
 int ledshow_mastermind(int side, int colors, int correct);
 int led_set_blobs(int ring, int fadein, int num, ...);
 int led_remove_animation(int ring);

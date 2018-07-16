@@ -7,7 +7,7 @@ Uitlezen van alle connecties is het meest tijdrovend, gevolgd door de led-animat
 Geluid kan belangrijker worden wanneer gesynthetiseerd geluid en mixing wordt gebruikt.
 (Gesynthetiseerd voor bijvoorbeeld reactor-hum, en harmonischen).
 
-Optie 1: Mainloop in Python, roept C aan, C doet een delay voor de juiste framerate.
+Mainloop in Python, roept C aan, C doet een delay voor de juiste framerate.
 - Klaarzetten:
   - Er zijn C functie interfaces voor het klaarzetten van animaties en geluiden
   - Of al het klaarzetten gebeurt met Python datatypes die aan de C mainloop worden meegegeven
@@ -21,12 +21,43 @@ Optie 1: Mainloop in Python, roept C aan, C doet een delay voor de juiste framer
   - Connectors uitlezen en verbindingen teruggeven (of aparte functie daarvoor?)
 Dit wordt dus bereikt door C functies naar Python te exporteren.
 Een van de functies (de mainloop) houdt intern timing bij en zorgt voor vasthouden van de framerate
+Enkele mainloop?  Misschien alleen voor LEDs omdat audio minder exact hoeft.
+
+Eventueel aparte modules voor led-animaties, connectors uitlezen, audio mixing?
+
+Dus voorbeeld-python:
+
+import mcp
+import leds
+import audio
 
 
-Optie 2: Mainloop in C, roept Python code aan voor game-logica
-- Alles in C
-- Een embedded functie die Python functie aanroept met de lijst met connecties
-- Embedded functie zet animaties en geluiden klaar?
-  - Als return waarde
-  - Door weer C functies aan te roepen
-Lijkt complexer, moet python embedden die weer C kan aanroepen of anders ingewikkelde callback voor animaties
+Functies:
+- mcp
+  mcp.init_mcps()        # (Kan dat ook bij module-import?)
+  mcp.find_connections()
+    Leest connecties uit (zie mcp.c find_connections())
+    Hardcoded num_pins, num_mcps, etc?  Wel zo handig denk ik ivm optimalisatie.
+
+- leds
+  leds.init_leds()
+  leds.leds_mainloop()  # Parameter framerate?
+    Moet minstens zo vaak per seconde worden aangeroepen, doet delay, intene timer.
+    Update staat van alle animaties, schrijft de waardes van alle leds 
+  leds.add_animation()  # Parameter animatie-type?
+    - Blobs
+    - Flash
+    - Swipe
+    - Mastermind   (Of array met waardes?  Evt. met fade-animatie?)
+  leds.remove_animation()
+  leds.animation Python-type om animatie te definieren?
+
+- audio
+  audio.init_audio()
+  audio.play_file()
+    WAV-file van disk spelen
+  audio.play_note()
+    sinus (of blok of driehoek of shatever?) golf spelen met specifieke frequentie
+  audio.audio_mainloop()
+    Vaak genoeg per seconde aanroepen om audio-buffers bij te vullen
+    Audio moet gemixt gespeeld kunnen worden  (maximaal aantal kanalen?)

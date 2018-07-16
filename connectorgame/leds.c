@@ -109,9 +109,6 @@ static int gstarts[] = GROUP_STARTS;
 static int gdirs[] = GROUP_STARTS;
 static int grings[] = GROUP_RINGS;
 
-static int prevcolors[] = {0,0,0,0};
-static int prevcorrect[] = {0,0,0,0};
-
 unsigned int colstep(unsigned int from, unsigned int to)
 {
     unsigned int rescol = 0;
@@ -130,9 +127,51 @@ unsigned int colstep(unsigned int from, unsigned int to)
     return rescol;
 }
 
+static int blinkstep = 0;
+static unsigned int colorlist[] = {
+    BLACK_COLOR,
+    BLUE_COLOR,
+    GREEN_COLOR,
+    YELLOW_COLOR,
+    RED_COLOR,
+    GOOD_COLOR,
+    BAD_COLOR
+};
+
+int ledshow_colors(int *colors)
+{
+    int blinklist[7];
+    if (++blinkstep >= 60) {
+        blinkstep = 0;
+    }
+    for (int g = 0; g < NUM_GROUPS; g++) {
+        int group_start = gstarts[g];
+        int group_dir = gdirs[g];
+        int group_ring = grings[g];
+        for (int c = 0; c < NUM_COLORS; c++) {
+            int pos = ((RING_SIZE + group_start + group_dir * c) % RING_SIZE) + group_ring;
+            unsigned int curcol = ledstring.channel[0].leds[pos];
+            unsigned int newcol = 0x00;
+            int thecol = colors[g*10+c];
+            int colcnt = 0;
+            for (int l = 0; l < 7; l++) {
+                if (thecol & (1 << l)) {
+                    blinklist[colcnt++] = colorlist[l];
+                }
+            }
+            if (colcnt > 0) {
+                newcol = blinklist[(blinkstep * colcnt)/60];
+            }
+            ledstring.channel[0].leds[pos] = colstep(curcol, newcol);
+        }
+    }
+}
+
+static int prevcolors[] = {0,0,0,0};
+static int prevcorrect[] = {0,0,0,0};
+
 int ledshow_mastermind(int side, int colors, int correct)
 {
-    int ret;
     if (prevcolors[side] != colors || prevcorrect[side] != correct) {
         for (int g = side+2; g < NUM_GROUPS; g++) {
             prevcolors[g] = prevcolors[g-2];

@@ -10,6 +10,19 @@ static char *c_colors = CONNECTOR_COLORS;
 int bootcount = 0;
 int flashcount = 0;
 
+void init_game(void)
+{
+    for (int i = 0; i < NUM_PINS; i++) {
+        switch (c_colors[i]) {
+            case 'Z': c_colors[i] = BLACK;  break;
+            case 'B': c_colors[i] = BLUE;   break;
+            case 'G': c_colors[i] = GREEN;  break;
+            case 'Y': c_colors[i] = YELLOW; break;
+            case 'R': c_colors[i] = RED;    break;
+        }
+    }
+}
+
 void flash_spark(void)
 {
     audio_play_file("spark.wav");
@@ -49,7 +62,7 @@ int randint(int from, int to)
     return from + ((random() % (to - from)));
 }
 
-void game_set_puzzle(clist_t *conns, int from, int to)
+void game_set_mastermind(clist_t *conns, int from, int to)
 {
     pdebug("game_set_puzzle(%d/%d/%d, %d, %d)", conns->on, conns->newon, conns->off, from, to);
     for (int i = 0; i < NUM_ROWS; i++) {
@@ -60,9 +73,68 @@ void game_set_puzzle(clist_t *conns, int from, int to)
             pdebug("Suolution[%d] = %d", i, puzzle.solution[i]);
         }
     }
+    /* Midden reserveren voor indicaties */
+    led_remove_animation(1);
+    led_remove_animation(2);
 }
 
-int game_fixing(clist_t *conns)
+static int level = 0;
+
+int game_breaking(clist_t *conns)
+{
+    level = 2;
+    return GAME_COLOR;
+}
+
+int game_coloring(clist_t *conns)
+{
+    if (conns->newon > 0) {
+        audio_play_file("on.wav");
+        for (int i = (conns->on - conns->newon); i < conns->on; i++) {
+            pdebug("New connection: %d - %d", conns->pins[i].p1, conns->pins[i].p2);
+        }
+    } else if (conns->off > 0) {
+        audio_play_file("off.wav");
+    } else if (--flashcount <= 0) {
+        flash_spark();
+        flashcount = (int)(((double)(FRAMERATE/10 + (random() % (FRAMERATE * 4)))) * (1.0 + (((double)conns->on)/4)));
+    }
+    int colors[40] = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
+    int *correct = &colors[20];
+    /* Kijken voor juiste posities */
+    int okcnt = 0;
+    for (int i = 0; i < conns->on; i++) {
+        int s[2] = { conns->pins[i].p1, conns->pins[i].p2 };
+        if (level > 1) {
+            if ((s[0] >= 50) == (s[1] >= 50)) {
+                for (int cc = 0; cc < 2; cc++) {
+                    int r = PIN_ROW(s[cc]);
+                    correct[r] |= BAD;
+                }
+                continue;
+            }
+        }
+        for (int cc = 0; cc < 2; cc++) {
+            int r = PIN_ROW(s[cc]);
+            /* Kleur zetten */
+            colors[r] |= c_colors[s[cc]];
+            correct[r] |= c_colors[puzzle.solution[r]];
+            /* Kijken of de positie klopt */
+            if (puzzle.solution[r] == s[cc]) {
+                okcnt++;
+                correct[r] |= GOOD;
+            }
+        }
+    }
+    ledshow_colors(colors);
+    if (okcnt < 20) {
+        return GAME_cOLORING;
+    } else {
+        return GAME_FIXED;
+    }
+}
+
+int game_masterminding(clist_t *conns)
 {
     if (conns->newon > 0) {
         audio_play_file("on.wav");
@@ -122,7 +194,7 @@ int game_fixing(clist_t *conns)
     ledshow_mastermind(0, colcnts[0], poscnts[0]);
     ledshow_mastermind(1, colcnts[1], poscnts[1]);
     if (poscnts[0] < 10 || poscnts[1] < 10) {
-        return GAME_FIXING;
+        return GAME_MASTERMINDING;
     } else {
         return GAME_FIXED;
     }
@@ -154,7 +226,6 @@ int game_mainloop(int gamestate, clist_t *conns)
             bootcount = FRAMERATE*2/SCANRATE;
         case GAME_BOOTING:
             return game_booting(conns);
-            break;
         case GAME_OK:
             pdebug("GAME_OK");
             /* Wat leuke animaties */
@@ -166,22 +237,25 @@ int game_mainloop(int gamestate, clist_t *conns)
             audio_play_file("ready.wav");
         case GAME_OKING:
             return game_oking(conns);
-            break;
         case GAME_BREAK:
             pdebug("GAME_BREAK");
             flashcount = 0;
+            /* Rodere animaties */
             led_set_blobs(0, 0, 3, 0x330000, 0x221100, 0x000011);
             led_set_blobs(3, 0, 4, 0x330000, 0x003300, 0x331100, 0x113300);
         case GAME_BREAKING:
-        case GAME_FIX:
-            pdebug("GAME_FIX");
-            game_set_puzzle(conns,0,20);
-            /* Rodere animaties */
-            led_remove_animation(1);
-            led_remove_animation(2);
-        case GAME_FIXING:
-            return game_fixing(conns);
-            break;
+            /* TODO: Broken modus, wachten tot iemand begint met oplossen */
+            return game_breaking(conns);
+        case GAME_COLOR:
+            pdebug("GAME_COLOR");
+            game_set_mastermind(conns,0,20);
+        case GAME_COLORING:
+            return game_coloring(conns);
+        case GAME_MASTERMIND:
+            pdebug("GAME_MASTERMIND");
+            game_set_mastermind(conns,0,20);
+        case GAME_MASTERMINDING:
+            return game_masterminding(conns);
         case GAME_FIXED:
             pdebug("GAME_FIXED");
             led_set_swipe(0, FRAMERATE, 12, 3, 0xff0000, 0xff0000, 0xff0000);
@@ -191,7 +265,6 @@ int game_mainloop(int gamestate, clist_t *conns)
             bootcount = FRAMERATE/SCANRATE;
         case GAME_FIXEDING:
             return game_fixeding(conns);
-            break;
     }
 }
 
