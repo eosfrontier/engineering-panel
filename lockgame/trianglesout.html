@@ -52,6 +52,8 @@ var colors = [
     '#ff0'
 ];
 function init_grid() {
+    cellgrid[-1] = [];
+    cellgrid[2*side] = [];
     for (var row = 0; row < 2*side; row++) {
         cellgrid[row] = [];
         var cut = (Math.abs(row-side+0.5)-0.5);
@@ -83,8 +85,18 @@ function click_grid(ev)
     if (insX < -(insY / 1.732)) { crdX -= 1;}
     if (insX >  (insY / 1.732)) { crdX += 1; }
     if (cellgrid[crdY][crdX]) {
-        var col = cellgrid[crdY][crdX].color;
-        cellgrid[crdY][crdX].color = (col+1) % colors.length;
+        var cells = [cellgrid[crdY][crdX], cellgrid[crdY][crdX-1], cellgrid[crdY][crdX+1]];
+        if ((crdX+crdY) % 2) {
+            cells.push(cellgrid[crdY+1][crdX]);
+        } else {
+            cells.push(cellgrid[crdY-1][crdX]);
+        }
+        for (var i = 0; i < 4; i++) {
+            if (cells[i]) {
+                var col = cells[i].color;
+                cells[i].color = (col+1) % colors.length;
+            }
+        }
         draw_grid();
     }
 }
