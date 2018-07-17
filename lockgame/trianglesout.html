@@ -12,9 +12,7 @@ var offY = 30;
 
 var cellgrid = [];
 
-var g = null;
-
-function draw_triangle(x, y, size, color) {
+function draw_triangle(g, x, y, size, color) {
     g.beginPath();
     g.moveTo(x,y);
     g.lineTo(x-size*0.5,y+size*0.866);
@@ -42,14 +40,13 @@ function draw_triangle(x, y, size, color) {
 //        --------
 //
 // Dus verbonden met x,y:
-//   als x even: x-1,y | x+1,y | x,y-1
-//   als oneven: x-1,y | x+1,y | x,y+1
+//   als x+y even:   x-1,y | x+1,y | x,y-1
+//   als x+y oneven: x-1,y | x+1,y | x,y+1
 
 var colors = [
     '#f00',
-    '#0f0',
     '#00f',
-    '#ff0'
+    '#0f0'
 ];
 function init_grid() {
     cellgrid[-1] = [];
@@ -62,12 +59,6 @@ function init_grid() {
         }
     }
     $('#lock').on('click', click_grid);
-    if (!g) {
-        g = document.getElementById('lock').getContext("2d");
-        g.lineJoin = 'round';
-        g.lineWidth = 8;
-        g.strokeStyle = '#000';
-    }
     draw_grid();
 }
 
@@ -84,6 +75,8 @@ function click_grid(ev)
     if (!(crdY % 2)) { insY = hei-insY; }
     if (insX < -(insY / 1.732)) { crdX -= 1;}
     if (insX >  (insY / 1.732)) { crdX += 1; }
+
+    /* Driehoek van kleur veranderen */
     if (cellgrid[crdY][crdX]) {
         var cells = [cellgrid[crdY][crdX], cellgrid[crdY][crdX-1], cellgrid[crdY][crdX+1]];
         if ((crdX+crdY) % 2) {
@@ -102,6 +95,12 @@ function click_grid(ev)
 }
 
 function draw_grid() {
+    var canvas = document.getElementById('lock');
+    var g = canvas.getContext("2d");
+    g.clearRect(0, 0, canvas.width, canvas.height);
+    g.lineJoin = 'round';
+    g.lineWidth = 8;
+    g.strokeStyle = '#000';
     for (var row = 0; row < 2*side; row++) {
         var cut = (Math.abs(row-side+0.5)-0.5);
         for (var col = cut; col < (4*side)-1-cut; col++) {
@@ -112,7 +111,7 @@ function draw_grid() {
             } else {
                 ypos += hei;
             }
-            draw_triangle((col+1)*wid/2+offX, ypos+offY, size, colors[cellgrid[row][col].color]);
+            draw_triangle(g, (col+1)*wid/2+offX, ypos+offY, size, colors[cellgrid[row][col].color]);
         }
     }
 }
