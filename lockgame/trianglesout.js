@@ -75,7 +75,7 @@ function click_grid(ev)
         } else {
             crdX = Math.floor((posX+wid/2)/wid) * 2 - 1;
         }
-        if (!cellgrid[crdY][crdX] && !cellgrid[crdY-1][crdX]) return;
+        if (!cellgrid[crdY][crdX] && !cellgrid[crdY-1][crdX-1] && !cellgrid[crdY-1][crdX+1]) return;
     } else {
         /* Berekenen welke driehoek geklikt is */
         crdY = Math.floor(posY/hei);
