@@ -26,7 +26,7 @@ void init_game(void)
 
 void flash_spark(void)
 {
-    audio_play_file("spark.wav");
+    audio_play_file(1, WAV_SPARK);
     led_set_flash(0, 5, 0, 2, 0xffffff, 3, 4, 0xccccff, 4, 3, 0xffcccc, 2, 10, 0x000000, 8, 3, 0x000000);
     led_set_flash(3, 5, 0, 3, 0xffccff, 3, 2, 0xffccff, 5, 2, 0xffffff, 2, 6, 0x000000, 12, 2, 0x000000);
     led_set_flash(1, 3, 0, 4, 0xff8888, 6, 2, 0xffffff, 6, 15, 0x000000);
@@ -90,12 +90,12 @@ int game_breaking(clist_t *conns)
 int game_coloring(clist_t *conns)
 {
     if (conns->newon > 0) {
-        audio_play_file("on.wav");
+        audio_play_file(1, WAV_ON);
         for (int i = (conns->on - conns->newon); i < conns->on; i++) {
             pdebug("New connection: %d - %d", conns->pins[i].p1, conns->pins[i].p2);
         }
     } else if (conns->off > 0) {
-        audio_play_file("off.wav");
+        audio_play_file(1, WAV_OFF);
     } else if (--flashcount <= 0) {
         flash_spark();
         flashcount = (int)(((double)(FRAMERATE/10 + (random() % (FRAMERATE * 4)))) * (1.0 + (((double)conns->on)/4)));
@@ -140,12 +140,12 @@ int game_coloring(clist_t *conns)
 int game_masterminding(clist_t *conns)
 {
     if (conns->newon > 0) {
-        audio_play_file("on.wav");
+        audio_play_file(1, WAV_ON);
         for (int i = (conns->on - conns->newon); i < conns->on; i++) {
             pdebug("New connection: %d - %d", conns->pins[i].p1, conns->pins[i].p2);
         }
     } else if (conns->off > 0) {
-        audio_play_file("off.wav");
+        audio_play_file(1, WAV_OFF);
     } else if (--flashcount <= 0) {
         flash_spark();
         flashcount = (int)(((double)(FRAMERATE/10 + (random() % (FRAMERATE * 4)))) * (1.0 + (((double)conns->on)/4)));
@@ -231,7 +231,7 @@ int game_mainloop(int gamestate, clist_t *conns)
             return game_start(conns);
         case GAME_BOOT:
             pdebug("GAME_BOOT");
-            audio_play_file("booting.wav");
+            audio_play_file(1, WAV_BOOTING);
             led_set_swipe(0, FRAMERATE*2, 12, 3, 0xff0000, 0xff0000, 0xff0000);
             led_set_swipe(1, FRAMERATE*2, 0, 3, 0x00ff00, 0x00ff00, 0x00ff00);
             led_set_swipe(2, FRAMERATE*2, 0, 3, 0x888800, 0x888800, 0x888800);
@@ -247,7 +247,7 @@ int game_mainloop(int gamestate, clist_t *conns)
 
             led_set_blobs(1, FRAMERATE*2, 3, 0x002222, 0x002200, 0x000022);
             led_set_blobs(2, FRAMERATE*2, 3, 0x002222, 0x000022, 0x002200);
-            audio_play_file("ready.wav");
+            audio_play_file(1, WAV_READY);
         case GAME_OKING:
             return game_oking(conns);
         case GAME_BREAK:
