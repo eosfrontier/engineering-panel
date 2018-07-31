@@ -220,7 +220,7 @@ int game_start(clist_t *conns)
 //    if (conns->button & 0x01) {
 //        return GAME_BOOT;
 //    }
-    return GAME_START;
+    return GAME_BOOT;
 }
 
 int game_mainloop(int gamestate, clist_t *conns)
@@ -231,7 +231,7 @@ int game_mainloop(int gamestate, clist_t *conns)
             return game_start(conns);
         case GAME_BOOT:
             pdebug("GAME_BOOT");
-            audio_play_file(1, WAV_BOOTING);
+            audio_play_file(0, WAV_BOOTING);
             led_set_swipe(0, FRAMERATE*2, 12, 3, 0xff0000, 0xff0000, 0xff0000);
             led_set_swipe(1, FRAMERATE*2, 0, 3, 0x00ff00, 0x00ff00, 0x00ff00);
             led_set_swipe(2, FRAMERATE*2, 0, 3, 0x888800, 0x888800, 0x888800);

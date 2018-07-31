@@ -21,31 +21,32 @@ static char *wav_audiofiles[] = WAV_AUDIOFILES;
 
 static struct {
     int16_t *samples;
-    size_t length;
-    size_t position;
+    long length;
+    long position;
     int repeat;
-} pcm_channels[PCM_CHANNELS];
+} pcm_channels[WAV_CHANNELS];
 
 static struct {
     int16_t *samples;
-    size_t length;
+    long length;
+    int repeat;
 } wavfiles[WAV_COUNT];
 
-static size_t read_le32(char *bytes)
+static size_t read_le32(unsigned char *bytes)
 {
-    return bytes[0] + bytes[1]<<8 + bytes[2]<<16 + bytes[3]<<24;
+    return bytes[0] + (bytes[1]<<8) + (bytes[2]<<16) + (bytes[3]<<24);
 }
 
-static int read_le16(char *bytes)
+static int read_le16(unsigned char *bytes)
 {
-    return bytes[0] + bytes[1]<<8;
+    return bytes[0] + (bytes[1]<<8);
 }
 
 static int read_wavfile(char *name, int wc)
 {
     int fd;
     int err;
-    char pathname[strlen(PCM_PAT)+strlen(name)+1];
+    char pathname[strlen(PCM_PATH)+strlen(name)+1];
     strcpy(pathname, PCM_PATH);
     strcat(pathname, name);
     fd = open(pathname, O_RDONLY);
@@ -94,6 +95,7 @@ static int read_wavfile(char *name, int wc)
     }
     wavfiles[wc].samples = (int16_t *)(wavdata+fmtlen+28);
     wavfiles[wc].length = wavdatalen/4;
+    wavfiles[wc].repeat = (wc == WAV_HUM) ? 1 : 0;
     return 0;
 }
 
@@ -101,17 +103,20 @@ static int read_wavfiles(void)
 {
     int ret = 0;
     for (int wc = 0; wc < WAV_COUNT; wc++) {
-        if (read_wavfile(wavfiles[wc], wc) < 0) ret = -1;
+        if (read_wavfile(wav_audiofiles[wc], wc) < 0) {
+            ret = -1;
+            wavfiles[wc].samples = NULL;
+        }
     }
     return ret;
 }
 
 int init_audio(void)
 {
-    for (int c = 0; c < PCM_CHANNELS; c++) {
+    for (int c = 0; c < WAV_CHANNELS; c++) {
         pcm_channels[c].samples = NULL;
     }
-    return read_wavfiles(PCM_PATH);
+    return read_wavfiles();
 }
 
 int fini_audio(void)
@@ -126,7 +131,7 @@ static void pcm_mix_buffer(int16_t *buffer, long len)
     while (len > 0) {
         /* Get smallest size to mix */
         long mixsize = len;
-        for (int c = 0; c < PCM_CHANNELS; c++) {
+        for (int c = 0; c < WAV_CHANNELS; c++) {
             if (pcm_channels[c].samples) {
                 if (mixsize > (pcm_channels[c].length - pcm_channels[c].position)) {
                     mixsize = (pcm_channels[c].length - pcm_channels[c].position);
@@ -134,12 +139,14 @@ static void pcm_mix_buffer(int16_t *buffer, long len)
             }
         }
         memset(buffer, 0, mixsize*2*sizeof(*buffer));
-        for (int c = 0; c < PCM_CHANNELS; c++) {
+        for (int c = 0; c < WAV_CHANNELS; c++) {
             if (pcm_channels[c].samples) {
-                for (long s = 0; s < mixsize*2; s++) {
-                    buffer[s] += (pcm_channels[c].samples[position+s] / PCM_CHANNELS);
+                int16_t *samples = pcm_channels[c].samples+(pcm_channels[c].position*2);
+                for (long s = 0; s < mixsize; s++) {
+                    buffer[s*2]   += (samples[s*2] / WAV_CHANNELS);
+                    buffer[s*2+1] += (samples[s*2+1] / WAV_CHANNELS);
                 }
-                size_t newpos = pcm_channels[c].position + mixsize;
+                long newpos = pcm_channels[c].position + mixsize;
                 if (newpos < pcm_channels[c].length) {
                     pcm_channels[c].position = newpos;
                 } else {
@@ -152,12 +159,12 @@ static void pcm_mix_buffer(int16_t *buffer, long len)
             }
         }
         len -= mixsize;
+        buffer += mixsize*2;
     }
 }
 
 void audio_mainloop(void)
 {
-    unsigned int 
     int err;
     if (pcm_handle == NULL) {
         if ((err = snd_pcm_open(&pcm_handle, PCM_DEVICE, SND_PCM_STREAM_PLAYBACK, 0)) < 0) {
@@ -171,28 +178,38 @@ void audio_mainloop(void)
     }
     if (pcm_handle) {
         long play_len = snd_pcm_avail(pcm_handle);
+        if (play_len < 0) {
+            fprintf(stderr, "snd_pcm_avail error: %s\n", snd_strerror(play_len));
+            snd_pcm_close(pcm_handle);
+            pcm_handle = NULL;
+            return;
+        }
         int16_t buffer[play_len*2];
         pcm_mix_buffer(buffer, play_len);
         int written;
         written = snd_pcm_writei(pcm_handle, buffer, play_len);
-        if (written <= 0) {
+        if (written < 0) {
             fprintf(stderr, "Write to %s failed: %s\n", PCM_DEVICE, snd_strerror(written));
             snd_pcm_close(pcm_handle);
             pcm_handle = NULL;
+        } else if (written < play_len) {
+            fprintf(stderr, "Write to %s failed: Short write(%d)\n", PCM_DEVICE, written);
         }
     }
 }
 
-int audio_play_file(int channel, enum wav_sounds sound, int repeat)
+int audio_play_file(int channel, enum wav_sounds sound)
 {
-    if (channel >= PCM_CHANNELS || sound >= WAV_COUNT) {
+    if (channel >= WAV_CHANNELS || sound >= WAV_COUNT) {
         fprintf(stderr, "audio_play_file argument error\n");
         return -1;
     }
     pcm_channels[channel].samples = wavfiles[sound].samples;
-    pcm_channels[channel].length = wavfiles[sound].length;
-    pcm_channels[channel].repeat = repeat;
+    pcm_channels[channel].length  = wavfiles[sound].length;
+    pcm_channels[channel].repeat  = wavfiles[sound].repeat;
     pcm_channels[channel].position = 0;
+    pdebug("audio_play_file(%d, %s)", channel, wav_audiofiles[sound]);
+    return 0;
 }
 
 /* vim: ai:si:expandtab:ts=4:sw=4

@@ -18,12 +18,12 @@ enum wav_sounds {
 };
 
 #define WAV_AUDIOFILES {"hum.wav","on.wav","off.wav","ready.wav","booting.wav","spark.wav"}
-#define PCM_CHANNELS 2
+#define WAV_CHANNELS 2
 
 int init_audio(void);
 int fini_audio(void);
 void audio_mainloop(void);
-int audio_play_file(int channel, enum wav_sounds sound, int repeat);
+int audio_play_file(int channel, enum wav_sounds sound);
 
 /* vim: ai:si:expandtab:ts=4:sw=4
  */
