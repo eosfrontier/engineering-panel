@@ -47,11 +47,13 @@ int game_booting(clist_t *conns)
 
 int game_oking(clist_t *conns)
 {
+    if ((conns->buttons[0].status & BUTTON_CLICKS) >= 3) {
+        return GAME_BREAK;
+    }
     if (conns->off > 0) {
         return GAME_BREAK;
-    } else {
-        return GAME_OKING;
     }
+    return GAME_OKING;
 }
 
 struct puzzle {
@@ -89,6 +91,9 @@ int game_breaking(clist_t *conns)
 
 int game_coloring(clist_t *conns)
 {
+    if (conns->buttons[0].status >= BUTTON_ON + 5) {
+        return GAME_BOOT;
+    }
     if (conns->newon > 0) {
         audio_play_file(1, WAV_ON);
         for (int i = (conns->on - conns->newon); i < conns->on; i++) {
@@ -217,10 +222,10 @@ int game_fixeding(clist_t *conns)
 
 int game_start(clist_t *conns)
 {
-//    if (conns->button & 0x01) {
-//        return GAME_BOOT;
-//    }
-    return GAME_BOOT;
+    if (conns->buttons[0].status >= BUTTON_ON + 3) {
+        return GAME_BOOT;
+    }
+    return GAME_START;
 }
 
 int game_mainloop(int gamestate, clist_t *conns)

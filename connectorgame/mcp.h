@@ -14,12 +14,26 @@
 /* 0111.. */
 #define PIN_OFF_ON (PIN_ON_OFF - 1)
 
+#define MCP_BUTTONS 6
+#define PIN_BUTTONS 15
+#define NUM_BUTTONS 1
+
+#define BUTTON_ONTIME ((FRAMERATE/SCANRATE)*1)
+#define BUTTON_CLICKTIME 1
+#define BUTTON_ON 0x100
+#define BUTTON_CLICKS 0xff
+
 typedef struct connection {
     unsigned char p1, p2;
 } connection_t;
 
+typedef struct button {
+    int status;
+} button_t;
+
 typedef struct clist {
     int on, newon, off;
+    button_t buttons[NUM_BUTTONS];
     connection_t pins[0];
 } clist_t;
 
