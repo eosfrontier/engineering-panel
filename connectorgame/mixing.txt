@@ -1,0 +1,12 @@
+
+- pcm_handle: constante geluid output
+- Bij stilte: audio dev sluiten?  Komt dit voor?
+
+Kanalen:
+ 0 = constant geluid (reactor hum, etc) : Synthetisch / looping wav ?
+ 1 = effecten (sparks, knallen, etc) : Eenmalige wav
+ 2 = stemmen (ready, warning, power low, 10%, etc) : moet deze los van 1??
+
+audio_mainloop:
+  Bepalen hoeveel bufferruimte er gevuld moet worden
+  
