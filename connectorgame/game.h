@@ -1,6 +1,7 @@
 /* Game functions */
 
 enum gamestates {
+    GAME_START,
     GAME_BOOT,
     GAME_BOOTING,
     GAME_OK,
@@ -49,3 +50,5 @@ enum gamestates {
 
 void init_game(void);
 int game_mainloop(int gamestate, clist_t *conns);
+/* vim: ai:si:expandtab:ts=4:sw=4
+ */

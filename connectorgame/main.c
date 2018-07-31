@@ -84,7 +84,7 @@ int main(int argc, char *argv[])
 
     /* Opstarten */
     running = 1;
-    int gamestate = GAME_BOOT;
+    int gamestate = GAME_START;
     int scanrate = SCANRATE;
     while (running) {
         int64_t timertime = getutime(); // Om de framerate gelijk te houden

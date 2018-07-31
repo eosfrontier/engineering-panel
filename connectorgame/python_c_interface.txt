@@ -25,12 +25,6 @@ Enkele mainloop?  Misschien alleen voor LEDs omdat audio minder exact hoeft.
 
 Eventueel aparte modules voor led-animaties, connectors uitlezen, audio mixing?
 
-Dus voorbeeld-python:
-
-import mcp
-import leds
-import audio
-
 
 Functies:
 - mcp
@@ -61,3 +55,47 @@ Functies:
   audio.audio_mainloop()
     Vaak genoeg per seconde aanroepen om audio-buffers bij te vullen
     Audio moet gemixt gespeeld kunnen worden  (maximaal aantal kanalen?)
+
+
+Dus voorbeeld-python:
+
+import mcp
+import leds
+import audio
+
+audio.init()
+leds.init()
+mcp.init()
+
+def state = startup
+while state != finished:
+  state = state()
+
+mcp.fini()
+leds.fini()
+audio.fini()
+
+def startup():
+  audio.play_sound(1, 'startup.wav')
+  leds.add_animation(1, leds.swipe, 0xff0000)
+  while audio.mainloop() contains 'startup.wav':
+    leds.mainloop()
+    mcp.getconnections()
+  return running
+
+def running():
+  audio.play_sound(0, "reactor.wav")
+  leds.add_animation(1, leds.blobs, 0x008800, 0x006666, 0x000088)
+  while True:
+    audio.mainloop()
+    leds.mainloop()
+    def conns = mcp.getconections()
+    if conns.count < 10:
+      return broken
+    if conns.buttons contains 0:
+      return broken
+
+def broken():
+  audio.play_sound(1, "spark.wav")
+  audio.play_sound(0, "reactorbroken.wav")
+  leds.add_animation(1, leds.flash, 0xffffff)

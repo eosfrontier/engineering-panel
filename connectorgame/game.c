@@ -215,10 +215,20 @@ int game_fixeding(clist_t *conns)
     }
 }
 
+int game_start(clist_t *conns)
+{
+//    if (conns->button & 0x01) {
+//        return GAME_BOOT;
+//    }
+    return GAME_START;
+}
+
 int game_mainloop(int gamestate, clist_t *conns)
 {
     switch (gamestate) {
         default: /* Fallthrough to boot */
+        case GAME_START:
+            return game_start(conns);
         case GAME_BOOT:
             pdebug("GAME_BOOT");
             audio_play_file("booting.wav");
