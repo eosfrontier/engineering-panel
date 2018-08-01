@@ -3,6 +3,7 @@
 #include <stdint.h>
 #include <string.h>
 #include <unistd.h>
+#include <math.h>
 #include <alsa/asoundlib.h>
 #include <sys/mman.h>
 #include <sys/types.h>
@@ -10,6 +11,8 @@
 
 #include "main.h"
 #include "audio.h"
+
+#define PI 3.14159265
 
 static snd_pcm_t *pcm_handle = NULL;
 
@@ -24,6 +27,12 @@ static struct {
     long length;
     long position;
     int repeat;
+    struct synth_s {
+        double volume;
+        double d1;
+        double d2;
+        double c;
+    } synth[SYNTH_CHANNELS];
 } pcm_channels[WAV_CHANNELS];
 
 static struct {
@@ -81,11 +90,11 @@ static int read_wavfile(char *name, int wc)
         return -1;
     }
     if (read_le16(wavdata+22) != 2) {
-        fprintf(stderr, "Wav file not stereo %s\n", pathname);
+        fprintf(stderr, "Wav file not stereo: %s\n", pathname);
         return -1;
     }
-    if (read_le32(wavdata+24) != 44100) {
-        fprintf(stderr, "Wav file not 44100Hz %s\n", pathname);
+    if (read_le32(wavdata+24) != PCM_RATE) {
+        fprintf(stderr, "Wav file not %dHz: %s\n", PCM_RATE, pathname);
         return -1;
     }
     size_t wavdatalen = read_le32(wavdata+fmtlen+24);
@@ -128,23 +137,38 @@ int fini_audio(void)
 
 static void pcm_mix_buffer(int16_t *buffer, long len)
 {
-    while (len > 0) {
-        /* Get smallest size to mix */
-        long mixsize = len;
-        for (int c = 0; c < WAV_CHANNELS; c++) {
-            if (pcm_channels[c].samples) {
+    memset(buffer, 0, len*2*sizeof(*buffer));
+    for (int c = 0; c < WAV_CHANNELS; c++) {
+        if (pcm_channels[c].length == -1) {
+            struct synth_s *synth = pcm_channels[c].synth;
+            for (int s = 0; s < len; s++) {
+                int sc = s % 2;
+                double val = synth[sc].d1 * synth[sc].volume;
+                while ((sc += 2) < SYNTH_CHANNELS) {
+                    val += synth[sc].d1 * synth[sc].volume;
+                }
+                long byteval = (long)(val * 0x7FFF);
+                if (val < -0x7FFF) val = -0x7FFF;
+                if (val >  0x7FFF) val =  0x7FFF;
+                buffer[s] += (int16_t)(byteval / WAV_CHANNELS);
+                for (sc = s % 2; sc < SYNTH_CHANNELS; sc += 2) {
+                    double d0 = synth[sc].d1 * synth[sc].c - synth[sc].d2;
+                    synth[sc].d2 = synth[sc].d1;
+                    synth[sc].d1 = d0;
+                }
+            }
+        } else {
+            long pos = 0;
+            while (pcm_channels[c].samples && (pos < len)) {
+                long mixsize = len - pos;
                 if (mixsize > (pcm_channels[c].length - pcm_channels[c].position)) {
                     mixsize = (pcm_channels[c].length - pcm_channels[c].position);
                 }
-            }
-        }
-        memset(buffer, 0, mixsize*2*sizeof(*buffer));
-        for (int c = 0; c < WAV_CHANNELS; c++) {
-            if (pcm_channels[c].samples) {
                 int16_t *samples = pcm_channels[c].samples+(pcm_channels[c].position*2);
+                int16_t *bufp = buffer + pos*2;
                 for (long s = 0; s < mixsize; s++) {
-                    buffer[s*2]   += (samples[s*2] / WAV_CHANNELS);
-                    buffer[s*2+1] += (samples[s*2+1] / WAV_CHANNELS);
+                    bufp[s*2  ] += (samples[s*2  ] / WAV_CHANNELS);
+                    bufp[s*2+1] += (samples[s*2+1] / WAV_CHANNELS);
                 }
                 long newpos = pcm_channels[c].position + mixsize;
                 if (newpos < pcm_channels[c].length) {
@@ -156,10 +180,9 @@ static void pcm_mix_buffer(int16_t *buffer, long len)
                         pcm_channels[c].samples = NULL;
                     }
                 }
+                pos += mixsize;
             }
         }
-        len -= mixsize;
-        buffer += mixsize*2;
     }
 }
 
@@ -182,6 +205,9 @@ void audio_mainloop(void)
             fprintf(stderr, "snd_pcm_avail error: %s\n", snd_strerror(play_len));
             snd_pcm_close(pcm_handle);
             pcm_handle = NULL;
+            return;
+        }
+        if (play_len == 0) {
             return;
         }
         int16_t buffer[play_len*2];
@@ -210,6 +236,27 @@ int audio_play_file(int channel, enum wav_sounds sound)
     pcm_channels[channel].position = 0;
     pdebug("audio_play_file(%d, %s)", channel, wav_audiofiles[sound]);
     return 0;
+}
+
+int audio_play_synth(int channel, int synthchannel, double frequency, double volume)
+{
+    if (channel >= WAV_CHANNELS || synthchannel >= SYNTH_CHANNELS) {
+        fprintf(stderr, "audio_play_file argument error\n");
+        return -1;
+    }
+    struct synth_s *synth = pcm_channels[channel].synth;
+    if (pcm_channels[channel].length != -1) {
+        /* First time init */
+        for (int sc = 0; sc < SYNTH_CHANNELS; sc++) {
+            synth[sc].volume = 0;
+        }
+        pcm_channels[channel].length = -1;
+        pcm_channels[channel].samples = NULL;
+    }
+    synth[synthchannel].volume = volume;
+    synth[synthchannel].c  = cos(PI * 2 * frequency / PCM_RATE) * 2;
+    synth[synthchannel].d1 = sin(PI * 2 * frequency / PCM_RATE);
+    synth[synthchannel].d2 = 0;
 }
 
 /* vim: ai:si:expandtab:ts=4:sw=4

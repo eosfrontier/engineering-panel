@@ -18,12 +18,14 @@ enum wav_sounds {
 };
 
 #define WAV_AUDIOFILES {"hum.wav","on.wav","off.wav","ready.wav","booting.wav","spark.wav"}
-#define WAV_CHANNELS 2
+#define WAV_CHANNELS 3
+#define SYNTH_CHANNELS 8
 
 int init_audio(void);
 int fini_audio(void);
 void audio_mainloop(void);
 int audio_play_file(int channel, enum wav_sounds sound);
+int audio_play_synth(int channel, int synthchannel, double frequency, double volume);
 
 /* vim: ai:si:expandtab:ts=4:sw=4
  */
