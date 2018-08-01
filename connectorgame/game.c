@@ -254,10 +254,14 @@ int game_mainloop(int gamestate, clist_t *conns)
             led_set_blobs(2, FRAMERATE*2, 3, 0x002222, 0x000022, 0x002200);
             audio_play_file(1, WAV_READY);
             /* Synth hum */
-            audio_play_synth(0, 0, 100.0, 0.5);
-            audio_play_synth(0, 1, 125.0, 0.5);
-            audio_play_synth(0, 2, 150.0, 0.5);
-            audio_play_synth(0, 3, 175.0, 0.5);
+            audio_play_synth(0, 0, 100.0, 0.9);
+            audio_play_synth(0, 1, 150.0, 0.9);
+            audio_play_synth(0, 2, 125.0, 0.9);
+            audio_play_synth(0, 3, 175.0, 0.9);
+            audio_play_synth(0, 4, 200.0, 0.05);
+            audio_play_synth(0, 5, 300.0, 0.05);
+            audio_play_synth(0, 6, 250.0, 0.05);
+            audio_play_synth(0, 7, 350.0, 0.05);
         case GAME_OKING:
             return game_oking(conns);
         case GAME_BREAK:
@@ -267,10 +271,14 @@ int game_mainloop(int gamestate, clist_t *conns)
             led_set_blobs(0, 0, 3, 0x330000, 0x221100, 0x000011);
             led_set_blobs(3, 0, 4, 0x330000, 0x003300, 0x331100, 0x113300);
             /* Synth hum */
-            audio_play_synth(0, 0,  90.0, 0.5);
-            audio_play_synth(0, 1, 113.0, 0.5);
-            audio_play_synth(0, 2, 138.0, 0.5);
-            audio_play_synth(0, 3, 162.0, 0.5);
+            audio_play_synth(0, 0,  80.0, 0.9);
+            audio_play_synth(0, 1,  91.0, 0.9);
+            audio_play_synth(0, 2, 120.5, 0.9);
+            audio_play_synth(0, 3, 135.0, 0.9);
+            audio_play_synth(0, 4, 155.0, 0.1);
+            audio_play_synth(0, 5, 180.0, 0.1);
+            audio_play_synth(0, 6, 199.0, 0.1);
+            audio_play_synth(0, 7, 215.0, 0.1);
         case GAME_BREAKING:
             /* TODO: Broken modus, wachten tot iemand begint met oplossen */
             return game_breaking(conns);

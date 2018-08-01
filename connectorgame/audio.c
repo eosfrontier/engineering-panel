@@ -141,7 +141,7 @@ static void pcm_mix_buffer(int16_t *buffer, long len)
     for (int c = 0; c < WAV_CHANNELS; c++) {
         if (pcm_channels[c].length == -1) {
             struct synth_s *synth = pcm_channels[c].synth;
-            for (int s = 0; s < len; s++) {
+            for (int s = 0; s < len*2; s++) {
                 int sc = s % 2;
                 double val = synth[sc].d1 * synth[sc].volume;
                 while ((sc += 2) < SYNTH_CHANNELS) {
@@ -257,6 +257,8 @@ int audio_play_synth(int channel, int synthchannel, double frequency, double vol
     synth[synthchannel].c  = cos(PI * 2 * frequency / PCM_RATE) * 2;
     synth[synthchannel].d1 = sin(PI * 2 * frequency / PCM_RATE);
     synth[synthchannel].d2 = 0;
+    pdebug("audio_play_synth(%d, %d, %f, %f) = %f %f", channel, synthchannel, frequency, volume, synth[synthchannel].c, synth[synthchannel].d1);
+    return 0;
 }
 
 /* vim: ai:si:expandtab:ts=4:sw=4
