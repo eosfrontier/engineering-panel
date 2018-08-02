@@ -34,6 +34,7 @@ int led_set_blobs(int ring, int fadein, int num, ...);
 int led_remove_animation(int ring);
 int led_set_flash(int ring, int num, ...);
 int led_set_swipe(int ring, int speed, int offset, int num, ...);
+int led_set_idle(int ring, int speed, unsigned int color);
 int leds_mainloop(void);
 
 /* vim: ai:si:expandtab:ts=4:sw=4

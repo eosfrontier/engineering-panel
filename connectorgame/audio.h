@@ -8,7 +8,6 @@
 #define PCM_PATH        "/home/pi/shuttle-panels/audio/"
 
 enum wav_sounds {
-    WAV_HUM,
     WAV_ON,
     WAV_OFF,
     WAV_READY,
@@ -17,7 +16,7 @@ enum wav_sounds {
     WAV_COUNT
 };
 
-#define WAV_AUDIOFILES {"hum.wav","on.wav","off.wav","ready.wav","booting.wav","spark.wav"}
+#define WAV_AUDIOFILES {"on.wav","off.wav","ready.wav","booting.wav","spark.wav"}
 #define WAV_CHANNELS 3
 #define SYNTH_CHANNELS 8
 

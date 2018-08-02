@@ -17,7 +17,8 @@
 enum led_animation_types {
     ANIMATION_PLASMA,
     ANIMATION_FLASH,
-    ANIMATION_SWIPE
+    ANIMATION_SWIPE,
+    ANIMATION_IDLE
 };
 
 #define TARGET_FREQ             WS2811_TARGET_FREQ
@@ -25,7 +26,7 @@ enum led_animation_types {
 #define DMA                     10
 #define STRIP_TYPE              WS2811_STRIP_GRB		// WS2812/SK6812RGB integrated chip+leds
 
-ws2811_t ledstring =
+static ws2811_t ledstring =
 {
     .freq = TARGET_FREQ,
     .dmanum = DMA,
@@ -63,7 +64,7 @@ typedef struct ledanim {
 
 static ledanim_t *led_animations = NULL;
 
-int scale(int color, int value)
+static int scale(int color, int value)
 {
     int r = (color >> 16) & 0xff;
     int g = (color >> 8) & 0xff;
@@ -109,7 +110,7 @@ static int gstarts[] = GROUP_STARTS;
 static int gdirs[] = GROUP_DIRS;
 static int grings[] = GROUP_RINGS;
 
-unsigned int colstep(unsigned int from, unsigned int to)
+static unsigned int colstep(unsigned int from, unsigned int to)
 {
     unsigned int rescol = 0;
     for (unsigned int c = 0; c < 3; c++) {
@@ -200,7 +201,7 @@ int ledshow_mastermind(int side, int colors, int correct)
     return 0;
 }
 
-int led_animate_plasma(ledanim_t *an)
+static int led_animate_plasma(ledanim_t *an)
 {
     an->pos += 1;
     if (an->pos > (an->speed * an->size)) an->pos = 0;
@@ -232,7 +233,7 @@ int led_animate_plasma(ledanim_t *an)
     return 0;
 }
 
-int led_animate_flash(ledanim_t *an)
+static int led_animate_flash(ledanim_t *an)
 {
     an->pos += 1;
     int dpos = 0;
@@ -251,7 +252,7 @@ int led_animate_flash(ledanim_t *an)
     return 1;
 }
 
-int led_animate_swipe(ledanim_t *an)
+static int led_animate_swipe(ledanim_t *an)
 {
     an->pos += 1;
     int spos, onoff;
@@ -277,6 +278,17 @@ int led_animate_swipe(ledanim_t *an)
     return 0;
 }
 
+static int led_animate_idle(ledanim_t *an)
+{
+    an->pos += 1;
+    if (an->pos >= (an->speed * an->size)) an->pos = 0;
+    for (int ip = 0; ip < an->size; ip++) {
+        ledstring.channel[0].leds[an->offset+ip] = 0;
+    }
+    ledstring.channel[0].leds[an->offset+(an->pos/an->speed)] = an->data[0];
+    return 0;
+}
+
 int led_animate(ledanim_t *an) {
     switch (an->type) {
         case ANIMATION_PLASMA:
@@ -285,6 +297,8 @@ int led_animate(ledanim_t *an) {
             return led_animate_flash(an);
         case ANIMATION_SWIPE:
             return led_animate_swipe(an);
+        case ANIMATION_IDLE:
+            return led_animate_idle(an);
         default:
             fprintf(stderr, "Unknown animation type %d\n", an->type);
             return -1;
@@ -396,6 +410,28 @@ int led_set_swipe(int ring, int speed, int offset, int num, ...)
         newan->data[i+2] = va_arg(argp, unsigned int);
     }
     va_end(argp);
+    *an = newan;
+    return 0;
+}
+
+int led_set_idle(int ring, int speed, unsigned int color)
+{
+    ledanim_t **an = &led_animations;
+    while (*an) an = &((*an)->next);
+    ledanim_t *newan = malloc(sizeof(ledanim_t) + ((1))*sizeof(int));
+    if (!newan) {
+        fprintf(stderr, "Allocation for animation failed!\n");
+        return -1;
+    }
+    newan->next = NULL;
+    newan->type = ANIMATION_IDLE;
+    newan->offset = ring*RING_SIZE;
+    newan->size = RING_SIZE;
+    newan->speed = speed;
+    newan->fadein = 0;
+    newan->fadepos = 0;
+    newan->pos = 0;
+    newan->data[0] = color;
     *an = newan;
     return 0;
 }

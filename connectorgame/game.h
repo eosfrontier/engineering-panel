@@ -2,6 +2,7 @@
 
 enum gamestates {
     GAME_START,
+    GAME_STARTING,
     GAME_BOOT,
     GAME_BOOTING,
     GAME_OK,

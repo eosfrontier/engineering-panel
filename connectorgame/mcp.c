@@ -41,8 +41,7 @@ void init_mcps(void)
         /* Alle pins naar input */
         if (wiringPiI2CWriteReg16(mcps[m], MCP_IODIR, 0xffff) < 0) {
             fprintf(stderr, "Unable to setup IODIR I2C %d: %s\n", m, strerror(errno));
-            // exit(1);
-            continue;
+            exit(1);
         }
         /* Pullups activeren */
         if (wiringPiI2CWriteReg16(mcps[m], MCP_GPPU, 0xffff) < 0) {

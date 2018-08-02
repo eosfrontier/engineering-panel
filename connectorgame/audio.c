@@ -104,7 +104,7 @@ static int read_wavfile(char *name, int wc)
     }
     wavfiles[wc].samples = (int16_t *)(wavdata+fmtlen+28);
     wavfiles[wc].length = wavdatalen/4;
-    wavfiles[wc].repeat = (wc == WAV_HUM) ? 1 : 0;
+    wavfiles[wc].repeat = 0;
     return 0;
 }
 

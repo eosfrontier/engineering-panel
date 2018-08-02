@@ -220,12 +220,12 @@ int game_fixeding(clist_t *conns)
     }
 }
 
-int game_start(clist_t *conns)
+int game_starting(clist_t *conns)
 {
     if (conns->buttons[0].status >= BUTTON_ON + 3) {
         return GAME_BOOT;
     }
-    return GAME_START;
+    return GAME_STARTING;
 }
 
 int game_mainloop(int gamestate, clist_t *conns)
@@ -233,7 +233,10 @@ int game_mainloop(int gamestate, clist_t *conns)
     switch (gamestate) {
         default: /* Fallthrough to boot */
         case GAME_START:
-            return game_start(conns);
+            pdebug("GAME_START");
+            led_set_idle(2, FRAMERATE/4, 0x020004);
+        case GAME_STARTING:
+            return game_starting(conns);
         case GAME_BOOT:
             pdebug("GAME_BOOT");
             audio_play_file(0, WAV_BOOTING);
