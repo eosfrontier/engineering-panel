@@ -26,7 +26,7 @@ void init_game(void)
 
 static int randint(int from, int to)
 {
-    return from + ((random() % (to - from)));
+    return from + ((random() % (to - from + 1)));
 }
 
 static double randdbl(double from, double to)
@@ -84,6 +84,7 @@ static int game_oking(clist_t *conns)
     return GAME_OKING;
 }
 
+static int lastokcnt = 20;
 static struct puzzle {
     int solution[NUM_ROWS];
 } puzzle;
@@ -106,7 +107,6 @@ static void game_set_mastermind(clist_t *conns, int from, int to)
 }
 
 static int level = 0;
-static int lastokcnt = 20;
 
 static int game_breaking(clist_t *conns)
 {
@@ -124,10 +124,8 @@ static int game_coloring(clist_t *conns)
         for (int i = (conns->on - conns->newon); i < conns->on; i++) {
             pdebug("New connection: %d - %d", conns->pins[i].p1, conns->pins[i].p2);
         }
-        changehum = 1;
     } else if (conns->off > 0) {
         audio_play_file(1, WAV_OFF);
-        changehum = 1;
     } else if (--flashcount <= 0) {
         flash_spark();
         flashcount = (int)(((double)(FRAMERATE/10 + (random() % (FRAMERATE * 4)))) * (1.0 + (((double)conns->on)/4)));
@@ -268,7 +266,7 @@ int game_mainloop(int gamestate, clist_t *conns)
         case GAME_START:
             pdebug("GAME_START");
             led_set_idle(2, FRAMERATE/4, 0x020004);
-            engine_hum(0.0, 0.0, 0.0, 0.0, 1);
+            engine_hum(0.0, 0.0, 0.0, 0.0, 0.0, 0.05, 1, 0, 1, 0);
         case GAME_STARTING:
             return game_starting(conns);
         case GAME_BOOT:
