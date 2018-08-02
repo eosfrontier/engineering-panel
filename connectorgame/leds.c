@@ -306,6 +306,7 @@ int led_animate(ledanim_t *an) {
     return 0;
 }
 
+/* ring, fadein, num, [color]... */
 int led_set_blobs(int ring, int fadein, int num, ...)
 {
     pdebug("led_set_blobs(%d, %d)", ring, fadein);
@@ -355,6 +356,7 @@ int led_remove_animation(int ring)
     return 0;
 }
 
+/* ring, num, [offtime, ontime, color]... */
 int led_set_flash(int ring, int num, ...)
 {
     va_list argp;
@@ -385,6 +387,7 @@ int led_set_flash(int ring, int num, ...)
     return 0;
 }
 
+/* ring, speed, offset, num, [color]... */
 int led_set_swipe(int ring, int speed, int offset, int num, ...)
 {
     va_list argp;
@@ -414,6 +417,7 @@ int led_set_swipe(int ring, int speed, int offset, int num, ...)
     return 0;
 }
 
+/* ring, speed, color */
 int led_set_idle(int ring, int speed, unsigned int color)
 {
     ledanim_t **an = &led_animations;

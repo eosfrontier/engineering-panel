@@ -8,8 +8,8 @@
 
 static char c_colors[NUM_PINS] = CONNECTOR_COLORS;
 
-int bootcount = 0;
-int flashcount = 0;
+static int bootcount = 0;
+static int flashcount = 0;
 
 void init_game(void)
 {
@@ -24,16 +24,44 @@ void init_game(void)
     }
 }
 
-void flash_spark(void)
+static int randint(int from, int to)
 {
-    audio_play_file(1, WAV_SPARK);
-    led_set_flash(0, 5, 0, 2, 0xffffff, 3, 4, 0xccccff, 4, 3, 0xffcccc, 2, 10, 0x000000, 8, 3, 0x000000);
-    led_set_flash(3, 5, 0, 3, 0xffccff, 3, 2, 0xffccff, 5, 2, 0xffffff, 2, 6, 0x000000, 12, 2, 0x000000);
-    led_set_flash(1, 3, 0, 4, 0xff8888, 6, 2, 0xffffff, 6, 15, 0x000000);
-    led_set_flash(2, 3, 0, 3, 0xff8888, 4, 4, 0xffffff, 5, 12, 0x000000);
+    return from + ((random() % (to - from)));
 }
 
-int game_booting(clist_t *conns)
+static double randdbl(double from, double to)
+{
+    return from + ((random() * (1.0 / RAND_MAX) * (to - from)));
+}
+
+static double vary(double val, double var)
+{
+    return val * randdbl(1.0 - var, 1.0 + var);
+}
+
+static void engine_hum(double basefreq, double beatstep, double beatvar, double hibeat, double hivar, double hivol, int fade, int fadevar, int fadehi, int fadehivar)
+{
+    double lowvol = 0.90;
+    audio_play_synth(0, 0, vary(basefreq * (1.0 + (beatstep * 0.0)), beatvar), lowvol, randint(fade-fadevar, fade+fadevar));
+    audio_play_synth(0, 2, vary(basefreq * (1.0 + (beatstep * 1.0)), beatvar), lowvol, randint(fade-fadevar, fade+fadevar));
+    audio_play_synth(0, 1, vary(basefreq * (1.0 + (beatstep * 2.0)), beatvar), lowvol, randint(fade-fadevar, fade+fadevar));
+    audio_play_synth(0, 3, vary(basefreq * (1.0 + (beatstep * 3.0)), beatvar), lowvol, randint(fade-fadevar, fade+fadevar));
+    audio_play_synth(0, 5, vary(basefreq * hibeat * (1.0 + (beatstep * 0.0)), hivar), lowvol*hivol, randint(fade-fadehivar, fade+fadehivar));
+    audio_play_synth(0, 7, vary(basefreq * hibeat * (1.0 + (beatstep * 1.0)), hivar), lowvol*hivol, randint(fade-fadehivar, fade+fadehivar));
+    audio_play_synth(0, 4, vary(basefreq * hibeat * (1.0 + (beatstep * 2.0)), hivar), lowvol*hivol, randint(fade-fadehivar, fade+fadehivar));
+    audio_play_synth(0, 6, vary(basefreq * hibeat * (1.0 + (beatstep * 3.0)), hivar), lowvol*hivol, randint(fade-fadehivar, fade+fadehivar));
+}
+
+static void flash_spark(void)
+{
+    audio_play_file(1, WAV_SPARK);
+    led_set_flash(0, 5, 0, randint(2,5), 0xffffff, randint(3,8), randint(2,5), 0xccccff, randint(3,6), randint(2,4), 0xffcccc, randint(2,4), randint(5,10), 0x000000, randint(0,3)*5, randint(2,4), 0x000000);
+    led_set_flash(3, 5, 0, randint(2,5), 0xffccff, randint(3,8), randint(2,5), 0xffccff, randint(3,6), randint(2,4), 0xffffff, randint(2,4), randint(5,10), 0x000000, randint(0,3)*6, randint(2,4), 0x000000);
+    led_set_flash(1, 3, 0, randint(2,5), 0xff8888, randint(3,8), randint(2,5), 0xffffff, randint(6,12), randint(10,25), 0x000000);
+    led_set_flash(2, 3, 0, randint(2,5), 0xff8888, randint(3,8), randint(2,5), 0xffffff, randint(6,12), randint(10,25), 0x000000);
+}
+
+static int game_booting(clist_t *conns)
 {
     if (bootcount > 0) {
         bootcount--;
@@ -45,7 +73,7 @@ int game_booting(clist_t *conns)
     }
 }
 
-int game_oking(clist_t *conns)
+static int game_oking(clist_t *conns)
 {
     if ((conns->buttons[0].status & BUTTON_CLICKS) >= 3) {
         return GAME_BREAK;
@@ -56,40 +84,37 @@ int game_oking(clist_t *conns)
     return GAME_OKING;
 }
 
-struct puzzle {
+static struct puzzle {
     int solution[NUM_ROWS];
 } puzzle;
 
-int randint(int from, int to)
-{
-    return from + ((random() % (to - from)));
-}
-
-void game_set_mastermind(clist_t *conns, int from, int to)
+static void game_set_mastermind(clist_t *conns, int from, int to)
 {
     pdebug("game_set_puzzle(%d/%d/%d, %d, %d)", conns->on, conns->newon, conns->off, from, to);
     for (int i = 0; i < NUM_ROWS; i++) {
         if (i < from || i >= to) {
             puzzle.solution[i] = -1;
         } else {
-            puzzle.solution[i] = randint(i*5, (i+1)*5);
+            puzzle.solution[i] = randint(i*5, (i+1)*5-1);
             pdebug("Solution[%d] = %d", i, puzzle.solution[i]);
         }
     }
     /* Midden reserveren voor indicaties */
     led_remove_animation(1);
     led_remove_animation(2);
+    lastokcnt = 20;
 }
 
 static int level = 0;
+static int lastokcnt = 20;
 
-int game_breaking(clist_t *conns)
+static int game_breaking(clist_t *conns)
 {
     level = 1;
     return GAME_COLOR;
 }
 
-int game_coloring(clist_t *conns)
+static int game_coloring(clist_t *conns)
 {
     if (conns->buttons[0].status >= BUTTON_ON + 5) {
         return GAME_BOOT;
@@ -99,8 +124,10 @@ int game_coloring(clist_t *conns)
         for (int i = (conns->on - conns->newon); i < conns->on; i++) {
             pdebug("New connection: %d - %d", conns->pins[i].p1, conns->pins[i].p2);
         }
+        changehum = 1;
     } else if (conns->off > 0) {
         audio_play_file(1, WAV_OFF);
+        changehum = 1;
     } else if (--flashcount <= 0) {
         flash_spark();
         flashcount = (int)(((double)(FRAMERATE/10 + (random() % (FRAMERATE * 4)))) * (1.0 + (((double)conns->on)/4)));
@@ -136,13 +163,16 @@ int game_coloring(clist_t *conns)
     }
     ledshow_colors(colors);
     if (okcnt < 20) {
+        if (okcnt != lastokcnt) {
+            engine_hum(100.0 - (2.5 * (20-okcnt)), 0.25, 0.01 * (20-okcnt), 2.0, 0.03 * (20-okcnt), 0.1, FRAMERATE, FRAMERATE/2, FRAMERATE*2, FRAMERATE);
+        }
         return GAME_COLORING;
     } else {
         return GAME_FIXED;
     }
 }
 
-int game_masterminding(clist_t *conns)
+static int game_masterminding(clist_t *conns)
 {
     if (conns->newon > 0) {
         audio_play_file(1, WAV_ON);
@@ -208,7 +238,7 @@ int game_masterminding(clist_t *conns)
     }
 }
 
-int game_fixeding(clist_t *conns)
+static int game_fixeding(clist_t *conns)
 {
     if (bootcount > 0) {
         bootcount--;
@@ -220,7 +250,7 @@ int game_fixeding(clist_t *conns)
     }
 }
 
-int game_starting(clist_t *conns)
+static int game_starting(clist_t *conns)
 {
     if (conns->buttons[0].status >= BUTTON_ON + 3) {
         return GAME_BOOT;
@@ -238,14 +268,7 @@ int game_mainloop(int gamestate, clist_t *conns)
         case GAME_START:
             pdebug("GAME_START");
             led_set_idle(2, FRAMERATE/4, 0x020004);
-            audio_play_synth(0, 0, 0.0, 0.90, 1);
-            audio_play_synth(0, 1, 0.0, 0.90, 1);
-            audio_play_synth(0, 2, 0.0, 0.90, 1);
-            audio_play_synth(0, 3, 0.0, 0.90, 1);
-            audio_play_synth(0, 4, 0.0, 0.05, 1);
-            audio_play_synth(0, 5, 0.0, 0.05, 1);
-            audio_play_synth(0, 6, 0.0, 0.05, 1);
-            audio_play_synth(0, 7, 0.0, 0.05, 1);
+            engine_hum(0.0, 0.0, 0.0, 0.0, 1);
         case GAME_STARTING:
             return game_starting(conns);
         case GAME_BOOT:
@@ -256,14 +279,7 @@ int game_mainloop(int gamestate, clist_t *conns)
             led_set_swipe(2, FRAMERATE*2, 0, 3, 0x888800, 0x888800, 0x888800);
             led_set_swipe(3, FRAMERATE*2, 0, 3, 0x0000ff, 0x0000ff, 0x0000ff);
             /* Synth hum */
-            audio_play_synth(0, 0, 100.0, 0.90, FRAMERATE*2);
-            audio_play_synth(0, 1, 150.0, 0.90, FRAMERATE*3);
-            audio_play_synth(0, 2, 125.0, 0.90, FRAMERATE*2);
-            audio_play_synth(0, 3, 175.0, 0.90, FRAMERATE*3);
-            audio_play_synth(0, 4, 200.0, 0.05, FRAMERATE*2);
-            audio_play_synth(0, 5, 300.0, 0.05, FRAMERATE*3);
-            audio_play_synth(0, 6, 250.0, 0.05, FRAMERATE*2);
-            audio_play_synth(0, 7, 350.0, 0.05, FRAMERATE*3);
+            engine_hum(100.0, 0.25, 0.0, 2.0, 0.0, 0.05, FRAMERATE*2, FRAMERATE, FRAMERATE*3, FRAMERATE);
             bootcount = FRAMERATE*2/SCANRATE;
         case GAME_BOOTING:
             return game_booting(conns);
@@ -285,14 +301,7 @@ int game_mainloop(int gamestate, clist_t *conns)
             led_set_blobs(0, 0, 3, 0x330000, 0x221100, 0x000011);
             led_set_blobs(3, 0, 4, 0x330000, 0x003300, 0x331100, 0x113300);
             /* Synth hum */
-            audio_play_synth(0, 0,  80.0, 0.9, FRAMERATE*2);
-            audio_play_synth(0, 1,  91.0, 0.9, FRAMERATE*2);
-            audio_play_synth(0, 2, 120.5, 0.9, FRAMERATE*3);
-            audio_play_synth(0, 3, 135.0, 0.9, FRAMERATE*3);
-            audio_play_synth(0, 4, 155.0, 0.1, FRAMERATE*4);
-            audio_play_synth(0, 5, 180.0, 0.1, FRAMERATE*4);
-            audio_play_synth(0, 6, 199.0, 0.1, FRAMERATE*5);
-            audio_play_synth(0, 7, 215.0, 0.1, FRAMERATE*5);
+            engine_hum(80.0, 0.25, 0.1, 2.0, 0.2, 0.1, FRAMERATE*3, FRAMERATE*2, FRAMERATE*5, FRAMERATE*3);
         case GAME_BREAKING:
             /* TODO: Broken modus, wachten tot iemand begint met oplossen */
             return game_breaking(conns);
@@ -312,14 +321,7 @@ int game_mainloop(int gamestate, clist_t *conns)
             led_set_swipe(1, FRAMERATE*3, 0, 3, 0x00ff00, 0x00ff00, 0x00ff00);
             led_set_swipe(2, FRAMERATE*3, 0, 3, 0x888800, 0x888800, 0x888800);
             led_set_swipe(3, FRAMERATE*3, 0, 3, 0x0000ff, 0x0000ff, 0x0000ff);
-            audio_play_synth(0, 0, 100.0, 0.90, FRAMERATE*3);
-            audio_play_synth(0, 1, 150.0, 0.90, FRAMERATE*5);
-            audio_play_synth(0, 2, 125.0, 0.90, FRAMERATE*3);
-            audio_play_synth(0, 3, 175.0, 0.90, FRAMERATE*5);
-            audio_play_synth(0, 4, 200.0, 0.05, FRAMERATE*6);
-            audio_play_synth(0, 5, 300.0, 0.05, FRAMERATE*4);
-            audio_play_synth(0, 6, 250.0, 0.05, FRAMERATE*6);
-            audio_play_synth(0, 7, 350.0, 0.05, FRAMERATE*4);
+            engine_hum(100.0, 0.25, 0.0, 2.0, 0.0, 0.05, FRAMERATE*4, FRAMERATE*2, FRAMERATE*6, FRAMERATE*2);
             bootcount = FRAMERATE*3/SCANRATE;
         case GAME_FIXEDING:
             return game_fixeding(conns);
