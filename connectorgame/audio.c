@@ -146,27 +146,33 @@ static void pcm_mix_buffer(int16_t *buffer, long len)
         if (pcm_channels[c].length == -1) {
             struct synth_s *synth = pcm_channels[c].synth;
             for (int sc = 0; sc < SYNTH_CHANNELS; sc++) {
-                if (synth[sc].step > 0) {
-                    double frequency = (synth[sc].fto - synth[sc].fcur) / synth[sc].step + synth[sc].fcur;
-                    double volume = (synth[sc].vto - synth[sc].vcur) / synth[sc].step + synth[sc].vcur;
-                    synth[sc].step -= 1;
-                    double fstep = PI * 2 * frequency / PCM_RATE;
-                    synth[sc].c  = cos(fstep) * 2;
-                    double rvsin = synth[sc].d1 / volume;
-                    if (rvsin < -1.0) rvsin = -1.0;
-                    if (rvsin >  1.0) rvsin =  1.0;
-                    if (synth[sc].d1 < synth[sc].d2) {
-                        synth[sc].d2 = sin(asin(rvsin) + fstep) * volume;
+                if (synth[sc].steps > 0) {
+                    synth[sc].fcur += (synth[sc].fto - synth[sc].fcur) / synth[sc].steps;
+                    synth[sc].vcur += (synth[sc].vto - synth[sc].vcur) / synth[sc].steps;
+                    synth[sc].steps -= 1;
+                    if (synth[sc].fcur > 0.0) {
+                        double fstep = PI * 2 * synth[sc].fcur / PCM_RATE;
+                        synth[sc].c  = cos(fstep) * 2;
+                        double rvsin = synth[sc].d1;
+                        if (rvsin < -1.0) rvsin = -1.0;
+                        if (rvsin >  1.0) rvsin =  1.0;
+                        if (synth[sc].d1 < synth[sc].d2) {
+                            synth[sc].d2 = sin(asin(rvsin) + fstep);
+                        } else {
+                            synth[sc].d2 = sin(asin(rvsin) - fstep);
+                        }
                     } else {
-                        synth[sc].d2 = sin(asin(rvsin) - fstep) * volume;
+                        synth[sc].c = 0.0;
+                        synth[sc].d1 = 0.0;
+                        synth[sc].d2 = 0.0;
                     }
                 }
             }
             for (int s = 0; s < len*2; s++) {
                 int sc = s % 2;
-                double val = synth[sc].d1;
+                double val = synth[sc].d1 * synth[sc].vcur;
                 while ((sc += 2) < SYNTH_CHANNELS) {
-                    val += synth[sc].d1;
+                    val += synth[sc].d1 * synth[sc].vcur;
                 }
                 long byteval = (long)(val * 0x7FFF);
                 if (val < -0x7FFF) val = -0x7FFF;

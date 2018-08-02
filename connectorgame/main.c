@@ -25,8 +25,8 @@
 #include "game.h"
 #include "main.h"
 
-static uint8_t running = 1;
-static uint8_t debugging = 0;
+static int running = 1;
+int debugging = 0;
 
 void pdebug(const char *format, ...)
 {
@@ -85,7 +85,6 @@ int main(int argc, char *argv[])
     /* Opstarten */
     running = 1;
     int gamestate = GAME_START;
-    if (debugging) gamestate = GAME_OK;
     int scanrate = SCANRATE;
     while (running) {
         int64_t timertime = getutime(); // Om de framerate gelijk te houden

@@ -73,7 +73,7 @@ void game_set_mastermind(clist_t *conns, int from, int to)
             puzzle.solution[i] = -1;
         } else {
             puzzle.solution[i] = randint(i*5, (i+1)*5);
-            pdebug("Suolution[%d] = %d", i, puzzle.solution[i]);
+            pdebug("Solution[%d] = %d", i, puzzle.solution[i]);
         }
     }
     /* Midden reserveren voor indicaties */
@@ -225,6 +225,9 @@ int game_starting(clist_t *conns)
     if (conns->buttons[0].status >= BUTTON_ON + 3) {
         return GAME_BOOT;
     }
+    if (debugging) {
+        return GAME_BOOT;
+    }
     return GAME_STARTING;
 }
 
@@ -235,15 +238,32 @@ int game_mainloop(int gamestate, clist_t *conns)
         case GAME_START:
             pdebug("GAME_START");
             led_set_idle(2, FRAMERATE/4, 0x020004);
+            audio_play_synth(0, 0, 0.0, 0.90, 1);
+            audio_play_synth(0, 1, 0.0, 0.90, 1);
+            audio_play_synth(0, 2, 0.0, 0.90, 1);
+            audio_play_synth(0, 3, 0.0, 0.90, 1);
+            audio_play_synth(0, 4, 0.0, 0.05, 1);
+            audio_play_synth(0, 5, 0.0, 0.05, 1);
+            audio_play_synth(0, 6, 0.0, 0.05, 1);
+            audio_play_synth(0, 7, 0.0, 0.05, 1);
         case GAME_STARTING:
             return game_starting(conns);
         case GAME_BOOT:
             pdebug("GAME_BOOT");
-            audio_play_file(0, WAV_BOOTING);
+            // audio_play_file(1, WAV_BOOTING);
             led_set_swipe(0, FRAMERATE*2, 12, 3, 0xff0000, 0xff0000, 0xff0000);
             led_set_swipe(1, FRAMERATE*2, 0, 3, 0x00ff00, 0x00ff00, 0x00ff00);
             led_set_swipe(2, FRAMERATE*2, 0, 3, 0x888800, 0x888800, 0x888800);
             led_set_swipe(3, FRAMERATE*2, 0, 3, 0x0000ff, 0x0000ff, 0x0000ff);
+            /* Synth hum */
+            audio_play_synth(0, 0, 100.0, 0.90, FRAMERATE*2);
+            audio_play_synth(0, 1, 150.0, 0.90, FRAMERATE*3);
+            audio_play_synth(0, 2, 125.0, 0.90, FRAMERATE*2);
+            audio_play_synth(0, 3, 175.0, 0.90, FRAMERATE*3);
+            audio_play_synth(0, 4, 200.0, 0.05, FRAMERATE*2);
+            audio_play_synth(0, 5, 300.0, 0.05, FRAMERATE*3);
+            audio_play_synth(0, 6, 250.0, 0.05, FRAMERATE*2);
+            audio_play_synth(0, 7, 350.0, 0.05, FRAMERATE*3);
             bootcount = FRAMERATE*2/SCANRATE;
         case GAME_BOOTING:
             return game_booting(conns);
@@ -255,16 +275,7 @@ int game_mainloop(int gamestate, clist_t *conns)
 
             led_set_blobs(1, FRAMERATE*2, 3, 0x002222, 0x002200, 0x000022);
             led_set_blobs(2, FRAMERATE*2, 3, 0x002222, 0x000022, 0x002200);
-            audio_play_file(1, WAV_READY);
-            /* Synth hum */
-            audio_play_synth(0, 0, 100.0, 0.9, FRAMERATE*2);
-            audio_play_synth(0, 1, 150.0, 0.9, FRAMERATE*2);
-            audio_play_synth(0, 2, 125.0, 0.9, FRAMERATE*2);
-            audio_play_synth(0, 3, 175.0, 0.9, FRAMERATE*2);
-            audio_play_synth(0, 4, 200.0, 0.05, FRAMERATE*2);
-            audio_play_synth(0, 5, 300.0, 0.05, FRAMERATE*2);
-            audio_play_synth(0, 6, 250.0, 0.05, FRAMERATE*2);
-            audio_play_synth(0, 7, 350.0, 0.05, FRAMERATE*2);
+            // audio_play_file(1, WAV_READY);
         case GAME_OKING:
             return game_oking(conns);
         case GAME_BREAK:
