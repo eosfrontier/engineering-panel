@@ -143,9 +143,9 @@ static void pcm_mix_buffer(int16_t *buffer, long len)
             struct synth_s *synth = pcm_channels[c].synth;
             for (int s = 0; s < len; s++) {
                 int sc = s % 2;
-                double val = synth[sc].d1 * synth[sc].volume;
+                double val = synth[sc].d1;
                 while ((sc += 2) < SYNTH_CHANNELS) {
-                    val += synth[sc].d1 * synth[sc].volume;
+                    val += synth[sc].d1;
                 }
                 long byteval = (long)(val * 0x7FFF);
                 if (val < -0x7FFF) val = -0x7FFF;
@@ -238,6 +238,16 @@ int audio_play_file(int channel, enum wav_sounds sound)
     return 0;
 }
 
+/* Sinusgolf genereren:
+ * Gebaseerd op de vergelijking:  sin(x+y)+sin(x-y) = 2*cos(y)*sin(x)
+ * Omgezet, waar p = 2PI * (frequency/samplerate), oftewel de afstand tussen twee samples:
+ *   sin(x+p) = 2*cos(p)*sin(x) - sin(x-p)
+ *  We willen dat d(x) = sin(p*x)
+ *   d0 = sin(0) = 0, d1 = sin(p)
+ *   c = 2*cos(p)
+ *  Dus: d(x+1) = sin(p*x+p)) = 2*cos(p)*sin(p*x) - sin(p*x-p) = c * d(x) - d(x-1)
+ * Met de twee vorige waardes kun je de huidige berekenen met 1 vermenigvuldiging en 1 optelling
+ */
 int audio_play_synth(int channel, int synthchannel, double frequency, double volume)
 {
     if (channel >= WAV_CHANNELS || synthchannel >= SYNTH_CHANNELS) {
@@ -248,15 +258,24 @@ int audio_play_synth(int channel, int synthchannel, double frequency, double vol
     if (pcm_channels[channel].length != -1) {
         /* First time init */
         for (int sc = 0; sc < SYNTH_CHANNELS; sc++) {
-            synth[sc].volume = 0;
+            synth[sc].d1 = 0;
+            synth[sc].d2 = 0;
+            synth[sc].c = 0;
         }
         pcm_channels[channel].length = -1;
         pcm_channels[channel].samples = NULL;
     }
-    synth[synthchannel].volume = volume;
-    synth[synthchannel].c  = cos(PI * 2 * frequency / PCM_RATE) * 2;
-    synth[synthchannel].d1 = sin(PI * 2 * frequency / PCM_RATE);
-    synth[synthchannel].d2 = 0;
+    double fstep = PI * 2 * frequency / PCM_RATE;
+    synth[synthchannel].c  = cos(fstep) * 2;
+    double rvsin = synth[synthchannel].d1 / volume;
+    if (rvsin < -1.0) rvsin = -1.0;
+    if (rvsin >  1.0) rvsin =  1.0;
+    if (synth[synthchannel].d1 < synth[synthchannel].d2) {
+        synth[synthchannel].d2 = sin(asin(rvsin) + fstep) * volume;
+    } else {
+        synth[synthchannel].d2 = sin(asin(rvsin) - fstep) * volume;
+    }
+    return 0;
 }
 
 /* vim: ai:si:expandtab:ts=4:sw=4
