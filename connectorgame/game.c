@@ -162,7 +162,7 @@ static int game_coloring(clist_t *conns)
     ledshow_colors(colors);
     if (okcnt < 20) {
         if (okcnt != lastokcnt) {
-            engine_hum(100.0 - (2.5 * (20-okcnt)), 0.25, 0.01 * (20-okcnt), 2.0, 0.03 * (20-okcnt), 0.1, FRAMERATE, FRAMERATE/2, FRAMERATE*2, FRAMERATE);
+            engine_hum(80.0 - (2.5 * (20-okcnt)), 0.25, 0.01 * (20-okcnt), 2.0, 0.01 * (20-okcnt), 0.2, FRAMERATE, FRAMERATE/2, FRAMERATE*2, FRAMERATE);
         }
         return GAME_COLORING;
     } else {
