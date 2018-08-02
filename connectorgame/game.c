@@ -308,11 +308,19 @@ int game_mainloop(int gamestate, clist_t *conns)
             return game_masterminding(conns);
         case GAME_FIXED:
             pdebug("GAME_FIXED");
-            led_set_swipe(0, FRAMERATE, 12, 3, 0xff0000, 0xff0000, 0xff0000);
-            led_set_swipe(1, FRAMERATE, 0, 3, 0x00ff00, 0x00ff00, 0x00ff00);
-            led_set_swipe(2, FRAMERATE, 0, 3, 0x888800, 0x888800, 0x888800);
-            led_set_swipe(3, FRAMERATE, 0, 3, 0x0000ff, 0x0000ff, 0x0000ff);
-            bootcount = FRAMERATE/SCANRATE;
+            led_set_swipe(0, FRAMERATE*3, 12, 3, 0xff0000, 0xff0000, 0xff0000);
+            led_set_swipe(1, FRAMERATE*3, 0, 3, 0x00ff00, 0x00ff00, 0x00ff00);
+            led_set_swipe(2, FRAMERATE*3, 0, 3, 0x888800, 0x888800, 0x888800);
+            led_set_swipe(3, FRAMERATE*3, 0, 3, 0x0000ff, 0x0000ff, 0x0000ff);
+            audio_play_synth(0, 0, 100.0, 0.90, FRAMERATE*3);
+            audio_play_synth(0, 1, 150.0, 0.90, FRAMERATE*5);
+            audio_play_synth(0, 2, 125.0, 0.90, FRAMERATE*3);
+            audio_play_synth(0, 3, 175.0, 0.90, FRAMERATE*5);
+            audio_play_synth(0, 4, 200.0, 0.05, FRAMERATE*6);
+            audio_play_synth(0, 5, 300.0, 0.05, FRAMERATE*4);
+            audio_play_synth(0, 6, 250.0, 0.05, FRAMERATE*6);
+            audio_play_synth(0, 7, 350.0, 0.05, FRAMERATE*4);
+            bootcount = FRAMERATE*3/SCANRATE;
         case GAME_FIXEDING:
             return game_fixeding(conns);
     }
