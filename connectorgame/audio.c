@@ -28,10 +28,14 @@ static struct {
     long position;
     int repeat;
     struct synth_s {
-        double volume;
         double d1;
         double d2;
         double c;
+        double fcur;
+        double vcur;
+        double fto;
+        double vto;
+        int steps;
     } synth[SYNTH_CHANNELS];
 } pcm_channels[WAV_CHANNELS];
 
@@ -104,7 +108,7 @@ static int read_wavfile(char *name, int wc)
     }
     wavfiles[wc].samples = (int16_t *)(wavdata+fmtlen+28);
     wavfiles[wc].length = wavdatalen/4;
-    wavfiles[wc].repeat = (wc == WAV_HUM) ? 1 : 0;
+    wavfiles[wc].repeat = 0;
     return 0;
 }
 
@@ -141,7 +145,24 @@ static void pcm_mix_buffer(int16_t *buffer, long len)
     for (int c = 0; c < WAV_CHANNELS; c++) {
         if (pcm_channels[c].length == -1) {
             struct synth_s *synth = pcm_channels[c].synth;
-            for (int s = 0; s < len; s++) {
+            for (int sc = 0; sc < SYNTH_CHANNELS; sc++) {
+                if (synth[sc].step > 0) {
+                    double frequency = (synth[sc].fto - synth[sc].fcur) / synth[sc].step + synth[sc].fcur;
+                    double volume = (synth[sc].vto - synth[sc].vcur) / synth[sc].step + synth[sc].vcur;
+                    synth[sc].step -= 1;
+                    double fstep = PI * 2 * frequency / PCM_RATE;
+                    synth[sc].c  = cos(fstep) * 2;
+                    double rvsin = synth[sc].d1 / volume;
+                    if (rvsin < -1.0) rvsin = -1.0;
+                    if (rvsin >  1.0) rvsin =  1.0;
+                    if (synth[sc].d1 < synth[sc].d2) {
+                        synth[sc].d2 = sin(asin(rvsin) + fstep) * volume;
+                    } else {
+                        synth[sc].d2 = sin(asin(rvsin) - fstep) * volume;
+                    }
+                }
+            }
+            for (int s = 0; s < len*2; s++) {
                 int sc = s % 2;
                 double val = synth[sc].d1;
                 while ((sc += 2) < SYNTH_CHANNELS) {
@@ -248,7 +269,7 @@ int audio_play_file(int channel, enum wav_sounds sound)
  *  Dus: d(x+1) = sin(p*x+p)) = 2*cos(p)*sin(p*x) - sin(p*x-p) = c * d(x) - d(x-1)
  * Met de twee vorige waardes kun je de huidige berekenen met 1 vermenigvuldiging en 1 optelling
  */
-int audio_play_synth(int channel, int synthchannel, double frequency, double volume)
+int audio_play_synth(int channel, int synthchannel, double frequency, double volume, int steps)
 {
     if (channel >= WAV_CHANNELS || synthchannel >= SYNTH_CHANNELS) {
         fprintf(stderr, "audio_play_file argument error\n");
@@ -261,20 +282,19 @@ int audio_play_synth(int channel, int synthchannel, double frequency, double vol
             synth[sc].d1 = 0;
             synth[sc].d2 = 0;
             synth[sc].c = 0;
+            synth[sc].fcur = 0;
+            synth[sc].vcur = 0;
+            synth[sc].fto = 0;
+            synth[sc].vto = 0;
+            synth[sc].steps = 0;
         }
         pcm_channels[channel].length = -1;
         pcm_channels[channel].samples = NULL;
     }
-    double fstep = PI * 2 * frequency / PCM_RATE;
-    synth[synthchannel].c  = cos(fstep) * 2;
-    double rvsin = synth[synthchannel].d1 / volume;
-    if (rvsin < -1.0) rvsin = -1.0;
-    if (rvsin >  1.0) rvsin =  1.0;
-    if (synth[synthchannel].d1 < synth[synthchannel].d2) {
-        synth[synthchannel].d2 = sin(asin(rvsin) + fstep) * volume;
-    } else {
-        synth[synthchannel].d2 = sin(asin(rvsin) - fstep) * volume;
-    }
+    synth[synthchannel].fto = frequency;
+    synth[synthchannel].vto = volume;
+    synth[synthchannel].steps = steps;
+    pdebug("audio_play_synth(%d, %d, %f, %f, %d)", channel, synthchannel, frequency, volume, steps);
     return 0;
 }
 
