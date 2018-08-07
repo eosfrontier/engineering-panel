@@ -16,15 +16,21 @@ enum wav_sounds {
     WAV_COUNT
 };
 
+enum synth_waveforms {
+    SYNTH_NONE,
+    SYNTH_SINE,
+    SYNTH_TRIANGLE
+}
+
 #define WAV_AUDIOFILES {"on.wav","off.wav","ready.wav","booting.wav","spark.wav"}
-#define WAV_CHANNELS 3
+#define WAV_CHANNELS 2
 #define SYNTH_CHANNELS 8
 
 int init_audio(void);
 int fini_audio(void);
 void audio_mainloop(void);
 int audio_play_file(int channel, enum wav_sounds sound);
-int audio_play_synth(int channel, int synthchannel, double frequency, double volume, int steps);
+int audio_play_synth(int channel, int synthchannel, int waveform, double frequency, double volume, int steps);
 
 /* vim: ai:si:expandtab:ts=4:sw=4
  */

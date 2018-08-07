@@ -28,14 +28,15 @@ static struct {
     long position;
     int repeat;
     struct synth_s {
-        double d1;
-        double d2;
-        double c;
-        double fcur;
-        double vcur;
-        double fto;
-        double vto;
-        int steps;
+        double d1;    // Previous sample
+        double d2;    // Current sample
+        double c;     // 2cos(samplestep)
+        double fcur;  // Current frequency
+        double vcur;  // Current volume
+        double fto;   // Target frequency
+        double vto;   // Target volume
+        int steps;    // Steps to reach target volume (for fading)
+        int wave;     // Waveform
     } synth[SYNTH_CHANNELS];
 } pcm_channels[WAV_CHANNELS];
 
@@ -150,21 +151,36 @@ static void pcm_mix_buffer(int16_t *buffer, long len)
                     synth[sc].fcur += (synth[sc].fto - synth[sc].fcur) / synth[sc].steps;
                     synth[sc].vcur += (synth[sc].vto - synth[sc].vcur) / synth[sc].steps;
                     synth[sc].steps -= 1;
-                    if (synth[sc].fcur > 0.0) {
-                        double fstep = PI * 2 * synth[sc].fcur / PCM_RATE;
-                        synth[sc].c  = cos(fstep) * 2;
-                        double rvsin = synth[sc].d1;
-                        if (rvsin < -1.0) rvsin = -1.0;
-                        if (rvsin >  1.0) rvsin =  1.0;
-                        if (synth[sc].d1 < synth[sc].d2) {
-                            synth[sc].d2 = sin(asin(rvsin) + fstep);
-                        } else {
-                            synth[sc].d2 = sin(asin(rvsin) - fstep);
-                        }
-                    } else {
-                        synth[sc].c = 0.0;
-                        synth[sc].d1 = 0.0;
-                        synth[sc].d2 = 0.0;
+                    switch (synth[sc].wave) {
+                        case SYNTH_SINE:
+                            if (synth[sc].fcur > 0.0) {
+                                double fstep = PI * 2 * synth[sc].fcur / PCM_RATE;
+                                synth[sc].c  = cos(fstep) * 2;
+                                double rvsin = synth[sc].d1;
+                                if (rvsin < -1.0) rvsin = -1.0;
+                                if (rvsin >  1.0) rvsin =  1.0;
+                                if (synth[sc].d1 < synth[sc].d2) {
+                                    synth[sc].d2 = sin(asin(rvsin) + fstep);
+                                } else {
+                                    synth[sc].d2 = sin(asin(rvsin) - fstep);
+                                }
+                            } else {
+                                synth[sc].c = 0.0;
+                                synth[sc].d1 = 0.0;
+                                synth[sc].d2 = 0.0;
+                            }
+                            break;
+                        case SYNTH_TRIANGLE:
+                            if (synth[sc].fcur > 0.0) {
+                                double stepsize = 2.0 / synth[sc].fcur; 
+                                if (synth[sc].c < 0.0) {
+                                    stepsize = -stepsize;
+                                }
+                                synth[sc].c = stepsize;
+                            } else {
+                                synth[sc].c = 0.0;
+                            }
+                            break;
                     }
                 }
             }
@@ -179,9 +195,23 @@ static void pcm_mix_buffer(int16_t *buffer, long len)
                 if (val >  0x7FFF) val =  0x7FFF;
                 buffer[s] += (int16_t)(byteval / WAV_CHANNELS);
                 for (sc = s % 2; sc < SYNTH_CHANNELS; sc += 2) {
-                    double d0 = synth[sc].d1 * synth[sc].c - synth[sc].d2;
-                    synth[sc].d2 = synth[sc].d1;
-                    synth[sc].d1 = d0;
+                    switch (synth[sc].wave) {
+                        case SYNTH_NONE:
+                            break;
+                        case SYNTH_SINE:
+                            double d0 = synth[sc].d1 * synth[sc].c - synth[sc].d2;
+                            synth[sc].d2 = synth[sc].d1;
+                            synth[sc].d1 = d0;
+                            break;
+                        case SYNTH_TRIANGLE:
+                            double d0 = synth[sc].d1 + synth[sc].c;
+                            if (d0 < -1.0 || d0 > 1.0) {
+                                synth[sc].c = -synth[sc].c;
+                                d0 = synth[sc].d1 + synth[sc].c;
+                            }
+                            synth[sc].d1 = d0;
+                            break;
+                    }
                 }
             }
         } else {
@@ -275,7 +305,7 @@ int audio_play_file(int channel, enum wav_sounds sound)
  *  Dus: d(x+1) = sin(p*x+p)) = 2*cos(p)*sin(p*x) - sin(p*x-p) = c * d(x) - d(x-1)
  * Met de twee vorige waardes kun je de huidige berekenen met 1 vermenigvuldiging en 1 optelling
  */
-int audio_play_synth(int channel, int synthchannel, double frequency, double volume, int steps)
+int audio_play_synth(int channel, int synthchannel, int waveform, double frequency, double volume, int steps)
 {
     if (channel >= WAV_CHANNELS || synthchannel >= SYNTH_CHANNELS) {
         fprintf(stderr, "audio_play_file argument error\n");
@@ -293,6 +323,7 @@ int audio_play_synth(int channel, int synthchannel, double frequency, double vol
             synth[sc].fto = 0;
             synth[sc].vto = 0;
             synth[sc].steps = 0;
+            synth[sc].wave = 0;
         }
         pcm_channels[channel].length = -1;
         pcm_channels[channel].samples = NULL;
@@ -300,7 +331,8 @@ int audio_play_synth(int channel, int synthchannel, double frequency, double vol
     synth[synthchannel].fto = frequency;
     synth[synthchannel].vto = volume;
     synth[synthchannel].steps = steps;
-    pdebug("audio_play_synth(%d, %d, %f, %f, %d)", channel, synthchannel, frequency, volume, steps);
+    synth[synthchannel].wave = waveform;
+    pdebug("audio_play_synth(%d, %d, %d, %f, %f, %d)", channel, synthchannel, waveform, frequency, volume, steps);
     return 0;
 }
 
