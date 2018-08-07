@@ -19,8 +19,9 @@ enum wav_sounds {
 enum synth_waveforms {
     SYNTH_NONE,
     SYNTH_SINE,
-    SYNTH_TRIANGLE
-}
+    SYNTH_TRIANGLE,
+    SYNTH_SAWTOOTH
+};
 
 #define WAV_AUDIOFILES {"on.wav","off.wav","ready.wav","booting.wav","spark.wav"}
 #define WAV_CHANNELS 2

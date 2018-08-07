@@ -42,8 +42,8 @@ static double vary(double val, double var)
 static void engine_hum(double basefreq, double beatstep, double beatvar, double hibeat, double hivar, double hivol, int fade, int fadevar, int fadehi, int fadehivar)
 {
     double lowvol = 0.90;
-    audio_play_synth(0, 0, SYNTH_TRIANGLE, vary(basefreq * (1.0 + (beatstep * 0.0)), beatvar), lowvol, randint(fade-fadevar, fade+fadevar));
-    audio_play_synth(0, 2, SYNTH_TRIANGLE, vary(basefreq * (1.0 + (beatstep * 1.0)), beatvar), lowvol, randint(fade-fadevar, fade+fadevar));
+    audio_play_synth(0, 0, SYNTH_SINE, vary(basefreq * (1.0 + (beatstep * 0.0)), beatvar), lowvol, randint(fade-fadevar, fade+fadevar));
+    audio_play_synth(0, 2, SYNTH_SINE, vary(basefreq * (1.0 + (beatstep * 1.0)), beatvar), lowvol, randint(fade-fadevar, fade+fadevar));
     audio_play_synth(0, 1, SYNTH_SINE, vary(basefreq * (1.0 + (beatstep * 2.0)), beatvar), lowvol, randint(fade-fadevar, fade+fadevar));
     audio_play_synth(0, 3, SYNTH_SINE, vary(basefreq * (1.0 + (beatstep * 3.0)), beatvar), lowvol, randint(fade-fadevar, fade+fadevar));
     audio_play_synth(0, 5, SYNTH_SINE, vary(basefreq * hibeat * (1.0 + (beatstep * 0.0)), hivar), lowvol*hivol, randint(fade-fadehivar, fade+fadehivar));
@@ -162,7 +162,8 @@ static int game_coloring(clist_t *conns)
     ledshow_colors(colors);
     if (okcnt < 20) {
         if (okcnt != lastokcnt) {
-            engine_hum(80.0 - (2.5 * (20-okcnt)), 0.25, 0.01 * (20-okcnt), 2.0, 0.01 * (20-okcnt), 0.2, FRAMERATE, FRAMERATE/2, FRAMERATE*2, FRAMERATE);
+            lastokcnt = okcnt;
+            engine_hum(80.0 - (2.0 * (20-okcnt)), 0.25, 0.01 * (20-okcnt), 2.0, 0.01 * (20-okcnt), 0.2, FRAMERATE, FRAMERATE/2, FRAMERATE*2, FRAMERATE);
         }
         return GAME_COLORING;
     } else {

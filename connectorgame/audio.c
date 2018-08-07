@@ -170,16 +170,15 @@ static void pcm_mix_buffer(int16_t *buffer, long len)
                                 synth[sc].d2 = 0.0;
                             }
                             break;
-                        case SYNTH_TRIANGLE:
-                            if (synth[sc].fcur > 0.0) {
-                                double stepsize = 2.0 / synth[sc].fcur; 
-                                if (synth[sc].c < 0.0) {
-                                    stepsize = -stepsize;
-                                }
-                                synth[sc].c = stepsize;
-                            } else {
-                                synth[sc].c = 0.0;
+                        case SYNTH_TRIANGLE: {
+                            double stepsize = 4.0 * synth[sc].fcur / PCM_RATE;
+                            if (synth[sc].c < 0.0) {
+                                stepsize = -stepsize;
                             }
+                            synth[sc].c = stepsize;
+                            break; }
+                        case SYNTH_SAWTOOTH:
+                            synth[sc].c = 2.0 * synth[sc].fcur / PCM_RATE;
                             break;
                     }
                 }
@@ -195,19 +194,31 @@ static void pcm_mix_buffer(int16_t *buffer, long len)
                 if (val >  0x7FFF) val =  0x7FFF;
                 buffer[s] += (int16_t)(byteval / WAV_CHANNELS);
                 for (sc = s % 2; sc < SYNTH_CHANNELS; sc += 2) {
+                    double d0;
                     switch (synth[sc].wave) {
                         case SYNTH_NONE:
                             break;
                         case SYNTH_SINE:
-                            double d0 = synth[sc].d1 * synth[sc].c - synth[sc].d2;
+                            d0 = synth[sc].d1 * synth[sc].c - synth[sc].d2;
                             synth[sc].d2 = synth[sc].d1;
                             synth[sc].d1 = d0;
                             break;
                         case SYNTH_TRIANGLE:
-                            double d0 = synth[sc].d1 + synth[sc].c;
+                            d0 = synth[sc].d1 + synth[sc].c;
                             if (d0 < -1.0 || d0 > 1.0) {
                                 synth[sc].c = -synth[sc].c;
-                                d0 = synth[sc].d1 + synth[sc].c;
+                                if (d0 < -1.0) {
+                                    d0 = -2.0 - d0;
+                                } else {
+                                    d0 = 2.0 - d0;
+                                }
+                            }
+                            synth[sc].d1 = d0;
+                            break;
+                        case SYNTH_SAWTOOTH:
+                            d0 = synth[sc].d1 + synth[sc].c;
+                            if (d0 > 1.0) {
+                                d0 -= 2.0;
                             }
                             synth[sc].d1 = d0;
                             break;
