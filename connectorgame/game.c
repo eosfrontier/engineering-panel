@@ -41,7 +41,7 @@ static double vary(double val, double var)
 
 static void engine_hum(double basefreq, double beatstep, double beatvar, double hibeat, double hivar, double hivol, int fade, int fadevar, int fadehi, int fadehivar)
 {
-    double lowvol = 0.90;
+    double lowvol = 0.45;
     audio_play_synth(0, 0, SYNTH_SINE, vary(basefreq * (1.0 + (beatstep * 0.0)), beatvar), lowvol, randint(fade-fadevar, fade+fadevar));
     audio_play_synth(0, 2, SYNTH_SINE, vary(basefreq * (1.0 + (beatstep * 1.0)), beatvar), lowvol, randint(fade-fadevar, fade+fadevar));
     audio_play_synth(0, 1, SYNTH_SINE, vary(basefreq * (1.0 + (beatstep * 2.0)), beatvar), lowvol, randint(fade-fadevar, fade+fadevar));
@@ -163,7 +163,7 @@ static int game_coloring(clist_t *conns)
     if (okcnt < 20) {
         if (okcnt != lastokcnt) {
             lastokcnt = okcnt;
-            engine_hum(80.0 - (2.0 * (20-okcnt)), 0.25, 0.01 * (20-okcnt), 2.0, 0.01 * (20-okcnt), 0.2, FRAMERATE, FRAMERATE/2, FRAMERATE*2, FRAMERATE);
+            engine_hum(95.0 - (1.0 * (20-okcnt)), 0.25, 0.01 * (20-okcnt), 2.0, 0.01 * (20-okcnt), 0.1, FRAMERATE, FRAMERATE/2, FRAMERATE*2, FRAMERATE);
         }
         return GAME_COLORING;
     } else {

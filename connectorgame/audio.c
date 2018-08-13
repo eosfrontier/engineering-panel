@@ -190,8 +190,8 @@ static void pcm_mix_buffer(int16_t *buffer, long len)
                     val += synth[sc].d1 * synth[sc].vcur;
                 }
                 long byteval = (long)(val * 0x7FFF);
-                if (val < -0x7FFF) val = -0x7FFF;
-                if (val >  0x7FFF) val =  0x7FFF;
+                if (byteval < -0x7FFF) byteval = -0x7FFF;
+                if (byteval >  0x7FFF) byteval =  0x7FFF;
                 buffer[s] += (int16_t)(byteval / WAV_CHANNELS);
                 for (sc = s % 2; sc < SYNTH_CHANNELS; sc += 2) {
                     double d0;
