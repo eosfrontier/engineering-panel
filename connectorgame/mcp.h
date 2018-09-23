@@ -15,13 +15,19 @@
 #define PIN_OFF_ON (PIN_ON_OFF - 1)
 
 #define MCP_BUTTONS 6
-#define PIN_BUTTONS 15
-#define NUM_BUTTONS 1
+#define PIN_BUTTONS 12
+#define NUM_BUTTONS 4
 
-#define BUTTON_ONTIME ((FRAMERATE/SCANRATE)*1)
+#define BUTTON_HOLDTIME ((FRAMERATE/SCANRATE)*1)
 #define BUTTON_CLICKTIME 1
-#define BUTTON_ON 0x100
+#define BUTTON_HOLD 0x100
+#define BUTTON_ON 0x200
 #define BUTTON_CLICKS 0xff
+
+#define BUTTON_GREENSWITCH 0
+#define BUTTON_REDSWITCH 1
+#define BUTTON_BLUESWITCH 2
+#define BUTTON_SL 3
 
 typedef struct connection {
     unsigned char p1, p2;

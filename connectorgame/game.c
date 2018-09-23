@@ -75,7 +75,7 @@ static int game_booting(clist_t *conns)
 
 static int game_oking(clist_t *conns)
 {
-    if ((conns->buttons[0].status & BUTTON_CLICKS) >= 3) {
+    if ((conns->buttons[BUTTON_SL].status & BUTTON_CLICKS) >= 3) {
         return GAME_BREAK;
     }
     if (conns->off > 0) {
@@ -116,7 +116,7 @@ static int game_breaking(clist_t *conns)
 
 static int game_coloring(clist_t *conns)
 {
-    if (conns->buttons[0].status >= BUTTON_ON + 5) {
+    if ((conns->buttons[BUTTON_SL].status & BUTTON_HOLD) && ((conns->buttons[BUTTON_SL].status & BUTTON_CLICKS) >= 5)) {
         return GAME_BOOT;
     }
     if (conns->newon > 0) {
@@ -251,7 +251,12 @@ static int game_fixeding(clist_t *conns)
 
 static int game_starting(clist_t *conns)
 {
-    if (conns->buttons[0].status >= BUTTON_ON + 3) {
+    if ((conns->buttons[BUTTON_SL].status & BUTTON_HOLD) && ((conns->buttons[BUTTON_SL].status & BUTTON_CLICKS) >= 3)) {
+        return GAME_BOOT;
+    }
+    if ((conns->buttons[BUTTON_GREENSWITCH].status & BUTTON_ON) &&
+        (conns->buttons[BUTTON_REDSWITCH].status   & BUTTON_ON) &&
+        (conns->buttons[BUTTON_BLUESWITCH].status  & BUTTON_ON)    ) {
         return GAME_BOOT;
     }
     if (debugging) {

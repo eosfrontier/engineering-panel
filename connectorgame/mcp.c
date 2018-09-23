@@ -18,6 +18,9 @@
 #include "mcp.h"
 
 static int mcps[NUM_MCPS];
+static int mcpnums[NUM_MCPS] = {
+    0x20, 0x21, 0x22, 0x23, 0x27, 0x25, 0x26
+};
 
 static unsigned char connections[NUM_PINS][NUM_PINS];
 static struct {
@@ -33,7 +36,7 @@ void init_mcps(void)
     memset(buttons, 0, sizeof(buttons));
     for (int m = 0; m < NUM_MCPS; m++) {
         // pdebug("Setting up MCP %d", m);
-        mcps[m] = wiringPiI2CSetup(0x20 + m);
+        mcps[m] = wiringPiI2CSetup(mcpnums[m]);
         if (mcps[m] < 0) {
             fprintf(stderr, "Unable to start I2C %d: %s\n", m, strerror(errno));
             exit(1);
@@ -311,15 +314,16 @@ clist_t *find_connections(void)
                 buttons[bp].laston++;
             }
             buttons[bp].lastoff++;
-            if (buttons[bp].lastoff >= BUTTON_ONTIME*2) {
-                buttons[bp].lastoff = BUTTON_ONTIME*2;
+            if (buttons[bp].lastoff >= BUTTON_HOLDTIME*2) {
+                buttons[bp].lastoff = BUTTON_HOLDTIME*2;
             }
-            if (buttons[bp].laston >= BUTTON_ONTIME) {
-                conns->buttons[bp].status = buttons[bp].clicks | BUTTON_ON;
-                buttons[bp].laston = BUTTON_ONTIME;
+            if (buttons[bp].laston >= BUTTON_HOLDTIME) {
+                conns->buttons[bp].status = buttons[bp].clicks | BUTTON_HOLD;
+                buttons[bp].laston = BUTTON_HOLDTIME;
             } else if (buttons[bp].laston == BUTTON_CLICKTIME) {
                 buttons[bp].clicks++;
             }
+            conns->buttons[bp].status |= BUTTON_ON;
         } else {
             if (buttons[bp].lastoff > buttons[bp].laston) {
                 buttons[bp].lastoff = 0;
@@ -327,11 +331,11 @@ clist_t *find_connections(void)
                 buttons[bp].lastoff++;
             }
             buttons[bp].laston++;
-            if (buttons[bp].laston >= BUTTON_ONTIME*2) {
-                buttons[bp].laston = BUTTON_ONTIME*2;
+            if (buttons[bp].laston >= BUTTON_HOLDTIME*2) {
+                buttons[bp].laston = BUTTON_HOLDTIME*2;
             }
-            if (buttons[bp].lastoff >= BUTTON_ONTIME) {
-                buttons[bp].lastoff = BUTTON_ONTIME;
+            if (buttons[bp].lastoff >= BUTTON_HOLDTIME) {
+                buttons[bp].lastoff = BUTTON_HOLDTIME;
                 if (buttons[bp].clicks > 0) {
                     pdebug("Button %d clicked %d times", bp, buttons[bp].clicks);
                     if (buttons[bp].clicks > 100) {
@@ -342,6 +346,7 @@ clist_t *find_connections(void)
                     buttons[bp].clicks = 0;
                 }
             }
+            conns->buttons[bp].status &= ~BUTTON_ON;
         }
     }
     return conns;
