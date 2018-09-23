@@ -16,7 +16,8 @@ enum gamestates {
     GAME_BALANCE,
     GAME_BALANCEING,
     GAME_FIXED,
-    GAME_FIXEDING
+    GAME_FIXEDING,
+    GAME_RESTART
 };
 
 #define CONNECTOR_COLORS \

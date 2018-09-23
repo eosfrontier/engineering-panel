@@ -75,6 +75,12 @@ static int game_booting(clist_t *conns)
 
 static int game_oking(clist_t *conns)
 {
+    if ((!debugging) &&
+        (!(conns->buttons[BUTTON_GREENSWITCH].status & BUTTON_ON)) &&
+        (!(conns->buttons[BUTTON_REDSWITCH].status   & BUTTON_ON)) &&
+        (!(conns->buttons[BUTTON_BLUESWITCH].status  & BUTTON_ON))    ) {
+        return GAME_RESTART;
+    }
     if ((conns->buttons[BUTTON_SL].status & BUTTON_CLICKS) >= 3) {
         return GAME_BREAK;
     }
@@ -116,6 +122,12 @@ static int game_breaking(clist_t *conns)
 
 static int game_coloring(clist_t *conns)
 {
+    if ((!debugging) &&
+        (!(conns->buttons[BUTTON_GREENSWITCH].status & BUTTON_ON)) &&
+        (!(conns->buttons[BUTTON_REDSWITCH].status   & BUTTON_ON)) &&
+        (!(conns->buttons[BUTTON_BLUESWITCH].status  & BUTTON_ON))    ) {
+        return GAME_RESTART;
+    }
     if ((conns->buttons[BUTTON_SL].status & BUTTON_HOLD) && ((conns->buttons[BUTTON_SL].status & BUTTON_CLICKS) >= 5)) {
         return GAME_BOOT;
     }
@@ -173,6 +185,12 @@ static int game_coloring(clist_t *conns)
 
 static int game_masterminding(clist_t *conns)
 {
+    if ((!debugging) &&
+        (!(conns->buttons[BUTTON_GREENSWITCH].status & BUTTON_ON)) &&
+        (!(conns->buttons[BUTTON_REDSWITCH].status   & BUTTON_ON)) &&
+        (!(conns->buttons[BUTTON_BLUESWITCH].status  & BUTTON_ON))    ) {
+        return GAME_RESTART;
+    }
     if (conns->newon > 0) {
         audio_play_file(1, WAV_ON);
         for (int i = (conns->on - conns->newon); i < conns->on; i++) {
@@ -329,6 +347,18 @@ int game_mainloop(int gamestate, clist_t *conns)
             bootcount = FRAMERATE*3/SCANRATE;
         case GAME_FIXEDING:
             return game_fixeding(conns);
+        case GAME_RESTART:
+            led_remove_animation(0);
+            led_remove_animation(1);
+            led_remove_animation(2);
+            led_remove_animation(3);
+            led_set_blank(0, FRAMERATE*2);
+            led_set_idle(1, FRAMERATE/4, 0x020004);
+            led_set_blank(1, FRAMERATE);
+            led_set_blank(2, FRAMERATE);
+            led_set_blank(3, FRAMERATE*2);
+            engine_hum(0.0, 0.0, 0.0, 0.0, 0.0, 0.05, FRAMERATE*3, FRAMERATE*1, FRAMERATE*2, FRAMERATE*1);
+            return game_starting(conns);
     }
 }
 

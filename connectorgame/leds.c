@@ -18,7 +18,8 @@ enum led_animation_types {
     ANIMATION_PLASMA,
     ANIMATION_FLASH,
     ANIMATION_SWIPE,
-    ANIMATION_IDLE
+    ANIMATION_IDLE,
+    ANIMATION_BLANK
 };
 
 #define TARGET_FREQ             WS2811_TARGET_FREQ
@@ -289,6 +290,23 @@ static int led_animate_idle(ledanim_t *an)
     return 0;
 }
 
+static int led_animate_blank(ledanim_t *an)
+{
+    if (an->fadepos < an->fadein) {
+        an->fadepos += 1;
+        int fade = 255 - ((255 * an->fadepos) / an->fadein);
+        for (int ip = 0; ip < an->size; ip++) {
+            ledstring.channel[0].leds[an->offset+ip] = scale(an->data[ip], fade);
+        }
+    } else {
+        for (int ip = 0; ip < an->size; ip++) {
+            ledstring.channel[0].leds[an->offset+ip] = 0;
+        }
+        return 1;
+    }
+    return 0;
+}
+
 int led_animate(ledanim_t *an) {
     switch (an->type) {
         case ANIMATION_PLASMA:
@@ -299,6 +317,8 @@ int led_animate(ledanim_t *an) {
             return led_animate_swipe(an);
         case ANIMATION_IDLE:
             return led_animate_idle(an);
+        case ANIMATION_BLANK:
+            return led_animate_blank(an);
         default:
             fprintf(stderr, "Unknown animation type %d\n", an->type);
             return -1;
@@ -436,6 +456,31 @@ int led_set_idle(int ring, int speed, unsigned int color)
     newan->fadepos = 0;
     newan->pos = 0;
     newan->data[0] = color;
+    *an = newan;
+    return 0;
+}
+
+/* ring, fadeout */
+int led_set_blank(int ring, int fadein)
+{
+    ledanim_t **an = &led_animations;
+    while (*an) an = &((*an)->next);
+    ledanim_t *newan = malloc(sizeof(ledanim_t) + ((RING_SIZE))*sizeof(int));
+    if (!newan) {
+        fprintf(stderr, "Allocation for animation failed!\n");
+        return -1;
+    }
+    newan->next = NULL;
+    newan->type = ANIMATION_BLANK;
+    newan->offset = ring*RING_SIZE;
+    newan->size = RING_SIZE;
+    newan->speed = 0;
+    newan->fadein = fadein;
+    newan->fadepos = 0;
+    newan->pos = 0;
+    for (int i = 0; i < RING_SIZE; i++) {
+        newan->data[i] = ledstring.channel[0].leds[newan->offset+i];
+    }
     *an = newan;
     return 0;
 }
