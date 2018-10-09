@@ -13,6 +13,8 @@ enum wav_sounds {
     WAV_READY,
     WAV_BOOTING,
     WAV_SPARK,
+    WAV_ENGINE_OFF,
+    WAV_ENGINE_ON,
     WAV_COUNT
 };
 
@@ -23,7 +25,7 @@ enum synth_waveforms {
     SYNTH_SAWTOOTH
 };
 
-#define WAV_AUDIOFILES {"on.wav","off.wav","ready.wav","booting.wav","spark.wav"}
+#define WAV_AUDIOFILES {"on.wav","off.wav","ready.wav","booting.wav","spark.wav","engineready.wav","engineoff.wav"}
 #define WAV_CHANNELS 2
 #define SYNTH_CHANNELS 8
 

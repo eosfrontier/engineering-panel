@@ -84,14 +84,13 @@ int main(int argc, char *argv[])
 
     /* Opstarten */
     running = 1;
-    int gamestate = GAME_START;
     int scanrate = SCANRATE;
     while (running) {
         int64_t timertime = getutime(); // Om de framerate gelijk te houden
         if (--scanrate <= 0) {
             scanrate = SCANRATE;
             clist_t *conns = find_connections(); // Altijd uitlezen
-            gamestate = game_mainloop(gamestate, conns);
+            game_mainloop(conns);
             free(conns);
         }
         leds_mainloop();

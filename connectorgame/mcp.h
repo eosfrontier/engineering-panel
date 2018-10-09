@@ -38,7 +38,7 @@ typedef struct button {
 } button_t;
 
 typedef struct clist {
-    int on, newon, off;
+    int on, newon, off, engineevent;
     button_t buttons[NUM_BUTTONS];
     connection_t pins[0];
 } clist_t;

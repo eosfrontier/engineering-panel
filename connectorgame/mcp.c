@@ -265,6 +265,7 @@ clist_t *find_connections(void)
     conns->on = on;
     conns->off = off;
     conns->newon = newon;
+    conns->engineevent = 0;
     /* Ronde 2: invullen */
     /* De pinnen zitten op volgorde on, newon, off */
     off = on;

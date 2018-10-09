@@ -6,10 +6,19 @@
 #include "main.h"
 #include "game.h"
 
+#define SPINUP_SPEED (1.0/(10*FRAMERATE/SCANRATE))
+#define SPINDOWN_SPEED (1.0/(20*FRAMERATE/SCANRATE))
+#define SPINUP_FREQ1 20000.0
+#define SPINUP_FREQ2 25000.0
+#define SPINUP_VOL1 0.2
+#define SPINUP_VOL2 0.1
+
 static char c_colors[NUM_PINS] = CONNECTOR_COLORS;
 
 static int bootcount = 0;
 static int flashcount = 0;
+static int gamestate;
+static float turbines[3] = {0.0, 0.0, 0.0};
 
 void init_game(void)
 {
@@ -22,6 +31,7 @@ void init_game(void)
             case 'R': c_colors[i] = RED;    break;
         }
     }
+    gamestate = GAME_START;
 }
 
 static int randint(int from, int to)
@@ -75,10 +85,7 @@ static int game_booting(clist_t *conns)
 
 static int game_oking(clist_t *conns)
 {
-    if ((!debugging) &&
-        (!(conns->buttons[BUTTON_GREENSWITCH].status & BUTTON_ON)) &&
-        (!(conns->buttons[BUTTON_REDSWITCH].status   & BUTTON_ON)) &&
-        (!(conns->buttons[BUTTON_BLUESWITCH].status  & BUTTON_ON))    ) {
+    if ((!debugging) && (conns->engineevent == ENGINE_OFF)) {
         return GAME_RESTART;
     }
     if ((conns->buttons[BUTTON_SL].status & BUTTON_CLICKS) >= 3) {
@@ -122,22 +129,19 @@ static int game_breaking(clist_t *conns)
 
 static int game_coloring(clist_t *conns)
 {
-    if ((!debugging) &&
-        (!(conns->buttons[BUTTON_GREENSWITCH].status & BUTTON_ON)) &&
-        (!(conns->buttons[BUTTON_REDSWITCH].status   & BUTTON_ON)) &&
-        (!(conns->buttons[BUTTON_BLUESWITCH].status  & BUTTON_ON))    ) {
+    if ((!debugging) && (conns->engineevent == ENGINE_OFF)) {
         return GAME_RESTART;
     }
     if ((conns->buttons[BUTTON_SL].status & BUTTON_HOLD) && ((conns->buttons[BUTTON_SL].status & BUTTON_CLICKS) >= 5)) {
         return GAME_BOOT;
     }
     if (conns->newon > 0) {
-        audio_play_file(1, WAV_ON);
+        // audio_play_file(1, WAV_ON);
         for (int i = (conns->on - conns->newon); i < conns->on; i++) {
             pdebug("New connection: %d - %d", conns->pins[i].p1, conns->pins[i].p2);
         }
     } else if (conns->off > 0) {
-        audio_play_file(1, WAV_OFF);
+        // audio_play_file(1, WAV_OFF);
     } else if (--flashcount <= 0) {
         flash_spark();
         flashcount = (int)(((double)(FRAMERATE/10 + (random() % (FRAMERATE * 4)))) * (1.0 + (((double)conns->on)/4)));
@@ -185,19 +189,16 @@ static int game_coloring(clist_t *conns)
 
 static int game_masterminding(clist_t *conns)
 {
-    if ((!debugging) &&
-        (!(conns->buttons[BUTTON_GREENSWITCH].status & BUTTON_ON)) &&
-        (!(conns->buttons[BUTTON_REDSWITCH].status   & BUTTON_ON)) &&
-        (!(conns->buttons[BUTTON_BLUESWITCH].status  & BUTTON_ON))    ) {
+    if ((!debugging) && (conns->engineevent == ENGINE_OFF)) {
         return GAME_RESTART;
     }
     if (conns->newon > 0) {
-        audio_play_file(1, WAV_ON);
+        // audio_play_file(1, WAV_ON);
         for (int i = (conns->on - conns->newon); i < conns->on; i++) {
             pdebug("New connection: %d - %d", conns->pins[i].p1, conns->pins[i].p2);
         }
     } else if (conns->off > 0) {
-        audio_play_file(1, WAV_OFF);
+        // audio_play_file(1, WAV_OFF);
     } else if (--flashcount <= 0) {
         flash_spark();
         flashcount = (int)(((double)(FRAMERATE/10 + (random() % (FRAMERATE * 4)))) * (1.0 + (((double)conns->on)/4)));
@@ -272,9 +273,7 @@ static int game_starting(clist_t *conns)
     if ((conns->buttons[BUTTON_SL].status & BUTTON_HOLD) && ((conns->buttons[BUTTON_SL].status & BUTTON_CLICKS) >= 3)) {
         return GAME_BOOT;
     }
-    if ((conns->buttons[BUTTON_GREENSWITCH].status & BUTTON_ON) &&
-        (conns->buttons[BUTTON_REDSWITCH].status   & BUTTON_ON) &&
-        (conns->buttons[BUTTON_BLUESWITCH].status  & BUTTON_ON)    ) {
+    if (conns->engineevent == ENGINE_ON) {
         return GAME_BOOT;
     }
     if (debugging) {
@@ -283,9 +282,56 @@ static int game_starting(clist_t *conns)
     return GAME_STARTING;
 }
 
-int game_mainloop(int gamestate, clist_t *conns)
+static int game_dostate(int state, clist_t *conns)
 {
-    switch (gamestate) {
+    /* Engine switches */
+    int reached = 0;
+    int spinning = 0;
+    int running = 0;
+    /* Kijken of de schakelaars zijn omgezet */
+    for (int sw = 0; sw < 3; sw++) {
+        if (conns->buttons[sw].status & BUTTON_ON) {
+            running++;
+            if (turbines[sw] < 1.0) {
+                /* Turbine spinup: omhooggaand geluid */
+                turbines[sw] += SPINUP_SPEED;
+                if (turbines[sw] >= 1.0) {
+                    reached = 1 
+                } else {
+                    spinning = 1;
+                }
+                audio_play_synth(0, 8+sw*2, SYNTH_TRIANGLE, SPINUP_FREQ1 * turbines[sw], SPINUP_VOL1 * (1.0 - turbines[sw], 1)
+                audio_play_synth(0, 9+sw*2, SYNTH_TRIANGLE, SPINUP_FREQ2 * turbines[sw], SPINUP_VOL2 * (1.0 - turbines[sw], 1)
+                /* TODO: Lichteffect */
+            }
+        } else {
+                /* Turbine spinup: omhooggaand geluid */
+            if (turbines[sw] > 0.0) {
+                turbines[sw] -= SPINDOWN_SPEED;
+                if (turbines[sw] <= 0) {
+                    reached = 1 
+                } else {
+                    spinning = 1;
+                }
+                audio_play_synth(0, 8+sw*2, SYNTH_TRIANGLE, SPINUP_FREQ1 * turbines[sw], SPINUP_VOL1 * (1.0 - turbines[sw], 1)
+                audio_play_synth(0, 9+sw*2, SYNTH_TRIANGLE, SPINUP_FREQ2 * turbines[sw], SPINUP_VOL2 * (1.0 - turbines[sw], 1)
+                /* TODO: Lichteffect */
+            }
+        }
+    }
+    if (reached == 1 && !spinning) {
+        /* Een turbine is net bij zijn eindpunt geraakt, en geen turbine is niet bij zijn eindpunt */
+        if (running == 0) {
+            /* Alles uit */
+            audio_play_file(1, WAV_ENGINE_OFF);
+            conns->engineevent = ENGINE_OFF;
+        } else if (running == 3) {
+            /* Alles aan */
+            audio_play_file(1, WAV_ENGINE_ON);
+            conns->engineevent = ENGINE_ON;
+        }
+    }
+    switch (state) {
         default: /* Fallthrough to boot */
         case GAME_START:
             pdebug("GAME_START");
@@ -360,6 +406,11 @@ int game_mainloop(int gamestate, clist_t *conns)
             engine_hum(0.0, 0.0, 0.0, 0.0, 0.0, 0.05, FRAMERATE*3, FRAMERATE*1, FRAMERATE*2, FRAMERATE*1);
             return game_starting(conns);
     }
+}
+
+void game_mainloop(clist_t *conns)
+{
+    gamestate = game_dostate(gamestate, conns);
 }
 
 /* vim: ai:si:expandtab:ts=4:sw=4

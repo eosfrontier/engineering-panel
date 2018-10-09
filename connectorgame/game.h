@@ -20,6 +20,12 @@ enum gamestates {
     GAME_RESTART
 };
 
+enum engineevent {
+    ENGINE_NOTHING,
+    ENGINE_OFF,
+    ENGINE_ON
+};
+
 #define CONNECTOR_COLORS \
 	"BZGYR"	\
 	"GYRBZ"	\
