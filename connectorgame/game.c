@@ -10,11 +10,12 @@
 #define SPINUP_SPEED (1.0/(10*FRAMERATE/SCANRATE))
 #define SPINDOWN_SPEED (1.0/(20*FRAMERATE/SCANRATE))
 #define SPINUP_LOW1 40.0
-#define SPINUP_LOW2 50.0
-#define SPINUP_FREQ1 250.0
-#define SPINUP_FREQ2 375.0
-#define SPINUP_VOL1 0.3
-#define SPINUP_VOL2 0.1
+#define SPINUP_LOW2 30.0
+#define SPINUP_FREQ1 400.0
+#define SPINUP_FREQ2 410.0
+#define SPINUP_VOL1 1.0
+#define SPINUP_VOL2 1.0
+#define SPINUP_WAVE SYNTH_TRIANGLE
 
 static char c_colors[NUM_PINS] = CONNECTOR_COLORS;
 
@@ -303,8 +304,8 @@ static int game_dostate(int state, clist_t *conns)
                 } else {
                     spinning = 1;
                 }
-                audio_play_synth(0, 8+sw*2, SYNTH_SINE, SPINUP_LOW1 + (SPINUP_FREQ1-SPINUP_LOW1) * turbines[sw], pow(1.0+SPINUP_VOL1, (1.0 - turbines[sw]))-1.0, 1);
-                audio_play_synth(0, 9+sw*2, SYNTH_SINE, SPINUP_LOW2 + (SPINUP_FREQ2-SPINUP_LOW2) * turbines[sw], pow(1.0+SPINUP_VOL2, (1.0 - turbines[sw]))-1.0, 1);
+                audio_play_synth(0, 8+sw*2, SPINUP_WAVE, SPINUP_LOW1 + (SPINUP_FREQ1-SPINUP_LOW1) * turbines[sw], turbines[sw]*(pow(1.0+SPINUP_VOL1, (1.0 - turbines[sw]))-1.0), 1);
+                audio_play_synth(0, 9+sw*2, SPINUP_WAVE, SPINUP_LOW2 + (SPINUP_FREQ2-SPINUP_LOW2) * turbines[sw], turbines[sw]*(pow(1.0+SPINUP_VOL2, (1.0 - turbines[sw]))-1.0), 1);
                 /* TODO: Lichteffect */
             }
         } else {
@@ -316,8 +317,8 @@ static int game_dostate(int state, clist_t *conns)
                 } else {
                     spinning = 1;
                 }
-                audio_play_synth(0, 8+sw*2, SYNTH_SINE, SPINUP_LOW1 + (SPINUP_FREQ1-SPINUP_LOW1) * turbines[sw], pow(1.0+SPINUP_VOL1, (1.0 - turbines[sw]))-1.0, 1);
-                audio_play_synth(0, 9+sw*2, SYNTH_SINE, SPINUP_LOW2 + (SPINUP_FREQ2-SPINUP_LOW2) * turbines[sw], pow(1.0+SPINUP_VOL2, (1.0 - turbines[sw]))-1.0, 1);
+                audio_play_synth(0, 8+sw*2, SPINUP_WAVE, SPINUP_LOW1 + (SPINUP_FREQ1-SPINUP_LOW1) * turbines[sw], turbines[sw]*(pow(1.0+SPINUP_VOL1, (1.0 - turbines[sw]))-1.0), 1);
+                audio_play_synth(0, 9+sw*2, SPINUP_WAVE, SPINUP_LOW2 + (SPINUP_FREQ2-SPINUP_LOW2) * turbines[sw], turbines[sw]*(pow(1.0+SPINUP_VOL2, (1.0 - turbines[sw]))-1.0), 1);
                 /* TODO: Lichteffect */
             }
         }
