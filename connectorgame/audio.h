@@ -27,7 +27,7 @@ enum synth_waveforms {
 
 #define WAV_AUDIOFILES {"on.wav","off.wav","ready.wav","booting.wav","spark.wav","engineready.wav","engineoff.wav"}
 #define WAV_CHANNELS 2
-#define SYNTH_CHANNELS 8
+#define SYNTH_CHANNELS 14
 
 int init_audio(void);
 int fini_audio(void);

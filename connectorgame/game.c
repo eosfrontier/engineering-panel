@@ -1,5 +1,6 @@
 #include <stdlib.h>
 #include <string.h>
+#include <math.h>
 #include "mcp.h"
 #include "leds.h"
 #include "audio.h"
@@ -8,9 +9,11 @@
 
 #define SPINUP_SPEED (1.0/(10*FRAMERATE/SCANRATE))
 #define SPINDOWN_SPEED (1.0/(20*FRAMERATE/SCANRATE))
-#define SPINUP_FREQ1 20000.0
-#define SPINUP_FREQ2 25000.0
-#define SPINUP_VOL1 0.2
+#define SPINUP_LOW1 40.0
+#define SPINUP_LOW2 50.0
+#define SPINUP_FREQ1 250.0
+#define SPINUP_FREQ2 375.0
+#define SPINUP_VOL1 0.3
 #define SPINUP_VOL2 0.1
 
 static char c_colors[NUM_PINS] = CONNECTOR_COLORS;
@@ -296,12 +299,12 @@ static int game_dostate(int state, clist_t *conns)
                 /* Turbine spinup: omhooggaand geluid */
                 turbines[sw] += SPINUP_SPEED;
                 if (turbines[sw] >= 1.0) {
-                    reached = 1 
+                    reached = 1;
                 } else {
                     spinning = 1;
                 }
-                audio_play_synth(0, 8+sw*2, SYNTH_TRIANGLE, SPINUP_FREQ1 * turbines[sw], SPINUP_VOL1 * (1.0 - turbines[sw], 1)
-                audio_play_synth(0, 9+sw*2, SYNTH_TRIANGLE, SPINUP_FREQ2 * turbines[sw], SPINUP_VOL2 * (1.0 - turbines[sw], 1)
+                audio_play_synth(0, 8+sw*2, SYNTH_SINE, SPINUP_LOW1 + (SPINUP_FREQ1-SPINUP_LOW1) * turbines[sw], pow(1.0+SPINUP_VOL1, (1.0 - turbines[sw]))-1.0, 1);
+                audio_play_synth(0, 9+sw*2, SYNTH_SINE, SPINUP_LOW2 + (SPINUP_FREQ2-SPINUP_LOW2) * turbines[sw], pow(1.0+SPINUP_VOL2, (1.0 - turbines[sw]))-1.0, 1);
                 /* TODO: Lichteffect */
             }
         } else {
@@ -309,12 +312,12 @@ static int game_dostate(int state, clist_t *conns)
             if (turbines[sw] > 0.0) {
                 turbines[sw] -= SPINDOWN_SPEED;
                 if (turbines[sw] <= 0) {
-                    reached = 1 
+                    reached = 1;
                 } else {
                     spinning = 1;
                 }
-                audio_play_synth(0, 8+sw*2, SYNTH_TRIANGLE, SPINUP_FREQ1 * turbines[sw], SPINUP_VOL1 * (1.0 - turbines[sw], 1)
-                audio_play_synth(0, 9+sw*2, SYNTH_TRIANGLE, SPINUP_FREQ2 * turbines[sw], SPINUP_VOL2 * (1.0 - turbines[sw], 1)
+                audio_play_synth(0, 8+sw*2, SYNTH_SINE, SPINUP_LOW1 + (SPINUP_FREQ1-SPINUP_LOW1) * turbines[sw], pow(1.0+SPINUP_VOL1, (1.0 - turbines[sw]))-1.0, 1);
+                audio_play_synth(0, 9+sw*2, SYNTH_SINE, SPINUP_LOW2 + (SPINUP_FREQ2-SPINUP_LOW2) * turbines[sw], pow(1.0+SPINUP_VOL2, (1.0 - turbines[sw]))-1.0, 1);
                 /* TODO: Lichteffect */
             }
         }

@@ -57,6 +57,6 @@ enum engineevent {
 #define BAD        0x40
 
 void init_game(void);
-int game_mainloop(int gamestate, clist_t *conns);
+void game_mainloop(clist_t *conns);
 /* vim: ai:si:expandtab:ts=4:sw=4
  */
