@@ -19,6 +19,7 @@ enum led_animation_types {
     ANIMATION_FLASH,
     ANIMATION_SWIPE,
     ANIMATION_IDLE,
+    ANIMATION_SPIN,
     ANIMATION_BLANK
 };
 
@@ -290,6 +291,15 @@ static int led_animate_idle(ledanim_t *an)
     return 0;
 }
 
+static int led_animate_spin(ledanim_t *an)
+{
+    an->pos = (an->pos + 1000000) % (an->speed * an->size * 1000);
+    ledstring.channel[0].leds[an->offset+(0+(an->pos/(an->speed * 1000)))%an->size] = scale(an->data[0], 64);
+    ledstring.channel[0].leds[an->offset+(1+(an->pos/(an->speed * 1000)))%an->size] = scale(an->data[0], 128);
+    ledstring.channel[0].leds[an->offset+(2+(an->pos/(an->speed * 1000)))%an->size] = an->data[0];
+    return 0;
+}
+
 static int led_animate_blank(ledanim_t *an)
 {
     if (an->fadepos < an->fadein) {
@@ -317,6 +327,8 @@ int led_animate(ledanim_t *an) {
             return led_animate_swipe(an);
         case ANIMATION_IDLE:
             return led_animate_idle(an);
+        case ANIMATION_SPIN:
+            return led_animate_spin(an);
         case ANIMATION_BLANK:
             return led_animate_blank(an);
         default:
@@ -457,6 +469,39 @@ int led_set_idle(int ring, int speed, unsigned int color)
     newan->pos = 0;
     newan->data[0] = color;
     *an = newan;
+    return 0;
+}
+
+/* ring, speed, color */
+int led_set_spin(int ring, int speed, unsigned int color)
+{
+    /* Find previous spin */
+    ledanim_t *newan = NULL, **an;
+    for (an = &led_animations; *an;) {
+        if (((*an)->offset == ring*RING_SIZE) && ((*an)->type == ANIMATION_SPIN)) {
+            newan = *an;
+            break;
+        } else {
+            an = &((*an)->next);
+        }
+    }
+    if (!newan) {
+        newan = malloc(sizeof(ledanim_t) + ((1))*sizeof(int));
+        if (!newan) {
+            fprintf(stderr, "Allocation for animation failed!\n");
+            return -1;
+        }
+        newan->next = NULL;
+        newan->type = ANIMATION_SPIN;
+        newan->offset = ring*RING_SIZE;
+        newan->size = RING_SIZE;
+        newan->fadein = 0;
+        newan->fadepos = 0;
+        newan->pos = 0;
+        *an = newan;
+    }
+    newan->speed = speed;
+    newan->data[0] = color;
     return 0;
 }
 

@@ -16,6 +16,11 @@
 #define SPINUP_VOL1 0.4
 #define SPINUP_VOL2 0.4
 #define SPINUP_WAVE SYNTH_TRIANGLE
+#define SPINUP_RINGSPEED1 2000
+#define SPINUP_RINGSPEED2 500
+
+static int spinup_ring[3] = { 0, 2, 3 };
+static int spinup_color[3] = { 0x0000ff, 0xff0000, 0x00ff00 };
 
 static char c_colors[NUM_PINS] = CONNECTOR_COLORS;
 
@@ -319,7 +324,7 @@ static int game_dostate(int state, clist_t *conns)
                 }
                 audio_synth_freq_vol(0, 8+sw*2, SPINUP_LOW1 + (SPINUP_FREQ1-SPINUP_LOW1) * turbines[sw], turbines[sw]*(pow(1.0+SPINUP_VOL1, (1.0 - turbines[sw]))-1.0), 1);
                 audio_synth_freq_vol(0, 9+sw*2, SPINUP_LOW2 + (SPINUP_FREQ2-SPINUP_LOW2) * turbines[sw], turbines[sw]*(pow(1.0+SPINUP_VOL2, (1.0 - turbines[sw]))-1.0), 1);
-                /* TODO: Lichteffect */
+                led_set_spin(spinup_ring[sw], (int)(turbines[sw] * (double)(SPINUP_RINGSPEED2-SPINUP_RINGSPEED1))+SPINUP_RINGSPEED1, spinup_color[sw]);
             }
         } else {
                 /* Turbine spinup: omhooggaand geluid */
@@ -332,7 +337,7 @@ static int game_dostate(int state, clist_t *conns)
                 }
                 audio_synth_freq_vol(0, 8+sw*2, SPINUP_LOW1 + (SPINUP_FREQ1-SPINUP_LOW1) * turbines[sw], turbines[sw]*(pow(1.0+SPINUP_VOL1, (1.0 - turbines[sw]))-1.0), 1);
                 audio_synth_freq_vol(0, 9+sw*2, SPINUP_LOW2 + (SPINUP_FREQ2-SPINUP_LOW2) * turbines[sw], turbines[sw]*(pow(1.0+SPINUP_VOL2, (1.0 - turbines[sw]))-1.0), 1);
-                /* TODO: Lichteffect */
+                led_set_spin(spinup_ring[sw], (int)(turbines[sw] * (double)(SPINUP_RINGSPEED2-SPINUP_RINGSPEED1))+SPINUP_RINGSPEED1, spinup_color[sw]);
             }
         }
     }
@@ -356,7 +361,9 @@ static int game_dostate(int state, clist_t *conns)
         default: /* Fallthrough to boot */
         case GAME_START:
             pdebug("GAME_START");
+            led_set_idle(0, FRAMERATE/4, 0x020004);
             led_set_idle(2, FRAMERATE/4, 0x020004);
+            led_set_idle(3, FRAMERATE/4, 0x020004);
             engine_hum(0.0, 0.0, 0.0, 0.0, 0.0, 0.05, 1, 0, 1, 0);
         case GAME_STARTING:
             return game_starting(conns);
@@ -419,8 +426,10 @@ static int game_dostate(int state, clist_t *conns)
             led_remove_animation(1);
             led_remove_animation(2);
             led_remove_animation(3);
+            led_set_idle(0, FRAMERATE/4, 0x020004);
+            led_set_idle(2, FRAMERATE/4, 0x020004);
+            led_set_idle(3, FRAMERATE/4, 0x020004);
             led_set_blank(0, FRAMERATE*2);
-            led_set_idle(1, FRAMERATE/4, 0x020004);
             led_set_blank(1, FRAMERATE);
             led_set_blank(2, FRAMERATE);
             led_set_blank(3, FRAMERATE*2);
