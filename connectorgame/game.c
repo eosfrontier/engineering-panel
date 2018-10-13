@@ -13,11 +13,11 @@
 #define SPINUP_LOW2 80.0
 #define SPINUP_FREQ1 200.0
 #define SPINUP_FREQ2 210.0
-#define SPINUP_VOL1 0.4
-#define SPINUP_VOL2 0.4
+#define SPINUP_VOL1 0.7
+#define SPINUP_VOL2 0.7
 #define SPINUP_WAVE SYNTH_TRIANGLE
 #define SPINUP_RINGSPEED1 2000
-#define SPINUP_RINGSPEED2 500
+#define SPINUP_RINGSPEED2 200
 
 static int spinup_ring[3] = { 0, 2, 3 };
 static int spinup_color[3] = { 0x0000ff, 0xff0000, 0x00ff00 };
@@ -370,10 +370,10 @@ static int game_dostate(int state, clist_t *conns)
         case GAME_BOOT:
             pdebug("GAME_BOOT");
             // audio_play_file(1, WAV_BOOTING);
-            led_set_swipe(0, FRAMERATE*2, 12, 3, 0xff0000, 0xff0000, 0xff0000);
-            led_set_swipe(1, FRAMERATE*2, 0, 3, 0x00ff00, 0x00ff00, 0x00ff00);
-            led_set_swipe(2, FRAMERATE*2, 0, 3, 0x888800, 0x888800, 0x888800);
-            led_set_swipe(3, FRAMERATE*2, 0, 3, 0x0000ff, 0x0000ff, 0x0000ff);
+            led_set_swipe(0, FRAMERATE*2, 0, 3, 0x0000ff, 0x0000ff, 0x0000ff);
+            led_set_swipe(1, FRAMERATE*2, 0, 3, 0x888800, 0x888800, 0x888800);
+            led_set_swipe(2, FRAMERATE*2, 12, 3, 0xff0000, 0xff0000, 0xff0000);
+            led_set_swipe(3, FRAMERATE*2, 0, 3, 0x00ff00, 0x00ff00, 0x00ff00);
             /* Synth hum */
             engine_hum(100.0, 0.25, 0.0, 2.0, 0.0, 0.05, FRAMERATE*2, FRAMERATE, FRAMERATE*3, FRAMERATE);
             bootcount = FRAMERATE*2/SCANRATE;
