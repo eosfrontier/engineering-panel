@@ -30,6 +30,7 @@ static struct {
     struct synth_s {
         double d1;    // Previous sample
         double d2;    // Current sample
+        double fsmp;  // Filtered/Modulated sample
         double c;     // 2cos(samplestep)
         double fcur;  // Current frequency
         double vcur;  // Current volume
@@ -37,6 +38,7 @@ static struct {
         double vto;   // Target volume
         int steps;    // Steps to reach target volume (for fading)
         int wave;     // Waveform
+        int modchannel;  // Modulate with other channel (ring)
     } synth[SYNTH_CHANNELS];
 } pcm_channels[WAV_CHANNELS];
 
@@ -185,9 +187,9 @@ static void pcm_mix_buffer(int16_t *buffer, long len)
             }
             for (int s = 0; s < len*2; s++) {
                 int sc = s % 2;
-                double val = synth[sc].d1 * synth[sc].vcur;
+                double val = synth[sc].fsmp * synth[sc].vcur;
                 while ((sc += 2) < SYNTH_CHANNELS) {
-                    val += synth[sc].d1 * synth[sc].vcur;
+                    val += synth[sc].fsmp * synth[sc].vcur;
                 }
                 long byteval = (long)(val * 0x7FFF);
                 if (byteval < -0x7FFF) byteval = -0x7FFF;
@@ -222,6 +224,10 @@ static void pcm_mix_buffer(int16_t *buffer, long len)
                             }
                             synth[sc].d1 = d0;
                             break;
+                    }
+                    synth[sc].fsmp = synth[sc].d1;
+                    if (synth[sc].modchannel >= 0) {
+                        synth[sc].fsmp *= synth[synth[sc].modchannel].d1;
                     }
                 }
             }
@@ -306,21 +312,11 @@ int audio_play_file(int channel, enum wav_sounds sound)
     return 0;
 }
 
-/* Sinusgolf genereren:
- * Gebaseerd op de vergelijking:  sin(x+y)+sin(x-y) = 2*cos(y)*sin(x)
- * Omgezet, waar p = 2PI * (frequency/samplerate), oftewel de afstand tussen twee samples:
- *   sin(x+p) = 2*cos(p)*sin(x) - sin(x-p)
- *  We willen dat d(x) = sin(p*x)
- *   d0 = sin(0) = 0, d1 = sin(p)
- *   c = 2*cos(p)
- *  Dus: d(x+1) = sin(p*x+p)) = 2*cos(p)*sin(p*x) - sin(p*x-p) = c * d(x) - d(x-1)
- * Met de twee vorige waardes kun je de huidige berekenen met 1 vermenigvuldiging en 1 optelling
- */
-int audio_play_synth(int channel, int synthchannel, int waveform, double frequency, double volume, int steps)
+int get_synth(int channel, int synthchannel)
 {
     if (channel >= WAV_CHANNELS || synthchannel >= SYNTH_CHANNELS) {
-        fprintf(stderr, "audio_play_file argument error\n");
-        return -1;
+        fprintf(stderr, "audio_synth argument error\n");
+        return NULL;
     }
     struct synth_s *synth = pcm_channels[channel].synth;
     if (pcm_channels[channel].length != -1) {
@@ -335,16 +331,52 @@ int audio_play_synth(int channel, int synthchannel, int waveform, double frequen
             synth[sc].vto = 0;
             synth[sc].steps = 0;
             synth[sc].wave = 0;
+            synth[sc].modchannel = -1;
         }
         pcm_channels[channel].length = -1;
         pcm_channels[channel].samples = NULL;
     }
-    synth[synthchannel].fto = frequency;
+    return synth;
+}
+
+/* Sinusgolf genereren:
+ * Gebaseerd op de vergelijking:  sin(x+y)+sin(x-y) = 2*cos(y)*sin(x)
+ * Omgezet, waar p = 2PI * (frequency/samplerate), oftewel de afstand tussen twee samples:
+ *   sin(x+p) = 2*cos(p)*sin(x) - sin(x-p)
+ *  We willen dat d(x) = sin(p*x)
+ *   d0 = sin(0) = 0, d1 = sin(p)
+ *   c = 2*cos(p)
+ *  Dus: d(x+1) = sin(p*x+p)) = 2*cos(p)*sin(p*x) - sin(p*x-p) = c * d(x) - d(x-1)
+ * Met de twee vorige waardes kun je de huidige berekenen met 1 vermenigvuldiging en 1 optelling
+ */
+int audio_synth_wave(int channel, int synthchannel, int waveform)
+{
+    struct synth_s *synth = get_synth(channel, synthchannel);
+    if (!synth) return -1;
+    synth[synthchannel].wave = waveform;
+    pdebug("audio_synth_wave(%d, %d, %d, %f, %f, %d)", channel, synthchannel, waveform);
+    return 0;
+}
+
+int audio_synth_freq_vol(int channel, int synthchannel, double frequency, double volume, int steps)
+{
+    struct synth_s *synth = get_synth(channel, synthchannel);
+    if (!synth) return -1;
+    synth[synthchannel].ftp = frequency;
     synth[synthchannel].vto = volume;
     synth[synthchannel].steps = steps;
-    synth[synthchannel].wave = waveform;
-    pdebug("audio_play_synth(%d, %d, %d, %f, %f, %d)", channel, synthchannel, waveform, frequency, volume, steps);
+    pdebug("audio_synth_freq_vol(%d, %d, %d, %f, %f, %d)", channel, synthchannel, waveform);
     return 0;
+}
+int audio_synth_modulate(int channel, int synthchannel, int modchannel)
+{
+    struct synth_s *synth = get_synth(channel, synthchannel);
+    if (!synth) return -1;
+    if (modchannel >= SYNTH_CHANNELS) {
+        fprintf(stderr, "audio_synth_modulate argument error\n");
+        return NULL;
+    }
+    synth[synthchannel].modchannel = modchannel;
 }
 
 /* vim: ai:si:expandtab:ts=4:sw=4

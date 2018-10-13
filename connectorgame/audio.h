@@ -33,7 +33,9 @@ int init_audio(void);
 int fini_audio(void);
 void audio_mainloop(void);
 int audio_play_file(int channel, enum wav_sounds sound);
-int audio_play_synth(int channel, int synthchannel, int waveform, double frequency, double volume, int steps);
+int audio_synth_wave(int channel, int synthchannel, int waveform);
+int audio_synth_freq_vol(int channel, int synthchannel, double frequency, double volume, int steps);
+int audio_synth_modulate(int channel, int synthchannel, int modchannel);
 
 /* vim: ai:si:expandtab:ts=4:sw=4
  */
