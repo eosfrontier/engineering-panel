@@ -312,7 +312,7 @@ int audio_play_file(int channel, enum wav_sounds sound)
     return 0;
 }
 
-int get_synth(int channel, int synthchannel)
+struct synth_s *get_synth(int channel, int synthchannel)
 {
     if (channel >= WAV_CHANNELS || synthchannel >= SYNTH_CHANNELS) {
         fprintf(stderr, "audio_synth argument error\n");
@@ -354,7 +354,7 @@ int audio_synth_wave(int channel, int synthchannel, int waveform)
     struct synth_s *synth = get_synth(channel, synthchannel);
     if (!synth) return -1;
     synth[synthchannel].wave = waveform;
-    pdebug("audio_synth_wave(%d, %d, %d, %f, %f, %d)", channel, synthchannel, waveform);
+    pdebug("audio_synth_wave(%d, %d, %d)", channel, synthchannel, waveform);
     return 0;
 }
 
@@ -362,10 +362,10 @@ int audio_synth_freq_vol(int channel, int synthchannel, double frequency, double
 {
     struct synth_s *synth = get_synth(channel, synthchannel);
     if (!synth) return -1;
-    synth[synthchannel].ftp = frequency;
+    synth[synthchannel].fto = frequency;
     synth[synthchannel].vto = volume;
     synth[synthchannel].steps = steps;
-    pdebug("audio_synth_freq_vol(%d, %d, %d, %f, %f, %d)", channel, synthchannel, waveform);
+    pdebug("audio_synth_freq_vol(%d, %d, %f, %f, %d)", channel, synthchannel, frequency, volume, steps);
     return 0;
 }
 int audio_synth_modulate(int channel, int synthchannel, int modchannel)
@@ -374,9 +374,11 @@ int audio_synth_modulate(int channel, int synthchannel, int modchannel)
     if (!synth) return -1;
     if (modchannel >= SYNTH_CHANNELS) {
         fprintf(stderr, "audio_synth_modulate argument error\n");
-        return NULL;
+        return -1;
     }
     synth[synthchannel].modchannel = modchannel;
+    pdebug("audio_synth_modulate(%d, %d, %d)", channel, synthchannel, modchannel);
+    return 0;
 }
 
 /* vim: ai:si:expandtab:ts=4:sw=4

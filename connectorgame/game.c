@@ -9,12 +9,12 @@
 
 #define SPINUP_SPEED (1.0/(10*FRAMERATE/SCANRATE))
 #define SPINDOWN_SPEED (1.0/(20*FRAMERATE/SCANRATE))
-#define SPINUP_LOW1 40.0
-#define SPINUP_LOW2 30.0
-#define SPINUP_FREQ1 400.0
-#define SPINUP_FREQ2 410.0
-#define SPINUP_VOL1 1.0
-#define SPINUP_VOL2 1.0
+#define SPINUP_LOW1 90.0
+#define SPINUP_LOW2 80.0
+#define SPINUP_FREQ1 200.0
+#define SPINUP_FREQ2 210.0
+#define SPINUP_VOL1 0.4
+#define SPINUP_VOL2 0.4
 #define SPINUP_WAVE SYNTH_TRIANGLE
 
 static char c_colors[NUM_PINS] = CONNECTOR_COLORS;
@@ -304,6 +304,7 @@ static int game_dostate(int state, clist_t *conns)
     int reached = 0;
     int spinning = 0;
     int running = 0;
+    static int prev_running = 0;
     /* Kijken of de schakelaars zijn omgezet */
     for (int sw = 0; sw < 3; sw++) {
         if (conns->buttons[sw].status & BUTTON_ON) {
@@ -334,6 +335,10 @@ static int game_dostate(int state, clist_t *conns)
                 /* TODO: Lichteffect */
             }
         }
+    }
+    if (running != prev_running) {
+        prev_running = running;
+        engine_hum(25.0 + 25.0*running, 0.25, 0.0, 2.0, 0.0, 0.05, FRAMERATE*2, FRAMERATE, FRAMERATE*3, FRAMERATE*2);
     }
     if (reached == 1 && !spinning) {
         /* Een turbine is net bij zijn eindpunt geraakt, en geen turbine is niet bij zijn eindpunt */
