@@ -1,9 +1,9 @@
-HEADERS = main.h mcp.h leds.h audio.h game.h
+HEADERS = main.h mcp.h leds.h audio.h game.h comm.h
 
 %.o: %.c $(HEADERS)
 	gcc -O2 -Wno-unused -W -Wall -o $@ -c $<
 
-connectorgame: main.o mcp.o leds.o audio.o game.o
+connectorgame: main.o mcp.o leds.o audio.o game.o comm.o
 	gcc -O2 -Wno-unused -W -Wall -o $@ $^ -lm -lwiringPi -lws2811 -lasound
 
 test: connectorgame

@@ -23,6 +23,7 @@
 #include "leds.h"
 #include "audio.h"
 #include "game.h"
+#include "comm.h"
 #include "main.h"
 
 static int running = 1;
@@ -91,6 +92,7 @@ int main(int argc, char *argv[])
             scanrate = SCANRATE;
             clist_t *conns = find_connections(); // Altijd uitlezen
             game_mainloop(conns);
+            comm_write_connections(conns);
             free(conns);
         }
         leds_mainloop();

@@ -197,6 +197,7 @@ static int game_coloring(clist_t *conns)
         }
     }
     ledshow_colors(colors);
+    conns->okcnt = okcnt;
     if (okcnt < 20) {
         if (okcnt != lastokcnt) {
             lastokcnt = okcnt;
@@ -356,14 +357,17 @@ static int game_dostate(int state, clist_t *conns)
             audio_play_file(1, WAV_ENGINE_ON);
             conns->engineevent = ENGINE_ON;
         }
+        for (int sw = 0; sw < 3; sw++) {
+            led_remove_animation(spinup_ring[sw]);
+        }
     }
     switch (state) {
         default: /* Fallthrough to boot */
         case GAME_START:
             pdebug("GAME_START");
-            led_set_idle(0, FRAMERATE/4, 0x020004);
-            led_set_idle(2, FRAMERATE/4, 0x020004);
-            led_set_idle(3, FRAMERATE/4, 0x020004);
+            led_set_idle(0, FRAMERATE/4, 0x010002);
+            led_set_idle(2, FRAMERATE/4, 0x010002);
+            led_set_idle(3, FRAMERATE/4, 0x010002);
             engine_hum(0.0, 0.0, 0.0, 0.0, 0.0, 0.05, 1, 0, 1, 0);
         case GAME_STARTING:
             return game_starting(conns);
