@@ -50,7 +50,7 @@ body {
 
 #switches td.switch {
 	border: 3px solid black;
-	border-radius: 2px;
+	border-radius: 5px;
 	background-color: #000000;
 }
 #switches td.switch div {
@@ -58,7 +58,7 @@ body {
 	height: 50px;
 }
 #switches td.switch_0 {
-	border-color: #000088;
+	border-color: #0000aa;
 }
 #switches td.switch_1 {
 	border-color: #880000;

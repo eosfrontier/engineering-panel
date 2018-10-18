@@ -48,11 +48,18 @@ function create_display(colors)
 
 function reload()
 {
-    $.get('connections.json', display_connections)
+    $.ajax({
+        type:'GET',
+        url:'connections.json',
+        success:display_connections,
+        datatype:'json',
+        ifModified:true
+    })
 }
 
 function display_connections(json)
 {
+    if (!json) { return }
     for (var s = 0; s < json.switches.length; s++) {
         if (json.switches[s] & 0x200) {
             $('#switches .switch_'+s).addClass('on')
