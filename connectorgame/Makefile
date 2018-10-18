@@ -13,3 +13,8 @@ test: connectorgame
 run: connectorgame
 	sudo systemctl stop connectorgame.service
 	sudo ./connectorgame
+
+install: connectorgame
+	sudo cp connectorgame.service /etc/systemd/system/connectorgame.service
+	sudo systemctl enable connectorgame.service
+	sudo systemctl start connectorgame.service
