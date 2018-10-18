@@ -22,15 +22,22 @@ int init_comm(void)
 
 int comm_write_connections(clist_t *conns)
 {
-    if (conns->newon == 0 && conns->off == 0) {
+    int ch = 0;
+    for (int sw = 0; sw < NUM_BUTTONS; sw++) {
+        if (conns->buttons[sw].status & BUTTON_CHANGED) {
+            ch = 1;
+            break;
+        }
+    }
+    if (ch == 0 && conns->newon == 0 && conns->off == 0) {
         return 0;
     }
-    FILE *f = fopen(COMM_CONNECTION_FILE_NEW, 'w');
+    FILE *f = fopen(COMM_CONNECTION_FILE_NEW, "w");
     fprintf(f, "{\"switches\":[");
-    for (int sw = 0; sw < 3; sw++) { fprintf(f, "%s%d", sw > 0 ? ',' : '', conns->buttons[sw].status); }
-    fprintf(f, "],\"num_connections\":%d,\"ok_connections\":%d,\"connections\":[", conns->okcnt);
+    for (int sw = 0; sw < NUM_BUTTONS; sw++) { fprintf(f, "%s%d", sw > 0 ? "," : "", conns->buttons[sw].status); }
+    fprintf(f, "],\"num_connections\":%d,\"ok_connections\":%d,\"connections\":[", conns->on, conns->okcnt);
     for (int cn = 0; cn < conns->on; cn++) {
-        fprintf(f, "%s[%d,%d]", conns->pins[cn].p1, conns->pins[cn].p2, cn > 0 ? ',' : '');
+        fprintf(f, "%s[%d,%d]", cn > 0 ? "," : "", conns->pins[cn].p1, conns->pins[cn].p2);
     }
     fprintf(f, "]}");
     fclose(f);

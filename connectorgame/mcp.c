@@ -27,6 +27,7 @@ static struct {
     int clicks;
     int laston;
     int lastoff;
+    int laststatus;
 } buttons[NUM_BUTTONS];
 
 /* Alle MCPs initialiseren */
@@ -306,7 +307,7 @@ clist_t *find_connections(void)
     int res = wiringPiI2CReadReg16(mcps[MCP_BUTTONS], MCP_GPIO);
     res = (res >> PIN_BUTTONS) & ((1 << NUM_BUTTONS) - 1);
     for (int bp = 0; bp < NUM_BUTTONS; bp++) {
-        conns->buttons[bp].status = 0;
+        int status = 0;
         if (!(res & (1 << bp))) {
             /* 0 = aan (knoppen zijn verbonden met gnd) */
             if (buttons[bp].laston > buttons[bp].lastoff) {
@@ -319,12 +320,12 @@ clist_t *find_connections(void)
                 buttons[bp].lastoff = BUTTON_HOLDTIME*2;
             }
             if (buttons[bp].laston >= BUTTON_HOLDTIME) {
-                conns->buttons[bp].status = buttons[bp].clicks | BUTTON_HOLD;
+                status = buttons[bp].clicks | BUTTON_HOLD;
                 buttons[bp].laston = BUTTON_HOLDTIME;
             } else if (buttons[bp].laston == BUTTON_CLICKTIME) {
                 buttons[bp].clicks++;
             }
-            conns->buttons[bp].status |= BUTTON_ON;
+            status |= BUTTON_ON;
         } else {
             if (buttons[bp].lastoff > buttons[bp].laston) {
                 buttons[bp].lastoff = 0;
@@ -340,15 +341,20 @@ clist_t *find_connections(void)
                 if (buttons[bp].clicks > 0) {
                     pdebug("Button %d clicked %d times", bp, buttons[bp].clicks);
                     if (buttons[bp].clicks > 100) {
-                        conns->buttons[bp].status = 100;
+                        status = 100;
                     } else {
-                        conns->buttons[bp].status = buttons[bp].clicks;
+                        status = buttons[bp].clicks;
                     }
                     buttons[bp].clicks = 0;
                 }
             }
-            conns->buttons[bp].status &= ~BUTTON_ON;
+            status &= ~BUTTON_ON;
         }
+        if (status != buttons[bp].laststatus) {
+            buttons[bp].laststatus = status;
+            status |= BUTTON_CHANGED; 
+        }
+        conns->buttons[bp].status = status;
     }
     return conns;
 }
