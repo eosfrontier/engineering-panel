@@ -4,3 +4,4 @@
 
 extern int debugging;
 void pdebug(const char *format, ...);
+int64_t getutime(void);

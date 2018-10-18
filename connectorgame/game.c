@@ -1,10 +1,13 @@
 #include <stdlib.h>
 #include <string.h>
+#include <stdio.h>
+#include <errno.h>
 #include <math.h>
 #include "mcp.h"
 #include "leds.h"
 #include "audio.h"
 #include "main.h"
+#include "comm.h"
 #include "game.h"
 
 #define SPINUP_SPEED (1.0/(10*FRAMERATE/SCANRATE))
@@ -19,15 +22,17 @@
 #define SPINUP_RINGSPEED1 2000
 #define SPINUP_RINGSPEED2 200
 
+#define COLOR_FILE COMM_PATH "colors.txt"
+
 static int spinup_ring[3] = { 0, 2, 3 };
 static int spinup_color[3] = { 0x0000ff, 0xff0000, 0x00ff00 };
 
-static char c_colors[NUM_PINS] = CONNECTOR_COLORS;
+static char c_colors[NUM_PINS];
 
 static int bootcount = 0;
 static int flashcount = 0;
 static int gamestate;
-static float turbines[3] = {0.0, 0.0, 0.0};
+double turbines[3] = {0.0, 0.0, 0.0};
 
 static void init_engine_hum(void)
 {
@@ -42,6 +47,18 @@ static void init_engine_hum(void)
 
 void init_game(void)
 {
+    gamestate = GAME_START;
+    init_engine_hum();
+    FILE *f = fopen(COLOR_FILE, "r");
+    if (!f) {
+        fprintf(stderr, "Failed to open colors file %s: %s\n", COLOR_FILE, strerror(errno));
+        return;
+    }
+    if (fread(c_colors, 1, NUM_PINS, f) < NUM_PINS) {
+        fprintf(stderr, "Failed to read colors file %s: %s\n", COLOR_FILE, strerror(errno));
+        return;
+    }
+    fclose(f);
     for (int i = 0; i < NUM_PINS; i++) {
         switch (c_colors[i]) {
             case 'Z': c_colors[i] = BLACK;  break;
@@ -51,8 +68,6 @@ void init_game(void)
             case 'R': c_colors[i] = RED;    break;
         }
     }
-    gamestate = GAME_START;
-    init_engine_hum();
 }
 
 static int randint(int from, int to)

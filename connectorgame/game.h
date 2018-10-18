@@ -26,28 +26,6 @@ enum engineevent {
     ENGINE_ON
 };
 
-#define CONNECTOR_COLORS \
-	"BZGYR"	\
-	"GYRBZ"	\
-	"ZRYGB"	\
-	"YBZRG"	\
-	"RGYBZ"	\
-	"BRGZY"	\
-	"YZRGB"	\
-	"GBZYR"	\
-	"RYBGZ"	\
-	"ZGRBY"	\
-	"RGYZB" \
-	"GZBYR" \
-	"ZRGBY" \
-	"BYRGZ" \
-	"YGBZR" \
-	"RBZGY" \
-	"ZRGYB" \
-	"GYZBR" \
-	"BZGRY" \
-	"RGYZB"
-
 #define BLACK      0x01
 #define BLUE       0x02
 #define GREEN      0x04

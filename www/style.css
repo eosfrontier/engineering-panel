@@ -53,10 +53,6 @@ body {
 	border-radius: 5px;
 	background-color: #000000;
 }
-#switches td.switch div {
-	width: 20px;
-	height: 50px;
-}
 #switches td.switch_0 {
 	border-color: #0000aa;
 }
@@ -67,5 +63,16 @@ body {
 	border-color: #008800;
 }
 #switches td.switch.on {
-	background-color: #888888;
+	background-color: #666666;
+}
+
+#switches td.switch > div {
+	width: 20px;
+	height: 50px;
+}
+#switches div.bar {
+	width: 10px;
+	margin-left: auto;
+	margin-right: auto;
+	background-color: #cccccc;
 }

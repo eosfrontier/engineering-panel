@@ -3,7 +3,7 @@ $(load)
 function load()
 {
     $.get('colors.txt', create_display)
-    setInterval(reload, 1000)
+    setInterval(reload, 250)
 }
 
 /* Connector volgorde is rijtjes van 5, tellend vanaf rechtsonder, elk rijtje vlnr
@@ -29,9 +29,10 @@ function create_display(colors)
     var html = []
     html.push('<tr id="switches" class="switches"><td colspan="5"></td>')
     for (var s = 0; s < 3; s++) {
-        html.push('<td class="switch switch_',s,'"><div></div></td>');
+        html.push('<td class="switch switch_',s,'"><div><div class="top"></div><div class="bar"></div></div></td>');
     }
-    html.push('<td colspan="5"></td></tr><tr class="connectors">')
+    html.push('<td colspan="5"></td></tr>')
+    html.push('<tr class="connectors">')
     for (var c = 0; c < 100; c++) {
         if (c % 10 == 5) html.push('<td class="center" colspan="3"></td>')
         if (c > 0 && (c % 10 == 0)) html.push('</tr><tr class="connectors">')
@@ -52,20 +53,28 @@ function reload()
         type:'GET',
         url:'connections.json',
         success:display_connections,
-        datatype:'json',
-        ifModified:true
+        //ifModified:true,
+        datatype:'json'
     })
 }
+
+var lastts = 0;
 
 function display_connections(json)
 {
     if (!json) { return }
+    if (lastts == json.timestamp) { return }
+    lastts = json.timestamp
     for (var s = 0; s < json.switches.length; s++) {
         if (json.switches[s] & 0x200) {
             $('#switches .switch_'+s).addClass('on')
         } else {
             $('#switches .switch_'+s).removeClass('on')
         }
+    }
+    for (var t = 0; t < json.turbines.length; t++) {
+        $('#switches .switch_'+t+' div.top').height(100*(1.0-json.turbines[t])+'%')
+        $('#switches .switch_'+t+' div.bar').height(100*json.turbines[t]+'%')
     }
     var connectors = $('#connectors td.connector').removeClass('connected').get()
     for (var c = 0; c < json.connections.length; c++) {
