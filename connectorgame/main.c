@@ -91,6 +91,7 @@ int main(int argc, char *argv[])
         if (--scanrate <= 0) {
             scanrate = SCANRATE;
             clist_t *conns = find_connections(); // Altijd uitlezen
+            comm_read_commands(conns);
             game_mainloop(conns);
             comm_write_connections(conns);
             free(conns);

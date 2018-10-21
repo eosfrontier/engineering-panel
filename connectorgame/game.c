@@ -33,6 +33,7 @@ static int bootcount = 0;
 static int flashcount = 0;
 static int gamestate;
 double turbines[3] = {0.0, 0.0, 0.0};
+double repairlevel = 1.0;
 
 static void init_engine_hum(void)
 {
@@ -121,7 +122,7 @@ static int game_booting(clist_t *conns)
 
 static int game_oking(clist_t *conns)
 {
-    if ((!debugging) && (conns->engineevent == ENGINE_OFF)) {
+    if ((!debugging) && (conns->event & ENGINE_OFF)) {
         return GAME_RESTART;
     }
     if ((conns->buttons[BUTTON_SL].status & BUTTON_CLICKS) >= 3) {
@@ -130,10 +131,13 @@ static int game_oking(clist_t *conns)
     if (conns->off > 0) {
         return GAME_BREAK;
     }
+    if (conns-event & REPAIR && repairlevel < 0.9) {
+        return GAME_BREAK;
+    }
     return GAME_OKING;
 }
 
-static int lastokcnt = 20;
+int ok_count = 20;
 static struct puzzle {
     int solution[NUM_ROWS];
 } puzzle;
@@ -152,7 +156,7 @@ static void game_set_mastermind(clist_t *conns, int from, int to)
     /* Midden reserveren voor indicaties */
     led_remove_animation(1);
     led_remove_animation(2);
-    lastokcnt = 20;
+    ok_count = 20;
 }
 
 static int level = 0;
@@ -165,11 +169,14 @@ static int game_breaking(clist_t *conns)
 
 static int game_coloring(clist_t *conns)
 {
-    if ((!debugging) && (conns->engineevent == ENGINE_OFF)) {
+    if ((!debugging) && (conns->event & ENGINE_OFF)) {
         return GAME_RESTART;
     }
     if ((conns->buttons[BUTTON_SL].status & BUTTON_HOLD) && ((conns->buttons[BUTTON_SL].status & BUTTON_CLICKS) >= 5)) {
         return GAME_BOOT;
+    }
+    if (conns-event & REPAIR && repairlevel > 0.9) {
+        return GAME_FIXED;
     }
     if (conns->newon > 0) {
         // audio_play_file(1, WAV_ON);
@@ -212,10 +219,10 @@ static int game_coloring(clist_t *conns)
         }
     }
     ledshow_colors(colors);
-    conns->okcnt = okcnt;
+    repairlevel = okcnt / 20.0;
     if (okcnt < 20) {
-        if (okcnt != lastokcnt) {
-            lastokcnt = okcnt;
+        if (okcnt != ok_count) {
+            ok_count = okcnt;
             engine_hum(95.0 - (1.0 * (20-okcnt)), 0.25, 0.01 * (20-okcnt), 2.0, 0.01 * (20-okcnt), 0.1, FRAMERATE, FRAMERATE/2, FRAMERATE*2, FRAMERATE);
         }
         return GAME_COLORING;
@@ -226,8 +233,11 @@ static int game_coloring(clist_t *conns)
 
 static int game_masterminding(clist_t *conns)
 {
-    if ((!debugging) && (conns->engineevent == ENGINE_OFF)) {
+    if ((!debugging) && (conns->event & ENGINE_OFF)) {
         return GAME_RESTART;
+    }
+    if (conns-event & REPAIR && repairlevel > 0.9) {
+        return GAME_FIXED;
     }
     if (conns->newon > 0) {
         // audio_play_file(1, WAV_ON);
@@ -310,7 +320,7 @@ static int game_starting(clist_t *conns)
     if ((conns->buttons[BUTTON_SL].status & BUTTON_HOLD) && ((conns->buttons[BUTTON_SL].status & BUTTON_CLICKS) >= 3)) {
         return GAME_BOOT;
     }
-    if (conns->engineevent == ENGINE_ON) {
+    if (conns->event & ENGINE_ON) {
         return GAME_BOOT;
     }
     if (debugging) {
@@ -366,11 +376,11 @@ static int game_dostate(int state, clist_t *conns)
         if (running == 0) {
             /* Alles uit */
             audio_play_file(1, WAV_ENGINE_OFF);
-            conns->engineevent = ENGINE_OFF;
+            conns->event |= ENGINE_OFF;
         } else if (running == 3) {
             /* Alles aan */
             audio_play_file(1, WAV_ENGINE_ON);
-            conns->engineevent = ENGINE_ON;
+            conns->event |= ENGINE_ON;
         }
         for (int sw = 0; sw < 3; sw++) {
             led_remove_animation(spinup_ring[sw]);
@@ -380,6 +390,7 @@ static int game_dostate(int state, clist_t *conns)
         default: /* Fallthrough to boot */
         case GAME_START:
             pdebug("GAME_START");
+            repairlevel = 1.0;
             led_set_idle(0, FRAMERATE/4, 0x010002);
             led_set_idle(2, FRAMERATE/4, 0x010002);
             led_set_idle(3, FRAMERATE/4, 0x010002);
@@ -412,6 +423,7 @@ static int game_dostate(int state, clist_t *conns)
         case GAME_BREAK:
             pdebug("GAME_BREAK");
             flashcount = 0;
+            if (repairlevel > 0.9) repairlevel = 0.5;
             /* Rodere animaties */
             led_set_blobs(0, 0, 3, 0x330000, 0x221100, 0x000011);
             led_set_blobs(3, 0, 4, 0x330000, 0x003300, 0x331100, 0x113300);
@@ -432,6 +444,7 @@ static int game_dostate(int state, clist_t *conns)
             return game_masterminding(conns);
         case GAME_FIXED:
             pdebug("GAME_FIXED");
+            if (repairlevel < 0.9) repairlevel = 1.0;
             led_set_swipe(0, FRAMERATE*3, 12, 3, 0xff0000, 0xff0000, 0xff0000);
             led_set_swipe(1, FRAMERATE*3, 0, 3, 0x00ff00, 0x00ff00, 0x00ff00);
             led_set_swipe(2, FRAMERATE*3, 0, 3, 0x888800, 0x888800, 0x888800);

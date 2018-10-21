@@ -20,10 +20,10 @@ enum gamestates {
     GAME_RESTART
 };
 
-enum engineevent {
-    ENGINE_NOTHING,
-    ENGINE_OFF,
-    ENGINE_ON
+enum event {
+    ENGINE_OFF = 1,
+    ENGINE_ON = 2,
+    REPAIR = 4
 };
 
 #define BLACK      0x01
