@@ -66,7 +66,7 @@ function reload()
         type:'GET',
         url:'connections.json',
         success:display_connections,
-        //ifModified:true,
+        ifModified:true,
         datatype:'json'
     })
 }
