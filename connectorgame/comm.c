@@ -9,9 +9,11 @@
 #include <string.h>
 #include <unistd.h>
 #include <signal.h>
+#include <errno.h>
 #include "main.h"
 #include "mcp.h"
 #include "comm.h"
+#include "game.h"
 
 #define COMM_CONNECTION_FILE COMM_PATH "connections.json"
 #define COMM_CONNECTION_FILE_NEW COMM_CONNECTION_FILE ".new"

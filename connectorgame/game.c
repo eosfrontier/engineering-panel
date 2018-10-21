@@ -131,7 +131,7 @@ static int game_oking(clist_t *conns)
     if (conns->off > 0) {
         return GAME_BREAK;
     }
-    if (conns-event & REPAIR && repairlevel < 0.9) {
+    if (conns->event & REPAIR && repairlevel < 0.9) {
         return GAME_BREAK;
     }
     return GAME_OKING;
@@ -175,7 +175,7 @@ static int game_coloring(clist_t *conns)
     if ((conns->buttons[BUTTON_SL].status & BUTTON_HOLD) && ((conns->buttons[BUTTON_SL].status & BUTTON_CLICKS) >= 5)) {
         return GAME_BOOT;
     }
-    if (conns-event & REPAIR && repairlevel > 0.9) {
+    if (conns->event & REPAIR && repairlevel > 0.9) {
         return GAME_FIXED;
     }
     if (conns->newon > 0) {
@@ -236,7 +236,7 @@ static int game_masterminding(clist_t *conns)
     if ((!debugging) && (conns->event & ENGINE_OFF)) {
         return GAME_RESTART;
     }
-    if (conns-event & REPAIR && repairlevel > 0.9) {
+    if (conns->event & REPAIR && repairlevel > 0.9) {
         return GAME_FIXED;
     }
     if (conns->newon > 0) {
