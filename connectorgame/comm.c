@@ -25,6 +25,7 @@ extern double repairlevel;
 extern int ok_count;
 
 static double lastturbines[3];
+static double lastrepairlevel = -1.0;
 
 int init_comm(void)
 {
@@ -43,6 +44,10 @@ int comm_write_connections(clist_t *conns)
     if (ch == 0 && memcmp(lastturbines, turbines, sizeof(lastturbines))) {
         ch = 1;
     }
+    if (repairlevel != lastrepairlevel) {
+        ch = 1;
+    }
+    lastrepairlevel = repairlevel;
     memcpy(lastturbines, turbines, sizeof(lastturbines));
     if (ch == 0 && conns->newon == 0 && conns->off == 0) {
         return 0;
@@ -59,6 +64,7 @@ int comm_write_connections(clist_t *conns)
     }
     fprintf(f, "]}");
     fclose(f);
+    pdebug("Wrote file %s", COMM_CONNECTION_FILE_NEW);
     rename(COMM_CONNECTION_FILE_NEW, COMM_CONNECTION_FILE);
     return 0;
 }
@@ -81,6 +87,7 @@ static int read_repair_file(clist_t *conns)
             repairlevel = rval;
             conns->event |= REPAIR;
             unlink(COMM_REPAIR_FILE);
+            pdebug("Read file %s, setting repair level to %f", COMM_REPAIR_FILE, repairlevel);
         }
     }
     return 0;

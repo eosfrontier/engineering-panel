@@ -77,11 +77,26 @@ body {
 	background-color: #cccccc;
 }
 #switches div.button {
-	border: 4px solid #660088;
+	border: 2px solid #660088;
 	background-color: #9944cc;
 	color: #000000;
 	cursor: pointer;
+	border-radius: 8px;
+	margin: 2px;
+	padding: 1px 4px;
 }
 #switches div.button.clicked {
 	border-color: #ffffff;
+}
+#repairlevel {
+	border: 3px solid #4400cc;
+	border-radius: 6px;
+	background-color: #110033;
+	height: 20px;
+}
+#repairlevel div {
+	height: 100%;
+}
+#repairlevel .full {
+	background-color: #6600ff;
 }

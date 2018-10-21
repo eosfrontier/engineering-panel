@@ -3,7 +3,7 @@ $(load)
 function load()
 {
     $.get('colors.txt', create_display)
-    setInterval(reload, 250)
+    setInterval(reload, 2000)
 }
 
 /* Connector volgorde is rijtjes van 5, tellend vanaf rechtsonder, elk rijtje vlnr
@@ -50,14 +50,14 @@ function create_display(colors)
 
 function set_repair()
 {
-    var repairlevel = $(this).attrib('myval')
+    var repairlevel = $(this).attr('myval')
     $(this).addClass('clicked')
     $.post('set_repairlevel.php', { repairlevel: repairlevel }, clicked_repair)
 }
 
 function clicked_repair()
 {
-    $('#switched div.button').removeClass('clicked')
+    $('#switches div.button').removeClass('clicked')
 }
 
 function reload()
