@@ -24,16 +24,37 @@
 
 #define COLOR_FILE COMM_PATH "colors.txt"
 
+/* Complete degeneration in 4 hours */
+#define REPAIR_DECAY (1.0 / (4 * 60 * 60 * (FRAMERATE/SCANRATE)))
+
+/* Ophouden met repair-mode na 3 minuten */
+#define REPAIR_TIMEOUT ((FRAMERATE/SCANRATE) * 3 * 60)
+
 static int spinup_ring[3] = { 0, 2, 3 };
 static int spinup_color[3] = { 0x0000ff, 0xff0000, 0x00ff00 };
+
+static int plasma_color[4][5] = {
+    { 3, 0x003300, 0x002211, 0x000033, 0 },
+    { 3, 0x002222, 0x002200, 0x000022, 0 },
+    { 3, 0x002222, 0x000022, 0x002200, 0 },
+    { 4, 0x000033, 0x003300, 0x001133, 0x003311 }
+}
 
 static char c_colors[NUM_PINS];
 
 static int bootcount = 0;
-static int flashcount = 0;
+static int flashdelay = 0;
+static int repairing = 0;
 static int gamestate;
+static int running = 0;
 double turbines[3] = {0.0, 0.0, 0.0};
 double repairlevel = 1.0;
+
+static struct puzzle {
+    int type;
+    int solution[NUM_ROWS];
+    int current[NUM_ROWS];
+} puzzle;
 
 static void init_engine_hum(void)
 {
@@ -44,12 +65,16 @@ static void init_engine_hum(void)
         audio_synth_wave(0, i+8, SPINUP_WAVE);
         audio_synth_modulate(0, i+8, i);
     }
+    engine_hum(0.0, 0.0, 0.0, 0.0, 0.0, 0.05, 1, 0, 1, 0);
 }
 
 void init_game(void)
 {
-    gamestate = GAME_START;
     init_engine_hum();
+    repairlevel = 1.0;
+    led_set_idle(0, FRAMERATE/4, 0x010002);
+    led_set_idle(2, FRAMERATE/4, 0x010002);
+    led_set_idle(3, FRAMERATE/4, 0x010002);
     FILE *f = fopen(COLOR_FILE, "r");
     if (!f) {
         fprintf(stderr, "Failed to open colors file %s: %s\n", COLOR_FILE, strerror(errno));
@@ -68,6 +93,11 @@ void init_game(void)
             case 'Y': c_colors[i] = YELLOW; break;
             case 'R': c_colors[i] = RED;    break;
         }
+    }
+    puzzle.type = 0;
+    for (int i = 0; i < NUM_ROWS; i++) {
+        puzzle.solution[i] = 0;
+        puzzle.current[i] = 0;
     }
 }
 
@@ -108,6 +138,172 @@ static void flash_spark(void)
     led_set_flash(2, 3, 0, randint(2,5), 0xff8888, randint(3,8), randint(2,5), 0xffffff, randint(6,12), randint(10,25), 0x000000);
 }
 
+static inline int bitcnt(int bits)
+{
+    int cnt = 0;
+    for (; bits > 0; bits >>= 1) cnt += (bits & 1);
+    return cnt;
+}
+
+static int game_checklevel(clist_t *conns)
+{
+    static double oldrl = 1.0;
+    if ((conns->event & REPAIR) && repairlevel < 0.9) {
+        flash_spark();
+    } else {
+        if (repairlevel > 0.0 && (turbines[0]+turbines[1]+turbines[2]) > 2.0) {
+            repairlevel -= REPAIR_DECAY;
+        }
+    }
+    int okcnt = 0;
+    char okcnts[conns->on];
+    int okpc[3] = {0,0,0};
+    for (int i = 0; i < conns->on; i++) {
+        okcnts[i] = 0;
+        for (int cc = 0; cc < 2; cc++) {
+            int p = conns->pins[i].p[cc];
+            puzzle.current[PIN_ROW(p)] |= 1 << p;
+            if (puzzle.solution[PIN_ROW(p)] & (1 << p)) {
+                okcnt++;
+                okcnts[i]++;
+            }
+        }
+        okpc[okcnts[i]]++;
+    }
+    int wantok = ((int)((20.0*repairlevel)+0.5));
+    if ((conns->newon + conns->off) > 0) {
+        /* Iemand heeft iets losgetrokken of ingestoken, solution checken en repairlevel aanpassen */
+        repairing = REPAIR_TIMEOUT;
+        repairlevel = ((double)okcnt / 20.0);
+        if (okcnt != wantok) {
+            engine_hum(25.0 + 25.0*running - (1.0 * (20-okcnt)), 0.25, 0.01 * (20-okcnt), 2.0, 0.01 * (20-okcnt), 0.1, FRAMERATE, FRAMERATE/2, FRAMERATE*2, FRAMERATE);
+        }
+    } else {
+        if (repairing > 0) repairing--;
+        /* Kijken of repairlevel gedaald of gestegen is, evt solution aanpassen */
+        if (okcnt > wantok) {
+            flash_spark(); /* TODO: Small spark */
+        }
+        while (okcnt > wantok) {
+            /* Een connectie stukmaken */
+            int bcon = -1;
+            /* Liefst een met 1 connectie stukmaken, anders een met 2 connecties */
+            for (int okwc = 1; okwc <= 2; okwc++) {
+                if (okpc[okwc] > 0) {
+                    /* Random een connectie kiezen die okwc (1 of 2) juiste connecties heeft */
+                    int ri = randint(0, okpc[okwc]-1);
+                    for (int i = 0; i < conns->on; i++) {
+                        if (okcnts[i] == okwc) {
+                            /* Aftellen van random naar 0, pakt de zoveelste */
+                            if (ri > 0) {
+                                ri--;
+                            } else {
+                                bcon = i;
+                                break;
+                            }
+                        }
+                    }
+                }
+                if (bcon >= 0) {
+                    pdebug("Breaking good connection %d: %d -> %d", bcon, conns->pins[bcon].p[0], conns->pins[bcon].p[1]);
+                    /* Random links of rechts beginnen, mod2 voor wrap */
+                    for (int cc = randint(0,1); cc < 3; cc++) {
+                        int p = conns->pins[bcon].p[cc % 2];
+                        int r = PIN_ROW(p);
+                        if (puzzle.solution[r] & (1 << p)) {
+                            okpc[okwc]--;
+                            okpc[okwc-1]++;
+                            /* Deze gaat stuk */
+                            puzzle.solution[r] &= ~(1 << p);
+                            /* Over alle rijen gaan voor het geval een rij helemaal vol zit */
+                            for (int rr = 0; rr < NUM_ROWS; rr++) {
+                                /* Deze gaat stuk: Niet verbonden pin kiezen als nieuwe oplossing */
+                                int pc = puzzle.current[(rr + r) % NUM_ROWS];
+                                int ccnt = 5 - bitcnt(pc);
+                                if (ccnt > 0) {
+                                    ccnt = randint(0, ccnt-1);
+                                    for (int i = 0; i < 5; i++) {
+                                        if (!(pc & (1 << i))) {
+                                            if (ccnt > 0) {
+                                                ccnt--;
+                                            } else {
+                                                puzzle.solution[(rr + r) % NUM_ROWS] |= 1 << i;
+                                                break;
+                                            }
+                                        }
+                                    }
+                                    break;
+                                }
+                            }
+                        }
+                    }
+                    break;
+                }
+            }
+            okcnt--;
+        }
+        while (okcnt < wantok) {
+            /* Een connectie heelmaken */
+            int bcon = -1;
+            /* Liefst een met 1 connectie heelmaken, anders een met 0 connecties */
+            for (int okwc = 1; okwc >= 0; okwc--) {
+                if (okpc[okwc] > 0) {
+                    /* Random een connectie kiezen die okwc (1 of 0) juiste connecties heeft */
+                    int ri = randint(0, okpc[okwc]-1);
+                    for (int i = 0; i < conns->on; i++) {
+                        if (okcnts[i] == okwc) {
+                            /* Aftellen van random naar 0, pakt de zoveelste */
+                            if (ri > 0) {
+                                ri--;
+                            } else {
+                                bcon = i;
+                                break;
+                            }
+                        }
+                    }
+                }
+                if (bcon >= 0) {
+                    pdebug("Fixing bad connection %d: %d -> %d", bcon, conns->pins[bcon].p[0], conns->pins[bcon].p[1]);
+                    /* Random links of rechts beginnen, mod2 voor wrap */
+                    for (int cc = randint(0,1); cc < 3; cc++) {
+                        int p = conns->pins[bcon].p[cc % 2];
+                        int r = PIN_ROW(p);
+                        if (!(puzzle.solution[r] & (1 << p))) {
+                            okpc[okwc]--;
+                            okpc[okwc+1]++;
+                            /* Deze wordt goed */
+                            puzzle.solution[r] &= ~(1 << p);
+                            /* Over alle rijen gaan voor het geval een rij helemaal leeg zit */
+                            for (int rr = 0; rr < NUM_ROWS; rr++) {
+                                /* Deze oplossing geldt niet meer: Niet verbonden pin kiezen die wel een oplossing was */
+                                int pc = (puzzle.current[(rr + r) % NUM_ROWS] ^ 0x1f) | puzzle.solution[(rr + r) % NUM_ROWS];
+                                int ccnt = bitcnt(pc);
+                                if (ccnt > 0) {
+                                    ccnt = randint(0, ccnt-1);
+                                    for (int i = 0; i < 5; i++) {
+                                        if (pc & (1 << i)) {
+                                            if (ccnt > 0) {
+                                                ccnt--;
+                                            } else {
+                                                puzzle.solution[(rr + r) % NUM_ROWS] &= ~(1 << i);
+                                                break;
+                                            }
+                                        }
+                                    }
+                                    break;
+                                }
+                            }
+                        }
+                    }
+                    break;
+                }
+            }
+            okcnt++;
+        }
+    }
+    oldrl = repairlevel;
+}
+
 static int game_booting(clist_t *conns)
 {
     if (bootcount > 0) {
@@ -138,10 +334,6 @@ static int game_oking(clist_t *conns)
 }
 
 int ok_count = 20;
-static struct puzzle {
-    int solution[NUM_ROWS];
-} puzzle;
-
 static void game_set_mastermind(clist_t *conns, int from, int to)
 {
     pdebug("game_set_puzzle(%d/%d/%d, %d, %d)", conns->on, conns->newon, conns->off, from, to);
@@ -181,20 +373,20 @@ static int game_coloring(clist_t *conns)
     if (conns->newon > 0) {
         // audio_play_file(1, WAV_ON);
         for (int i = (conns->on - conns->newon); i < conns->on; i++) {
-            pdebug("New connection: %d - %d", conns->pins[i].p1, conns->pins[i].p2);
+            pdebug("New connection: %d - %d", conns->pins[i].p[0], conns->pins[i].p[1]);
         }
     } else if (conns->off > 0) {
         // audio_play_file(1, WAV_OFF);
-    } else if (--flashcount <= 0) {
+    } else if (--flashdelay <= 0) {
         flash_spark();
-        flashcount = (int)(((double)(FRAMERATE/10 + (random() % (FRAMERATE * 4)))) * (1.0 + (((double)conns->on)/4)));
+        flashdelay = (int)(((double)(FRAMERATE/10 + (random() % (FRAMERATE * 4)))) * (1.0 + (((double)conns->on)/4)));
     }
     int colors[40] = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
     int *correct = &colors[20];
     /* Kijken voor juiste posities */
     int okcnt = 0;
     for (int i = 0; i < conns->on; i++) {
-        int s[2] = { conns->pins[i].p1, conns->pins[i].p2 };
+        char *s = conns->pins[i].p;
         if (level > 1) {
             if ((s[0] >= 50) == (s[1] >= 50)) {
                 for (int cc = 0; cc < 2; cc++) {
@@ -242,13 +434,13 @@ static int game_masterminding(clist_t *conns)
     if (conns->newon > 0) {
         // audio_play_file(1, WAV_ON);
         for (int i = (conns->on - conns->newon); i < conns->on; i++) {
-            pdebug("New connection: %d - %d", conns->pins[i].p1, conns->pins[i].p2);
+            pdebug("New connection: %d - %d", conns->pins[i].p[0], conns->pins[i].p[1]);
         }
     } else if (conns->off > 0) {
         // audio_play_file(1, WAV_OFF);
-    } else if (--flashcount <= 0) {
+    } else if (--flashdelay <= 0) {
         flash_spark();
-        flashcount = (int)(((double)(FRAMERATE/10 + (random() % (FRAMERATE * 4)))) * (1.0 + (((double)conns->on)/4)));
+        flashdelay = (int)(((double)(FRAMERATE/10 + (random() % (FRAMERATE * 4)))) * (1.0 + (((double)conns->on)/4)));
     }
     int colcnts[2] = {0,0};
     int poscnts[2] = {0,0};
@@ -264,7 +456,7 @@ static int game_masterminding(clist_t *conns)
     }
     /* Eerst kijken voor juiste posities */
     for (int i = 0; i < conns->on; i++) {
-        int s[2] = { conns->pins[i].p1, conns->pins[i].p2 };
+        char *s = conns->pins[i].p;
         for (int cc = 0; cc < 2; cc++) {
             int r = PIN_ROW(s[cc]);
             /* Kijken of de positie klopt */
@@ -278,7 +470,7 @@ static int game_masterminding(clist_t *conns)
     }
     /* Dan kijken voor de resterende juiste kleuren */
     for (int i = 0; i < conns->on; i++) {
-        int s[2] = { conns->pins[i].p1, conns->pins[i].p2 };
+        char *s = conns->pins[i].p;
         for (int cc = 0; cc < 2; cc++) {
             int r = PIN_ROW(s[cc]);
             /* Kijken of de kleur klopt */
@@ -329,13 +521,49 @@ static int game_starting(clist_t *conns)
     return GAME_STARTING;
 }
 
-static int game_dostate(int state, clist_t *conns)
+static int col_fade(double val, int col1, int col2, int col3)
+{
+    val *= 2.0;
+    if (val > 1.0) {
+        col1 = col2;
+        col2 = col3;
+        val -= 1.0;
+    }
+    int col = 0;
+    for (int m = 0; m < 3; m++) {
+        double cp1 = (col1 >> m) & 0xff;
+        double cp2 = (col2 >> m) & 0xff;
+        int cp = (int)((cp2 * val) + (cp1 * (1.0 - val)));
+        col |= cp << m;
+    }
+    return col;
+}
+
+static void plasma_turbine(int ring, double val)
+{
+    led_set_plasma(ring, 0, plasma_color[ring][0],
+            col_fade(val, 0x000000, 0x110000, plasma_color[ring][1]),
+            col_fade(val, 0x000000, 0x110000, plasma_color[ring][2]),
+            col_fade(val, 0x000000, 0x110000, plasma_color[ring][3]),
+            col_fade(val, 0x000000, 0x110000, plasma_color[ring][4]));
+}
+
+static void game_setturbine(int sw)
+{
+    audio_synth_freq_vol(0, 8+sw*2, SPINUP_LOW1 + (SPINUP_FREQ1-SPINUP_LOW1) * turbines[sw], turbines[sw]*(pow(1.0+SPINUP_VOL1, (1.0 - turbines[sw]))-1.0), 1);
+    audio_synth_freq_vol(0, 9+sw*2, SPINUP_LOW2 + (SPINUP_FREQ2-SPINUP_LOW2) * turbines[sw], turbines[sw]*(pow(1.0+SPINUP_VOL2, (1.0 - turbines[sw]))-1.0), 1);
+    led_set_spin(spinup_ring[sw], (int)(turbines[sw] * (double)(SPINUP_RINGSPEED2-SPINUP_RINGSPEED1))+SPINUP_RINGSPEED1, spinup_color[sw]);
+    plasma_turbine(spinup_ring[sw], turbines[sw]);
+    if (sw == 1) plasma_turbine(1, turbines[sw]); /* Middelste is dubbel */
+}
+
+static void game_doturbines(clist_t *conns)
 {
     /* Engine switches */
     int reached = 0;
     int spinning = 0;
-    int running = 0;
     static int prev_running = 0;
+    running = 0;
     /* Kijken of de schakelaars zijn omgezet */
     for (int sw = 0; sw < 3; sw++) {
         if (conns->buttons[sw].status & BUTTON_ON) {
@@ -344,32 +572,30 @@ static int game_dostate(int state, clist_t *conns)
                 /* Turbine spinup: omhooggaand geluid */
                 turbines[sw] += SPINUP_SPEED;
                 if (turbines[sw] >= 1.0) {
+                    turbines[sw] = 1.0;
                     reached = 1;
                 } else {
                     spinning = 1;
                 }
-                audio_synth_freq_vol(0, 8+sw*2, SPINUP_LOW1 + (SPINUP_FREQ1-SPINUP_LOW1) * turbines[sw], turbines[sw]*(pow(1.0+SPINUP_VOL1, (1.0 - turbines[sw]))-1.0), 1);
-                audio_synth_freq_vol(0, 9+sw*2, SPINUP_LOW2 + (SPINUP_FREQ2-SPINUP_LOW2) * turbines[sw], turbines[sw]*(pow(1.0+SPINUP_VOL2, (1.0 - turbines[sw]))-1.0), 1);
-                led_set_spin(spinup_ring[sw], (int)(turbines[sw] * (double)(SPINUP_RINGSPEED2-SPINUP_RINGSPEED1))+SPINUP_RINGSPEED1, spinup_color[sw]);
+                game_setturbine(sw);
             }
         } else {
-                /* Turbine spinup: omhooggaand geluid */
             if (turbines[sw] > 0.0) {
+                /* Turbine spindown: omlaaggaand geluid */
                 turbines[sw] -= SPINDOWN_SPEED;
-                if (turbines[sw] <= 0) {
+                if (turbines[sw] <= 0.0) {
+                    turbines[sw] = 0.0;
                     reached = 1;
                 } else {
                     spinning = 1;
                 }
-                audio_synth_freq_vol(0, 8+sw*2, SPINUP_LOW1 + (SPINUP_FREQ1-SPINUP_LOW1) * turbines[sw], turbines[sw]*(pow(1.0+SPINUP_VOL1, (1.0 - turbines[sw]))-1.0), 1);
-                audio_synth_freq_vol(0, 9+sw*2, SPINUP_LOW2 + (SPINUP_FREQ2-SPINUP_LOW2) * turbines[sw], turbines[sw]*(pow(1.0+SPINUP_VOL2, (1.0 - turbines[sw]))-1.0), 1);
-                led_set_spin(spinup_ring[sw], (int)(turbines[sw] * (double)(SPINUP_RINGSPEED2-SPINUP_RINGSPEED1))+SPINUP_RINGSPEED1, spinup_color[sw]);
+                game_setturbine(sw);
             }
         }
     }
     if (running != prev_running) {
         prev_running = running;
-        engine_hum(25.0 + 25.0*running, 0.25, 0.0, 2.0, 0.0, 0.05, FRAMERATE*2, FRAMERATE, FRAMERATE*3, FRAMERATE*2);
+        engine_hum(25.0 + 25.0*running - (1.0 * (20-okcnt)), 0.25, 0.01 * (20-okcnt), 2.0, 0.01 * (20-okcnt), 0.1, FRAMERATE*2, FRAMERATE, FRAMERATE*3, FRAMERATE*2);
     }
     if (reached == 1 && !spinning) {
         /* Een turbine is net bij zijn eindpunt geraakt, en geen turbine is niet bij zijn eindpunt */
@@ -386,15 +612,14 @@ static int game_dostate(int state, clist_t *conns)
             led_remove_animation(spinup_ring[sw]);
         }
     }
+}
+
+static int game_dostate(int state, clist_t *conns)
+{
     switch (state) {
         default: /* Fallthrough to boot */
         case GAME_START:
             pdebug("GAME_START");
-            repairlevel = 1.0;
-            led_set_idle(0, FRAMERATE/4, 0x010002);
-            led_set_idle(2, FRAMERATE/4, 0x010002);
-            led_set_idle(3, FRAMERATE/4, 0x010002);
-            engine_hum(0.0, 0.0, 0.0, 0.0, 0.0, 0.05, 1, 0, 1, 0);
         case GAME_STARTING:
             return game_starting(conns);
         case GAME_BOOT:
@@ -412,21 +637,21 @@ static int game_dostate(int state, clist_t *conns)
         case GAME_OK:
             pdebug("GAME_OK");
             /* Wat leuke animaties */
-            led_set_blobs(0, FRAMERATE*2, 3, 0x003300, 0x002211, 0x000033);
-            led_set_blobs(3, FRAMERATE*2, 4, 0x000033, 0x003300, 0x001133, 0x003311);
+            led_set_plasma(0, FRAMERATE*2, 3, 0x003300, 0x002211, 0x000033);
+            led_set_plasma(3, FRAMERATE*2, 4, 0x000033, 0x003300, 0x001133, 0x003311);
 
-            led_set_blobs(1, FRAMERATE*2, 3, 0x002222, 0x002200, 0x000022);
-            led_set_blobs(2, FRAMERATE*2, 3, 0x002222, 0x000022, 0x002200);
+            led_set_plasma(1, FRAMERATE*2, 3, 0x002222, 0x002200, 0x000022);
+            led_set_plasma(2, FRAMERATE*2, 3, 0x002222, 0x000022, 0x002200);
             // audio_play_file(1, WAV_READY);
         case GAME_OKING:
             return game_oking(conns);
         case GAME_BREAK:
             pdebug("GAME_BREAK");
-            flashcount = 0;
+            flashdelay = 0;
             if (repairlevel > 0.9) repairlevel = 0.5;
             /* Rodere animaties */
-            led_set_blobs(0, 0, 3, 0x330000, 0x221100, 0x000011);
-            led_set_blobs(3, 0, 4, 0x330000, 0x003300, 0x331100, 0x113300);
+            led_set_plasma(0, 0, 3, 0x330000, 0x221100, 0x000011);
+            led_set_plasma(3, 0, 4, 0x330000, 0x003300, 0x331100, 0x113300);
             /* Synth hum */
             engine_hum(80.0, 0.25, 0.1, 2.0, 0.2, 0.1, FRAMERATE*3, FRAMERATE*2, FRAMERATE*5, FRAMERATE*3);
         case GAME_BREAKING:
@@ -458,9 +683,9 @@ static int game_dostate(int state, clist_t *conns)
             led_remove_animation(1);
             led_remove_animation(2);
             led_remove_animation(3);
-            led_set_idle(0, FRAMERATE/4, 0x020004);
-            led_set_idle(2, FRAMERATE/4, 0x020004);
-            led_set_idle(3, FRAMERATE/4, 0x020004);
+            led_set_idle(0, FRAMERATE/4, 0x010002);
+            led_set_idle(2, FRAMERATE/4, 0x010002);
+            led_set_idle(3, FRAMERATE/4, 0x010002);
             led_set_blank(0, FRAMERATE*2);
             led_set_blank(1, FRAMERATE);
             led_set_blank(2, FRAMERATE);
@@ -472,7 +697,11 @@ static int game_dostate(int state, clist_t *conns)
 
 void game_mainloop(clist_t *conns)
 {
-    gamestate = game_dostate(gamestate, conns);
+    game_doturbines(conns);
+    game_checklevel(conns);
+    if (repairing > 0) {
+    }
+    // gamestate = game_dostate(gamestate, conns);
 }
 
 /* vim: ai:si:expandtab:ts=4:sw=4

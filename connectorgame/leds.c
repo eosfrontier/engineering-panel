@@ -339,34 +339,49 @@ int led_animate(ledanim_t *an) {
 }
 
 /* ring, fadein, num, [color]... */
-int led_set_blobs(int ring, int fadein, int num, ...)
+int led_set_plasma(int ring, int fadein, int num, ...)
 {
-    pdebug("led_set_blobs(%d, %d)", ring, fadein);
-    led_remove_animation(ring);
+    pdebug("led_set_plasma(%d, %d)", ring, fadein);
+    /* Find previous plasma or other animations */
+    ledanim_t *newan = NULL, **an;
+    for (an = &led_animations; *an;) {
+        if (((*an)->offset == ring*RING_SIZE) && ((*an)->type == ANIMATION_PLASMA) && ((*an)->data[0] == num)) {
+            newan = *an;
+        } else if (((*an)->offset == ring*RING_SIZE) && ((*an)->type != ANIMATION_FLASH)) {
+            ledanim_t *f = *an;
+            *an = (*an)->next;
+            free(f);
+        } else {
+            an = &((*an)->next);
+        }
+    }
+    if (!newan) {
+        newan = malloc(sizeof(ledanim_t) + (1+(num*3))*sizeof(int));
+        if (!newan) {
+            fprintf(stderr, "Allocation for animation failed!\n");
+            return -1;
+        }
+        newan->next = NULL;
+        newan->type = ANIMATION_PLASMA;
+        newan->offset = ring*RING_SIZE;
+        newan->size = RING_SIZE;
+        newan->speed = 128;
+        newan->fadein = fadein;
+        newan->fadepos = 0;
+        newan->pos = 0;
+        newan->data[0] = 3*num+1;
+        float spd = 5;
+        for (int i = 0; i < num; i++) {
+            newan->data[3*i+2] = RING_SIZE*i/num;
+            newan->data[3*i+3] = (int)spd;
+            spd = (-spd)*1.4;
+        }
+        *an = newan;
+    }
     va_list argp;
     va_start(argp, num);
-    ledanim_t **an = &led_animations;
-    while (*an) an = &((*an)->next);
-    ledanim_t *newan = malloc(sizeof(ledanim_t) + (1+(num*3))*sizeof(int));
-    if (!newan) {
-        fprintf(stderr, "Allocation for animation failed!\n");
-        return -1;
-    }
-    newan->next = NULL;
-    newan->type = ANIMATION_PLASMA;
-    newan->offset = ring*RING_SIZE;
-    newan->size = RING_SIZE;
-    newan->speed = 128;
-    newan->fadein = fadein;
-    newan->fadepos = 0;
-    newan->pos = 0;
-    newan->data[0] = 3*num+1;
-    float spd = 5;
     for (int i = 0; i < num; i++) {
         newan->data[3*i+1] = va_arg(argp, unsigned int);
-        newan->data[3*i+2] = RING_SIZE*i/num;
-        newan->data[3*i+3] = (int)spd;
-        spd = (-spd)*1.4;
     }
     va_end(argp);
     *an = newan;

@@ -31,7 +31,7 @@
 #define BUTTON_SL 3
 
 typedef struct connection {
-    unsigned char p1, p2;
+    unsigned char p[2];
 } connection_t;
 
 typedef struct button {

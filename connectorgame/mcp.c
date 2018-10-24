@@ -283,12 +283,12 @@ clist_t *find_connections(void)
                 if (connections[ip][op] == PIN_ON_OFF) {
                     connections[ip][op] = 0;
                     pdebug("Broke connection %d - %d", p1, p2);
-                    conns->pins[off].p1 = p1;
-                    conns->pins[off].p2 = p2;
+                    conns->pins[off].p[0] = p1;
+                    conns->pins[off].p[1] = p2;
                     off++;
                 } else {
-                    conns->pins[on].p1 = p1;
-                    conns->pins[on].p2 = p2;
+                    conns->pins[on].p[0] = p1;
+                    conns->pins[on].p[1] = p2;
                     on++;
                 }
             } else {
@@ -296,8 +296,8 @@ clist_t *find_connections(void)
                 if (connections[ip][op] == PIN_OFF_ON) {
                     connections[ip][op] |= PIN_STATE;
                     pdebug("Made connection %d - %d", p1, p2);
-                    conns->pins[newon].p1 = p1;
-                    conns->pins[newon].p2 = p2;
+                    conns->pins[newon].p[0] = p1;
+                    conns->pins[newon].p[1] = p2;
                     newon++;
                 }
             }
