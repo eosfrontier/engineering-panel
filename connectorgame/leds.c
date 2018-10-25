@@ -345,12 +345,9 @@ int led_set_plasma(int ring, int fadein, int num, ...)
     /* Find previous plasma or other animations */
     ledanim_t *newan = NULL, **an;
     for (an = &led_animations; *an;) {
-        if (((*an)->offset == ring*RING_SIZE) && ((*an)->type == ANIMATION_PLASMA) && ((*an)->data[0] == num)) {
+        if (((*an)->offset == ring*RING_SIZE) && ((*an)->type == ANIMATION_PLASMA) && ((*an)->data[0] == (3*num+1))) {
             newan = *an;
-        } else if (((*an)->offset == ring*RING_SIZE) && ((*an)->type != ANIMATION_FLASH)) {
-            ledanim_t *f = *an;
-            *an = (*an)->next;
-            free(f);
+            break;
         } else {
             an = &((*an)->next);
         }
@@ -490,16 +487,24 @@ int led_set_idle(int ring, int speed, unsigned int color)
 /* ring, speed, color */
 int led_set_spin(int ring, int speed, unsigned int color)
 {
+    pdebug("led_set_spin(%d, %d, %06x)", ring, speed, color);
     /* Find previous spin */
     ledanim_t *newan = NULL, **an;
     for (an = &led_animations; *an;) {
         if (((*an)->offset == ring*RING_SIZE) && ((*an)->type == ANIMATION_SPIN)) {
+            if (speed == 0) {
+                ledanim_t *f = *an;
+                *an = (*an)->next;
+                free(f);
+                return 0;
+            }
             newan = *an;
             break;
         } else {
             an = &((*an)->next);
         }
     }
+    if (speed == 0) return 0;
     if (!newan) {
         newan = malloc(sizeof(ledanim_t) + ((1))*sizeof(int));
         if (!newan) {

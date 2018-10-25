@@ -405,9 +405,9 @@ static int col_fade(double val, int col1, int col2, int col3)
         val -= 1.0;
     }
     int col = 0;
-    for (int m = 0; m < 3; m++) {
-        double cp1 = (col1 >> m) & 0xff;
-        double cp2 = (col2 >> m) & 0xff;
+    for (int m = 0; m < 24; m += 8) {
+        double cp1 = (double)((col1 >> m) & 0xff);
+        double cp2 = (double)((col2 >> m) & 0xff);
         int cp = (int)((cp2 * val) + (cp1 * (1.0 - val)));
         col |= cp << m;
     }
@@ -417,19 +417,23 @@ static int col_fade(double val, int col1, int col2, int col3)
 static void plasma_turbine(int ring, double val)
 {
     led_set_plasma(ring, 0, plasma_color[ring][0],
-            col_fade(val, 0x000000, 0x110000, plasma_color[ring][1]),
-            col_fade(val, 0x000000, 0x110000, plasma_color[ring][2]),
-            col_fade(val, 0x000000, 0x110000, plasma_color[ring][3]),
-            col_fade(val, 0x000000, 0x110000, plasma_color[ring][4]));
+            col_fade(val, 0x000000, 0x221100, plasma_color[ring][1]),
+            col_fade(val, 0x000000, 0x221100, plasma_color[ring][2]),
+            col_fade(val, 0x000000, 0x221100, plasma_color[ring][3]),
+            col_fade(val, 0x000000, 0x221100, plasma_color[ring][4]));
 }
 
 static void game_setturbine(int sw)
 {
     audio_synth_freq_vol(0, 8+sw*2, SPINUP_LOW1 + (SPINUP_FREQ1-SPINUP_LOW1) * turbines[sw], turbines[sw]*(pow(1.0+SPINUP_VOL1, (1.0 - turbines[sw]))-1.0), 1);
     audio_synth_freq_vol(0, 9+sw*2, SPINUP_LOW2 + (SPINUP_FREQ2-SPINUP_LOW2) * turbines[sw], turbines[sw]*(pow(1.0+SPINUP_VOL2, (1.0 - turbines[sw]))-1.0), 1);
-    led_set_spin(spinup_ring[sw], (int)(turbines[sw] * (double)(SPINUP_RINGSPEED2-SPINUP_RINGSPEED1))+SPINUP_RINGSPEED1, spinup_color[sw]);
     plasma_turbine(spinup_ring[sw], turbines[sw]);
     if (sw == 1) plasma_turbine(1, turbines[sw]); /* Middelste is dubbel */
+    if (turbines[sw] >= 1.0 || turbines[sw] <= 0.0) {
+        led_set_spin(spinup_ring[sw], 0, 0);
+    } else {
+        led_set_spin(spinup_ring[sw], (int)(turbines[sw] * (double)(SPINUP_RINGSPEED2-SPINUP_RINGSPEED1))+SPINUP_RINGSPEED1, spinup_color[sw]);
+    }
 }
 
 static void game_doturbines(clist_t *conns)
@@ -482,9 +486,6 @@ static void game_doturbines(clist_t *conns)
             /* Alles aan */
             audio_play_file(1, WAV_ENGINE_ON);
             conns->event |= ENGINE_ON;
-        }
-        for (int sw = 0; sw < 3; sw++) {
-            led_remove_animation(spinup_ring[sw]);
         }
     }
 }
