@@ -152,7 +152,7 @@ static void game_checklevel(clist_t *conns)
     }
     static double oldrl = 1.0;
     if ((conns->event & REPAIR) && repairlevel < 0.9) {
-        flash_spark();
+        // flash_spark();
     } else {
         if (repairlevel > 0.0 && (turbines[0]+turbines[1]+turbines[2]) > 2.0) {
             repairlevel -= REPAIR_DECAY;
@@ -161,13 +161,16 @@ static void game_checklevel(clist_t *conns)
     int okcnt = 0;
     int okcnts[conns->on];
     int okpc[3] = {0,0,0};
+    for (int i = 0; i < NUM_ROWS; i++) {
+        puzzle.current[i] = 0;
+    }
     for (int i = 0; i < conns->on; i++) {
         okcnts[i] = 0;
         for (int cc = 0; cc < 2; cc++) {
             int p = conns->pins[i].p[cc];
             int r = PIN_ROW(p);
             p = p % 5;
-            puzzle.current[r] |= 1 << p;
+            puzzle.current[r] |= (1 << p);
             if (puzzle.solution[r] & (1 << p)) {
                 okcnt++;
                 okcnts[i]++;
@@ -176,7 +179,7 @@ static void game_checklevel(clist_t *conns)
         okpc[okcnts[i]]++;
     }
     int wantok = ((int)((20.0*repairlevel)+0.5));
-    if ((conns->newon + conns->off) > 0) {
+    if (!(conns->event & REPAIR) && (conns->newon + conns->off) > 0) {
         /* Iemand heeft iets losgetrokken of ingestoken, solution checken en repairlevel aanpassen */
         repairing = REPAIR_TIMEOUT;
         repairlevel = ((double)okcnt / 20.0);
@@ -196,13 +199,14 @@ static void game_checklevel(clist_t *conns)
             flash_spark(); /* TODO: Small spark */
         }
         if (okcnt != wantok) {
-            pdebug("okcnt: %d < %d : %d, %d, %d", okcnt, wantok, okpc[0], okpc[1], okpc[2]);
+            pdebug("okcnt: %d <> %d : %d, %d, %d", okcnt, wantok, okpc[0], okpc[1], okpc[2]);
         }
         while (okcnt > wantok) {
             /* Een connectie stukmaken */
             /* Liefst een met 1 connectie stukmaken, anders een met 2 connecties */
             for (int okwc = 1; okwc <= 2; okwc++) {
                 int bcon = -1;
+                pdebug("okcnt: %d > %d : %d, %d, %d okpc[%d] = %d", okcnt, wantok, okpc[0], okpc[1], okpc[2], okwc, okpc[okwc]);
                 if (okpc[okwc] > 0) {
                     /* Random een connectie kiezen die okwc (1 of 2) juiste connecties heeft */
                     int ri = randint(0, okpc[okwc]-1);
@@ -233,17 +237,18 @@ static void game_checklevel(clist_t *conns)
                             puzzle.solution[r] &= ~(1 << p);
                             /* Over alle rijen gaan voor het geval een rij helemaal vol zit */
                             for (int rr = 0; rr < NUM_ROWS; rr++) {
+                                int rrr = (rr + r) % NUM_ROWS;
                                 /* Deze gaat stuk: Niet verbonden pin kiezen als nieuwe oplossing */
-                                int pc = puzzle.current[(rr + r) % NUM_ROWS];
-                                int ccnt = 5 - bitcnt(pc);
+                                int pc = puzzle.current[rrr] ^ 0x1f;
+                                int ccnt = bitcnt(pc);
                                 if (ccnt > 0) {
                                     ccnt = randint(0, ccnt-1);
                                     for (int i = 0; i < 5; i++) {
-                                        if (!(pc & (1 << i))) {
+                                        if (pc & (1 << i)) {
                                             if (ccnt > 0) {
                                                 ccnt--;
                                             } else {
-                                                puzzle.solution[(rr + r) % NUM_ROWS] |= 1 << i;
+                                                puzzle.solution[rrr] |= 1 << i;
                                                 break;
                                             }
                                         }
@@ -296,8 +301,9 @@ static void game_checklevel(clist_t *conns)
                             puzzle.solution[r] |= (1 << p);
                             /* Over alle rijen gaan voor het geval een rij helemaal leeg zit */
                             for (int rr = 0; rr < NUM_ROWS; rr++) {
-                                /* Deze oplossing geldt niet meer: Niet verbonden pin kiezen die wel een oplossing was */
-                                int pc = (puzzle.current[(rr + r) % NUM_ROWS] ^ 0x1f) | puzzle.solution[(rr + r) % NUM_ROWS];
+                                int rrr = (rr + r) % NUM_ROWS;
+                                /* Deze oplossing geldt niet meer: Zoek een pin die niet in current zit en wel in solution */
+                                int pc = (puzzle.current[rrr] ^ 0x1f) & puzzle.solution[rrr];
                                 int ccnt = bitcnt(pc);
                                 if (ccnt > 0) {
                                     ccnt = randint(0, ccnt-1);
@@ -306,7 +312,7 @@ static void game_checklevel(clist_t *conns)
                                             if (ccnt > 0) {
                                                 ccnt--;
                                             } else {
-                                                puzzle.solution[(rr + r) % NUM_ROWS] &= ~(1 << i);
+                                                puzzle.solution[rrr] &= ~(1 << i);
                                                 break;
                                             }
                                         }

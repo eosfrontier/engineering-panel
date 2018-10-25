@@ -10,6 +10,7 @@
 #include <unistd.h>
 #include <signal.h>
 #include <errno.h>
+#include <math.h>
 #include "main.h"
 #include "mcp.h"
 #include "comm.h"
@@ -26,6 +27,7 @@ extern puzzle_t puzzle;
 
 static double lastturbines[3];
 static double lastrepairlevel = -1.0;
+static puzzle_t lastpuzzle;
 
 int init_comm(void)
 {
@@ -44,11 +46,15 @@ int comm_write_connections(clist_t *conns)
     if (ch == 0 && memcmp(lastturbines, turbines, sizeof(lastturbines))) {
         ch = 1;
     }
-    if (repairlevel != lastrepairlevel) {
+    if (ch == 0 && memcmp(&lastpuzzle, &puzzle, sizeof(lastpuzzle))) {
+        ch = 1;
+    }
+    if (fabs(repairlevel - lastrepairlevel) > 0.01) {
         ch = 1;
     }
     lastrepairlevel = repairlevel;
     memcpy(lastturbines, turbines, sizeof(lastturbines));
+    memcpy(&lastpuzzle, &puzzle, sizeof(lastpuzzle));
     if (ch == 0 && conns->newon == 0 && conns->off == 0) {
         return 0;
     }
@@ -84,7 +90,7 @@ static int read_repair_file(clist_t *conns)
     if (r > 0) {
         buf[r] = 0; 
         errno = 0;
-        double rval = strtol(buf, NULL, 10);
+        double rval = strtod(buf, NULL);
         if (!errno) {
             if (rval < 0.0) rval = 0.0;
             if (rval > 1.0) rval = 1.0;
