@@ -46,6 +46,7 @@ static int animdelay = 0;
 static int flashdelay = 0;
 static int repairing = 0;
 static int running = 0;
+static int booting = 10;
 double turbines[3] = {0.0, 0.0, 0.0};
 double repairlevel = 1.0;
 
@@ -99,6 +100,7 @@ void init_game(void)
 {
     init_engine_hum();
     repairlevel = 1.0;
+    booting = 10;
     led_set_idle(0, FRAMERATE/4, 0x010002);
     led_set_idle(2, FRAMERATE/4, 0x010002);
     led_set_idle(3, FRAMERATE/4, 0x010002);
@@ -146,6 +148,11 @@ static inline int bitcnt(int bits)
 
 static void game_checklevel(clist_t *conns)
 {
+    if (booting > 0) {
+        /* Pinnen laten stabiliseren */
+        booting--;
+        return;
+    }
     static double oldrl = 1.0;
     if ((conns->event & REPAIR) && repairlevel < 0.9) {
         flash_spark();
@@ -161,8 +168,10 @@ static void game_checklevel(clist_t *conns)
         okcnts[i] = 0;
         for (int cc = 0; cc < 2; cc++) {
             int p = conns->pins[i].p[cc];
-            puzzle.current[PIN_ROW(p)] |= 1 << p;
-            if (puzzle.solution[PIN_ROW(p)] & (1 << p)) {
+            int r = PIN_ROW(p);
+            p = p % 5;
+            puzzle.current[r] |= 1 << p;
+            if (puzzle.solution[r] & (1 << p)) {
                 okcnt++;
                 okcnts[i]++;
             }
@@ -189,11 +198,14 @@ static void game_checklevel(clist_t *conns)
         if (okcnt > wantok) {
             flash_spark(); /* TODO: Small spark */
         }
+        if (okcnt != wantok) {
+            pdebug("okcnt: %d < %d : %d, %d, %d", okcnt, wantok, okpc[0], okpc[1], okpc[2]);
+        }
         while (okcnt > wantok) {
             /* Een connectie stukmaken */
-            int bcon = -1;
             /* Liefst een met 1 connectie stukmaken, anders een met 2 connecties */
             for (int okwc = 1; okwc <= 2; okwc++) {
+                int bcon = -1;
                 if (okpc[okwc] > 0) {
                     /* Random een connectie kiezen die okwc (1 of 2) juiste connecties heeft */
                     int ri = randint(0, okpc[okwc]-1);
@@ -215,9 +227,11 @@ static void game_checklevel(clist_t *conns)
                     for (int cc = randint(0,1); cc < 3; cc++) {
                         int p = conns->pins[bcon].p[cc % 2];
                         int r = PIN_ROW(p);
+                        p = p % 5;
                         if (puzzle.solution[r] & (1 << p)) {
                             okpc[okwc]--;
                             okpc[okwc-1]++;
+                            okcnts[bcon]--;
                             /* Deze gaat stuk */
                             puzzle.solution[r] &= ~(1 << p);
                             /* Over alle rijen gaan voor het geval een rij helemaal vol zit */
@@ -240,6 +254,7 @@ static void game_checklevel(clist_t *conns)
                                     break;
                                 }
                             }
+                            break;
                         }
                     }
                     break;
@@ -247,11 +262,13 @@ static void game_checklevel(clist_t *conns)
             }
             okcnt--;
         }
+        if (okcnt<wantok){
         while (okcnt < wantok) {
             /* Een connectie heelmaken */
-            int bcon = -1;
             /* Liefst een met 1 connectie heelmaken, anders een met 0 connecties */
             for (int okwc = 1; okwc >= 0; okwc--) {
+                int bcon = -1;
+                pdebug("okcnt: %d < %d : %d, %d, %d okpc[%d] = %d", okcnt, wantok, okpc[0], okpc[1], okpc[2], okwc, okpc[okwc]);
                 if (okpc[okwc] > 0) {
                     /* Random een connectie kiezen die okwc (1 of 0) juiste connecties heeft */
                     int ri = randint(0, okpc[okwc]-1);
@@ -268,16 +285,19 @@ static void game_checklevel(clist_t *conns)
                     }
                 }
                 if (bcon >= 0) {
-                    pdebug("Fixing bad connection %d: %d -> %d", bcon, conns->pins[bcon].p[0], conns->pins[bcon].p[1]);
+                    pdebug("(%d < %d) Fixing bad connection %d: %d -> %d", okcnt, wantok, bcon, conns->pins[bcon].p[0], conns->pins[bcon].p[1]);
                     /* Random links of rechts beginnen, mod2 voor wrap */
                     for (int cc = randint(0,1); cc < 3; cc++) {
                         int p = conns->pins[bcon].p[cc % 2];
                         int r = PIN_ROW(p);
+                        p = p % 5;
                         if (!(puzzle.solution[r] & (1 << p))) {
+                            pdebug("  Fixing bad connection %d(%d-%d): %d -> %d", bcon, r, p, conns->pins[bcon].p[0], conns->pins[bcon].p[1]);
                             okpc[okwc]--;
                             okpc[okwc+1]++;
+                            okcnts[bcon]++;
                             /* Deze wordt goed */
-                            puzzle.solution[r] &= ~(1 << p);
+                            puzzle.solution[r] |= (1 << p);
                             /* Over alle rijen gaan voor het geval een rij helemaal leeg zit */
                             for (int rr = 0; rr < NUM_ROWS; rr++) {
                                 /* Deze oplossing geldt niet meer: Niet verbonden pin kiezen die wel een oplossing was */
@@ -298,6 +318,7 @@ static void game_checklevel(clist_t *conns)
                                     break;
                                 }
                             }
+                            break;
                         }
                     }
                     break;
@@ -315,20 +336,16 @@ static void game_show_colors(clist_t *conns)
     int *correct = &colors[20];
     /* Kijken voor juiste posities */
     int okcnt = 0;
-    for (int i = 0; i < conns->on; i++) {
-        unsigned char *s = conns->pins[i].p;
-        for (int cc = 0; cc < 2; cc++) {
-            int r = PIN_ROW(s[cc]);
-            /* Kijken of de positie klopt */
-            if (puzzle.solution[r] == s[cc]) {
-                okcnt++;
-                colors[r] |= GOOD;
-                correct[r] |= GOOD;
-            } else {
-                /* Kleur zetten */
-                colors[r] |= c_colors[s[cc]];
-                correct[r] |= c_colors[puzzle.solution[r]];
-            }
+    for (int r = 0; r < NUM_ROWS; r++) {
+        /* Kijken of de positie klopt */
+        if (puzzle.solution[r] == puzzle.current[r]) {
+            okcnt++;
+            colors[r] |= GOOD;
+            correct[r] |= GOOD;
+        } else {
+            /* Kleur zetten */
+            colors[r] |= c_colors[puzzle.current[r]];
+            correct[r] |= c_colors[puzzle.solution[r]];
         }
     }
     ledshow_colors(colors);

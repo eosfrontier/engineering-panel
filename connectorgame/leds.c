@@ -341,7 +341,7 @@ int led_animate(ledanim_t *an) {
 /* ring, fadein, num, [color]... */
 int led_set_plasma(int ring, int fadein, int num, ...)
 {
-    pdebug("led_set_plasma(%d, %d)", ring, fadein);
+    pdebug("led_set_plasma(%d, %d, %d)", ring, fadein, num);
     /* Find previous plasma or other animations */
     ledanim_t *newan = NULL, **an;
     for (an = &led_animations; *an;) {
