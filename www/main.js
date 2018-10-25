@@ -6,6 +6,13 @@ function load()
     setInterval(reload, 2000)
 }
 
+/* Rij en pin, alweer tellend van rechtsonder */
+function map_solution(r, p)
+{
+    if (r < 10) { p += 5 } else { r -= 10 }
+    return (10*(9-r) + p)
+}
+
 /* Connector volgorde is rijtjes van 5, tellend vanaf rechtsonder, elk rijtje vlnr
  * vertalen naar rijtjes van 10, vanaf linksboven, vlnr
  */
@@ -13,8 +20,7 @@ function map_connector(c)
 {
     var col = c % 5
     var row = (c-col)/5
-    if (row < 10) { col += 5 } else { row -= 10 }
-    return (10*(9-row) + col)
+    return map_solution(row, col)
 }
 
 function create_display(colors)
@@ -91,11 +97,23 @@ function display_connections(json)
     }
     $('#repairlevel .full').width((100*(json.repairlevel))+'%')
     $('#repairlevel .empty').width((100*(1.0-json.repairlevel))+'%')
-    var connectors = $('#connectors td.connector').removeClass('connected').get()
+    var connectors = $('#connectors td.connector').removeClass('connected current solution').get()
     for (var c = 0; c < json.connections.length; c++) {
         var conn = json.connections[c]
         $(connectors[map_connector(conn[0])]).addClass('connected')
         $(connectors[map_connector(conn[1])]).addClass('connected')
+    }
+    for (var r = 0; r < json.rows.length; r++) {
+        var cur = json.rows[r][0];
+        var sol = json.rows[r][1];
+        for (var p = 0; p < 5; p++) {
+            if (cur & (1 << p)) {
+                $(connectors[map_solution(r, p)]).addClass('current')
+            }
+            if (sol & (1 << p)) {
+                $(connectors[map_solution(r, p)]).addClass('solution')
+            }
+        }
     }
 }
 

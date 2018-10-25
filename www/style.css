@@ -32,20 +32,14 @@ body {
 #connectors td.connector.black {
 	border-color: #444444;
 }
-#connectors td.connector.red.connected {
+#connectors td.connector.current {
 	background-color: #cc0000;
 }
-#connectors td.connector.green.connected {
+#connectors td.connector.solution {
 	background-color: #00cc00;
 }
-#connectors td.connector.blue.connected {
-	background-color: #4444ee;
-}
-#connectors td.connector.yellow.connected {
-	background-color: #cccc00;
-}
-#connectors td.connector.black.connected {
-	background-color: #777777;
+#connectors td.connector.current.solution {
+	background-color: #cccccc;
 }
 
 #switches td.switch {
