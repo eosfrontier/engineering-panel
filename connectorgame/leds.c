@@ -214,9 +214,9 @@ static int led_animate_plasma(ledanim_t *an)
         double r = 0, g = 0, b = 0;
         for (int dp = 1; dp < an->data[0]; dp += 3) {
             unsigned int dcol = an->data[dp];
-            double dr = (dcol >> 16) & 0xff;
-            double dg = (dcol >> 8) & 0xff;
-            double db = (dcol) & 0xff;
+            double dr = (double)((dcol >> 16) & 0xff) / 4.0;
+            double dg = (double)((dcol >>  8) & 0xff) / 4.0;
+            double db = (double)((dcol      ) & 0xff) / 4.0;
             double ddis = fmod((an->data[dp+1] + (((double)an->pos / an->speed) * (an->data[dp+2])) + (an->size * an->size) - ip), (double)an->size);
             if (ddis >= (an->size/2)) ddis = an->size - ddis;
             r += fmax(floor(dr - (fmax(ddis-1.0,0.001)*(3*dr/an->size))), 0);

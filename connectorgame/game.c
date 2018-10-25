@@ -1,5 +1,6 @@
 #include <stdlib.h>
 #include <string.h>
+#include <stdarg.h>
 #include <stdio.h>
 #include <errno.h>
 #include <math.h>
@@ -34,10 +35,10 @@ static int spinup_ring[3] = { 0, 2, 3 };
 static int spinup_color[3] = { 0x0000ff, 0xff0000, 0x00ff00 };
 
 static int plasma_color[4][5] = {
-    { 3, 0x003300, 0x002211, 0x000033, 0 },
-    { 3, 0x002222, 0x002200, 0x000022, 0 },
-    { 3, 0x002222, 0x000022, 0x002200, 0 },
-    { 4, 0x000033, 0x003300, 0x001133, 0x003311 }
+    { 3, 0x00cc00, 0x008844, 0x0000cc, 0 },
+    { 3, 0x008888, 0x008800, 0x000088, 0 },
+    { 3, 0x008888, 0x000088, 0x008800, 0 },
+    { 4, 0x0000cc, 0x00cc00, 0x0044cc, 0x00cc44 }
 };
 
 static char c_colors[NUM_PINS];
@@ -396,14 +397,21 @@ static void game_show_mastermind(clist_t *conns)
     ledshow_mastermind(1, colcnts[1], poscnts[1]);
 }
 
-static int col_fade(double val, int col1, int col2, int col3)
+static int col_fade(double val, int num, ...)
 {
-    val *= 2.0;
-    if (val > 1.0) {
-        col1 = col2;
-        col2 = col3;
+    unsigned int col1, col2;
+    if (val < 0.0) val = 0.0;
+    if (val > 1.0) val = 1.0;
+    val *= (num-1);
+    va_list argp;
+    va_start(argp, num);
+    while (val > 1.0) {
+        unsigned int dummy = va_arg(argp, unsigned int);
         val -= 1.0;
     }
+    col1 = va_arg(argp, unsigned int);
+    col2 = va_arg(argp, unsigned int);
+    va_end(argp);
     int col = 0;
     for (int m = 0; m < 24; m += 8) {
         double cp1 = (double)((col1 >> m) & 0xff);
@@ -417,10 +425,10 @@ static int col_fade(double val, int col1, int col2, int col3)
 static void plasma_turbine(int ring, double val)
 {
     led_set_plasma(ring, 0, plasma_color[ring][0],
-            col_fade(val, 0x000000, 0x221100, plasma_color[ring][1]),
-            col_fade(val, 0x000000, 0x221100, plasma_color[ring][2]),
-            col_fade(val, 0x000000, 0x221100, plasma_color[ring][3]),
-            col_fade(val, 0x000000, 0x221100, plasma_color[ring][4]));
+            col_fade(val, 4, 0x000000, 0x110000, 0x221100, plasma_color[ring][1]),
+            col_fade(val, 4, 0x000000, 0x110000, 0x221100, plasma_color[ring][2]),
+            col_fade(val, 4, 0x000000, 0x110000, 0x221100, plasma_color[ring][3]),
+            col_fade(val, 4, 0x000000, 0x110000, 0x221100, plasma_color[ring][4]));
 }
 
 static void game_setturbine(int sw)
@@ -428,7 +436,7 @@ static void game_setturbine(int sw)
     audio_synth_freq_vol(0, 8+sw*2, SPINUP_LOW1 + (SPINUP_FREQ1-SPINUP_LOW1) * turbines[sw], turbines[sw]*(pow(1.0+SPINUP_VOL1, (1.0 - turbines[sw]))-1.0), 1);
     audio_synth_freq_vol(0, 9+sw*2, SPINUP_LOW2 + (SPINUP_FREQ2-SPINUP_LOW2) * turbines[sw], turbines[sw]*(pow(1.0+SPINUP_VOL2, (1.0 - turbines[sw]))-1.0), 1);
     plasma_turbine(spinup_ring[sw], turbines[sw]);
-    if (sw == 1) plasma_turbine(1, turbines[sw]); /* Middelste is dubbel */
+    if (spinup_ring[sw] == 2) plasma_turbine(1, turbines[sw]); /* Middelste is dubbel (2 -> 1)*/
     if (turbines[sw] >= 1.0 || turbines[sw] <= 0.0) {
         led_set_spin(spinup_ring[sw], 0, 0);
     } else {
