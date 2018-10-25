@@ -440,7 +440,7 @@ static void game_setturbine(int sw)
     if (turbines[sw] >= 1.0 || turbines[sw] <= 0.0) {
         led_set_spin(spinup_ring[sw], 0, 0);
     } else {
-        led_set_spin(spinup_ring[sw], (int)(turbines[sw] * (double)(SPINUP_RINGSPEED2-SPINUP_RINGSPEED1))+SPINUP_RINGSPEED1, spinup_color[sw]);
+        led_set_spin(spinup_ring[sw], (int)(turbines[sw] * (double)(SPINUP_RINGSPEED2-SPINUP_RINGSPEED1))+SPINUP_RINGSPEED1, col_fade(turbines[sw], 4, 0x000000, spinup_color[sw], spinup_color[sw], 0x33ffff));
     }
 }
 
