@@ -16,12 +16,12 @@
 
 enum led_animation_types {
     ANIMATION_PLASMA,
-    ANIMATION_FLASH,
     ANIMATION_SWIPE,
     ANIMATION_IDLE,
     ANIMATION_SPIN,
     ANIMATION_COLORS,
     ANIMATION_BLANK,
+    ANIMATION_FLASH = 0x80
 };
 
 #define TARGET_FREQ             WS2811_TARGET_FREQ
@@ -178,13 +178,15 @@ int led_set_colors(int *colors)
         if ((*an)->type == ANIMATION_COLORS) {
             newan = *an;
             if (newan->next) {
-                /* Altijd naar het einde van de lijst zetten */
-                *an = newan->next;
-                newan->next = NULL;
-                while (*an) {
-                    an = &((*an)->next);
+                if (!(newan->next->type & ANIMATION_FLASH)) {
+                    /* Altijd naar het einde van de lijst zetten, behalve flasg */
+                    *an = newan->next;
+                    newan->next = NULL;
+                    while (*an && !((*an)->type & ANIMATION_FLASH)) {
+                        an = &((*an)->next);
+                    }
+                    *an = newan;
                 }
-                *an = newan;
             }
             break;
         } else {
@@ -353,6 +355,9 @@ static int led_animate_swipe(ledanim_t *an)
     } else if (an->pos <= an->speed) {
         onoff = 1;
         spos = an->pos - an->speed/2;
+    } else if (an->pos <= (an->speed + an->speed/2)) {
+        onoff = 2;
+        spos = an->pos - an->speed;
     } else {
         return 1;
     }
@@ -361,9 +366,13 @@ static int led_animate_swipe(ledanim_t *an)
         int p2 = (an->size * (dp-1)) / (an->data[0]-2) + an->data[1];
         int p = p1 + ((p2 - p1) * spos) / (an->speed/2);
         int f = (((p2 - p1) * spos) % (an->speed/2)) * 255 / (an->speed/2);
-        for (int ip = p1; ip < p; ip++) ledstring.channel[0].leds[an->offset+(ip % an->size)] = onoff ? 0 : an->data[dp];
-        if (p1 <= p && p < p2) ledstring.channel[0].leds[an->offset+(p % an->size)] = scale(an->data[dp], onoff ? 255-f : f);
-        for (int ip = p+1; ip < p2; ip++) ledstring.channel[0].leds[an->offset+(ip % an->size)] = onoff ? an->data[dp] : 0;
+        if (onoff == 2) {
+            if (p1 <= p && p < p2) ledstring.channel[0].leds[an->offset+(p % an->size)] = scale(ledstring.channel[0].leds[an->offset+(p % an->size)], f);
+        } else {
+            for (int ip = p1; ip < p; ip++) ledstring.channel[0].leds[an->offset+(ip % an->size)] = (onoff % 2) ? 0 : an->data[dp];
+            if (p1 <= p && p < p2) ledstring.channel[0].leds[an->offset+(p % an->size)] = scale(an->data[dp], (onoff % 2) ? 255-f : f);
+        }
+        for (int ip = p+1; ip < p2; ip++) ledstring.channel[0].leds[an->offset+(ip % an->size)] = (onoff % 2) ? an->data[dp] : 0;
     }
     return 0;
 }
@@ -479,7 +488,7 @@ int led_remove_animation(int ring)
 {
     pdebug("led_remove_animation(%d)", ring);
     for (ledanim_t **an = &led_animations; *an;) {
-        if (((*an)->offset == ring*RING_SIZE) && ((*an)->type != ANIMATION_FLASH)) {
+        if (((*an)->offset == ring*RING_SIZE) && !((*an)->type | ANIMATION_FLASH)) {
             ledanim_t *f = *an;
             *an = (*an)->next;
             free(f);

@@ -122,7 +122,7 @@ void init_game(void)
     }
     puzzle.type = 0;
     for (int i = 0; i < NUM_ROWS; i++) {
-        puzzle.solution[i] = 0;
+        puzzle.solution[i] = 1 << randint(0,4);
         puzzle.current[i] = 0;
     }
 }
@@ -150,7 +150,6 @@ static void game_checklevel(clist_t *conns)
         booting--;
         return;
     }
-    static double oldrl = 1.0;
     if ((conns->event & REPAIR) && repairlevel < 0.9) {
         // flash_spark();
     } else {
@@ -247,6 +246,7 @@ static void game_checklevel(clist_t *conns)
             pdebug("okcnt: %d <> %d : %d, %d, %d", okcnt, wantok, okpc[0], okpc[1], okpc[2]);
         }
         while (okcnt > wantok) {
+            int didbreak = 0;
             /* Een connectie stukmaken */
             /* Liefst een met 1 connectie stukmaken, anders een met 2 connecties */
             for (int okwc = 1; okwc <= 2; okwc++) {
@@ -278,8 +278,6 @@ static void game_checklevel(clist_t *conns)
                             okpc[okwc]--;
                             okpc[okwc-1]++;
                             okcnts[bcon]--;
-                            /* Deze gaat stuk */
-                            puzzle.solution[r] &= ~(1 << p);
                             /* Over alle rijen gaan voor het geval een rij helemaal vol zit */
                             for (int rr = 0; rr < NUM_ROWS; rr++) {
                                 int rrr = (rr + r) % NUM_ROWS;
@@ -293,7 +291,11 @@ static void game_checklevel(clist_t *conns)
                                             if (ccnt > 0) {
                                                 ccnt--;
                                             } else {
+                                                /* Deze gaat stuk */
+                                                puzzle.solution[r] &= ~(1 << p);
+                                                /* EN de nieuwe goede wordt dze */
                                                 puzzle.solution[rrr] |= 1 << i;
+                                                didbreak = 1;
                                                 break;
                                             }
                                         }
@@ -307,9 +309,15 @@ static void game_checklevel(clist_t *conns)
                     break;
                 }
             }
+            if (!didbreak) {
+                wantok = okcnt;
+                repairlevel = ((double)okcnt / 20.0);
+                break;
+            }
             okcnt--;
         }
         while (okcnt < wantok) {
+            int didfix = 0;
             /* Een connectie heelmaken */
             /* Liefst een met 1 connectie heelmaken, anders een met 0 connecties */
             for (int okwc = 1; okwc >= 0; okwc--) {
@@ -344,6 +352,7 @@ static void game_checklevel(clist_t *conns)
                             okcnts[bcon]++;
                             /* Deze wordt goed */
                             puzzle.solution[r] |= (1 << p);
+                            didfix = 1;
                             /* Over alle rijen gaan voor het geval een rij helemaal leeg zit */
                             for (int rr = 0; rr < NUM_ROWS; rr++) {
                                 int rrr = (rr + r) % NUM_ROWS;
@@ -357,6 +366,7 @@ static void game_checklevel(clist_t *conns)
                                             if (ccnt > 0) {
                                                 ccnt--;
                                             } else {
+                                                /* En deze niet-goede oplossing is niet meer */
                                                 puzzle.solution[rrr] &= ~(1 << i);
                                                 break;
                                             }
@@ -371,10 +381,14 @@ static void game_checklevel(clist_t *conns)
                     break;
                 }
             }
+            if (!didfix) {
+                wantok = okcnt;
+                repairlevel = ((double)okcnt / 20.0);
+                break;
+            }
             okcnt++;
         }
     }
-    oldrl = repairlevel;
 }
 
 /* Hint-kleuren laten zien */
