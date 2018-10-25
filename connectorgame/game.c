@@ -181,21 +181,61 @@ static void game_checklevel(clist_t *conns)
     int wantok = ((int)((20.0*repairlevel)+0.5));
     if (!(conns->event & REPAIR) && (conns->newon + conns->off) > 0) {
         /* Iemand heeft iets losgetrokken of ingestoken, solution checken en repairlevel aanpassen */
-        repairing = REPAIR_TIMEOUT;
+        int newrl = REPAIR_TIMEOUT;
         repairlevel = ((double)okcnt / 20.0);
         if (okcnt != wantok) {
             engine_hum(5.0 + 25.0*running + 20.0*repairlevel, 0.25, 0.2 * (1.0-repairlevel), 2.0, 0.2 * (1.0-repairlevel), 0.1, FRAMERATE, FRAMERATE/2, FRAMERATE*2, FRAMERATE);
+            if (okcnt == 20) {
+                newrl = (FRAMERATE/SCANRATE)*1;
+            }
         }
-        if ((okcnt != wantok) && (okcnt == 20)) {
-            led_set_swipe(0, FRAMERATE*2, 0, 3, 0x0000ff, 0x0000ff, 0x0000ff);
-            led_set_swipe(1, FRAMERATE*2, 0, 3, 0x888800, 0x888800, 0x888800);
-            led_set_swipe(2, FRAMERATE*2, 12, 3, 0xff0000, 0xff0000, 0xff0000);
-            led_set_swipe(3, FRAMERATE*2, 0, 3, 0x00ff00, 0x00ff00, 0x00ff00);
+        /* Checken of het een goed-goed verbinding was die is losgegaan, zo ja de oplossing veranderen */
+        for (int i = conns->on; i < conns->on + conns->off; i++) {
+            int nokcnt = 0;
+            for (int cc = 0; cc < 2; cc++) {
+                int p = conns->pins[i].p[cc];
+                int r = PIN_ROW(p);
+                p = p % 5;
+                if (puzzle.solution[r] & (1 << p)) {
+                    nokcnt++;
+                }
+            }
+            if (nokcnt == 2) {
+                /* Goed-god verbinding los, extra stukmaken */
+                flash_spark();
+                for (int cc = 0; cc < 2; cc++) {
+                    int p = conns->pins[i].p[cc];
+                    int r = PIN_ROW(p);
+                    p = p % 5;
+                    int pc = puzzle.solution[r];
+                    int ccnt = bitcnt(pc ^ 0x1f);
+                    if (ccnt > 0) {
+                        ccnt = randint(0, ccnt-1);
+                        for (int np = 0; np < 5; np++) {
+                            if (!(pc & (1 << np))) {
+                                if (ccnt-- <= 0) {
+                                    pdebug("Breaking just broken connection %d: %d -> %d", i, conns->pins[i].p[0], conns->pins[i].p[1]);
+                                    puzzle.solution[r] = (pc & ~(1 << p)) | (1 << np);
+                                    newrl = repairing;
+                                    break;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
         }
+        repairing = newrl;
     } else {
         if (repairing > 0) {
             /* Na bepaalde tijd hint-kleuren weer weghalen */
             if (--repairing <= 0) {
+                if (okcnt == 20) {
+                    led_set_swipe(0, FRAMERATE*2, 0, 3, 0x0000ff, 0x0000ff, 0x0000ff);
+                    led_set_swipe(1, FRAMERATE*2, 0, 3, 0x888800, 0x888800, 0x888800);
+                    led_set_swipe(2, FRAMERATE*2, 12, 3, 0xff0000, 0xff0000, 0xff0000);
+                    led_set_swipe(3, FRAMERATE*2, 0, 3, 0x00ff00, 0x00ff00, 0x00ff00);
+                }
                 led_set_colors(NULL);
             }
         }
@@ -347,16 +387,18 @@ static void game_show_colors(clist_t *conns)
     for (int r = 0; r < NUM_ROWS; r++) {
         colors[r] = 0;
         correct[r] = 0;
-        int pc = puzzle.solution[r] & puzzle.current[r];
         for (int p = 0; p < 5; p++) {
             /* Kijken of de positie klopt */
-            if (pc & (1 << p)) {
-                okcnt++;
-                colors[r]  |= GOOD;
-                correct[r] |= GOOD;
-            } else {
-                /* Kleur zetten */
-                colors[r]  |= c_colors[5*r + p];
+            if (puzzle.current[r] & (1 << p)) {
+                if (puzzle.solution[r] & (1 << p)) {
+                    okcnt++;
+                    colors[r]  |= GOOD;
+                    correct[r] |= GOOD;
+                } else {
+                    /* Kleur zetten */
+                    colors[r]  |= c_colors[5*r + p];
+                }
+            } else if (puzzle.solution[r] & (1 << p)) {
                 correct[r] |= c_colors[5*r + p];
             }
         }

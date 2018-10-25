@@ -253,8 +253,8 @@ static int led_animate_colors(ledanim_t *an)
             ledstring.channel[0].leds[pos] = col_fade((double)an->fadepos / COLOR_FADE, 2, ledstring.channel[0].leds[pos], newcol);
         }
     }
-    for (int b = 0; b < sizeof(gblanks)/sizeof(gblanks[0]); b++) {
-        ledstring.channel[0].leds[b] = col_fade((double)an->fadepos / COLOR_FADE, 2, ledstring.channel[0].leds[b], 0);
+    for (unsigned int b = 0; b < sizeof(gblanks)/sizeof(gblanks[0]); b++) {
+        ledstring.channel[0].leds[gblanks[b]] = col_fade((double)an->fadepos / COLOR_FADE, 2, ledstring.channel[0].leds[gblanks[b]], 0);
     }
     return 0;
 }
