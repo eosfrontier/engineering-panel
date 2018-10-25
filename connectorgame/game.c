@@ -50,11 +50,7 @@ static int booting = 10;
 double turbines[3] = {0.0, 0.0, 0.0};
 double repairlevel = 1.0;
 
-static struct puzzle {
-    int type;
-    int solution[NUM_ROWS];
-    int current[NUM_ROWS];
-} puzzle;
+puzzle_t puzzle;
 
 static int randint(int from, int to)
 {
@@ -262,7 +258,6 @@ static void game_checklevel(clist_t *conns)
             }
             okcnt--;
         }
-        if (okcnt<wantok){
         while (okcnt < wantok) {
             /* Een connectie heelmaken */
             /* Liefst een met 1 connectie heelmaken, anders een met 0 connecties */

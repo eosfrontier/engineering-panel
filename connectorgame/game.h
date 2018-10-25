@@ -6,6 +6,12 @@ enum event {
     REPAIR = 4
 };
 
+typedef struct {
+    int solution[NUM_ROWS];
+    int current[NUM_ROWS];
+    int type;
+} puzzle_t;
+
 #define BLACK      0x01
 #define BLUE       0x02
 #define GREEN      0x04

@@ -22,6 +22,7 @@
 
 extern double turbines[3];
 extern double repairlevel;
+extern puzzle_t puzzle;
 
 static double lastturbines[3];
 static double lastrepairlevel = -1.0;
@@ -60,6 +61,10 @@ int comm_write_connections(clist_t *conns)
     fprintf(f, ",\"num_connections\":%d,\"connections\":[", conns->on);
     for (int cn = 0; cn < conns->on; cn++) {
         fprintf(f, "%s[%d,%d]", cn > 0 ? "," : "", conns->pins[cn].p[0], conns->pins[cn].p[1]);
+    }
+    fprintf(f, "],\"rows\":[");
+    for (int s = 0; s < NUM_ROWS; s++) {
+        fprintf(f, "%s[%d,%d]", s > 0 ? "," : "", puzzle.current[s], puzzle.solution[s]);
     }
     fprintf(f, "]}");
     fclose(f);
