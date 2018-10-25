@@ -193,7 +193,12 @@ static void game_checklevel(clist_t *conns)
             led_set_swipe(3, FRAMERATE*2, 0, 3, 0x00ff00, 0x00ff00, 0x00ff00);
         }
     } else {
-        if (repairing > 0) repairing--;
+        if (repairing > 0) {
+            /* Na bepaalde tijd hint-kleuren weer weghalen */
+            if (--repairing <= 0) {
+                led_set_colors(NULL);
+            }
+        }
         /* Kijken of repairlevel gedaald of gestegen is, evt solution aanpassen */
         if (okcnt > wantok) {
             flash_spark(); /* TODO: Small spark */
@@ -332,25 +337,31 @@ static void game_checklevel(clist_t *conns)
     oldrl = repairlevel;
 }
 
+/* Hint-kleuren laten zien */
 static void game_show_colors(clist_t *conns)
 {
-    int colors[40] = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
+    int colors[40];
     int *correct = &colors[20];
     /* Kijken voor juiste posities */
     int okcnt = 0;
     for (int r = 0; r < NUM_ROWS; r++) {
-        /* Kijken of de positie klopt */
-        if (puzzle.solution[r] == puzzle.current[r]) {
-            okcnt++;
-            colors[r] |= GOOD;
-            correct[r] |= GOOD;
-        } else {
-            /* Kleur zetten */
-            colors[r] |= c_colors[puzzle.current[r]];
-            correct[r] |= c_colors[puzzle.solution[r]];
+        colors[r] = 0;
+        correct[r] = 0;
+        int pc = puzzle.solution[r] & puzzle.current[r];
+        for (int p = 0; p < 5; p++) {
+            /* Kijken of de positie klopt */
+            if (pc & (1 << p)) {
+                okcnt++;
+                colors[r]  |= GOOD;
+                correct[r] |= GOOD;
+            } else {
+                /* Kleur zetten */
+                colors[r]  |= c_colors[5*r + p];
+                correct[r] |= c_colors[5*r + p];
+            }
         }
     }
-    ledshow_colors(colors);
+    led_set_colors(colors);
 }
 
 static void game_show_mastermind(clist_t *conns)

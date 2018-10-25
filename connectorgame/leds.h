@@ -25,10 +25,11 @@
 #define GROUP_RINGS             {48,48,24,24}
 #define RING_SIZE               24
 #define GROUP_DIRS              {-1,1,-1,1}
+#define GROUP_BLANKS            {24,35,36,37,48,59,60,61}
 
 int init_leds(void);
 int fini_leds(void);
-int ledshow_colors(int *colors);
+int led_set_colors(int *colors)
 int ledshow_mastermind(int side, int colors, int correct);
 int led_set_plasma(int ring, int fadein, int num, ...);
 int led_remove_animation(int ring);

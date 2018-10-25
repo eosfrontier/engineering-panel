@@ -20,13 +20,16 @@ enum led_animation_types {
     ANIMATION_SWIPE,
     ANIMATION_IDLE,
     ANIMATION_SPIN,
-    ANIMATION_BLANK
+    ANIMATION_COLORS,
+    ANIMATION_BLANK,
 };
 
 #define TARGET_FREQ             WS2811_TARGET_FREQ
 #define GPIO_PIN                12
 #define DMA                     10
 #define STRIP_TYPE              WS2811_STRIP_GRB		// WS2812/SK6812RGB integrated chip+leds
+
+#define COLOR_FADE (FRAMERATE/SCANRATE)
 
 static ws2811_t ledstring =
 {
@@ -65,6 +68,31 @@ typedef struct ledanim {
 } ledanim_t;
 
 static ledanim_t *led_animations = NULL;
+
+static int col_fade(double val, int num, ...)
+{
+    unsigned int col1, col2;
+    if (val < 0.0) val = 0.0;
+    if (val > 1.0) val = 1.0;
+    val *= (num-1);
+    va_list argp;
+    va_start(argp, num);
+    while (val > 1.0) {
+        unsigned int dummy = va_arg(argp, unsigned int);
+        val -= 1.0;
+    }
+    col1 = va_arg(argp, unsigned int);
+    col2 = va_arg(argp, unsigned int);
+    va_end(argp);
+    int col = 0;
+    for (int m = 0; m < 24; m += 8) {
+        double cp1 = (double)((col1 >> m) & 0xff);
+        double cp2 = (double)((col2 >> m) & 0xff);
+        int cp = (int)((cp2 * val) + (cp1 * (1.0 - val)));
+        col |= cp << m;
+    }
+    return col;
+}
 
 static int scale(int color, int value)
 {
@@ -109,8 +137,9 @@ int fini_leds(void)
 }
 
 static int gstarts[] = GROUP_STARTS;
-static int gdirs[] = GROUP_DIRS;
-static int grings[] = GROUP_RINGS;
+static int gdirs[]   = GROUP_DIRS;
+static int gblanks[] = GROUP_BLANKS;
+static int grings[]  = GROUP_RINGS;
 
 static unsigned int colstep(unsigned int from, unsigned int to)
 {
@@ -141,11 +170,65 @@ static unsigned int colorlist[] = {
     BAD_COLOR
 };
 
-int ledshow_colors(int *colors)
+int led_set_colors(int *colors)
+{
+    ledanim_t *newan = NULL, **an;
+    /* Bestaande anim zoeken */
+    for (an = &led_animations; *an;) {
+        if ((*an)->type == ANIMATION_COLORS) {
+            newan = *an;
+            if (newan->next) {
+                /* Altijd naar het einde van de lijst zetten */
+                *an = newan->next;
+                newan->next = NULL;
+                while (*an) {
+                    an = &((*an)->next);
+                }
+                *an = newan;
+            }
+            break;
+        } else {
+            an = &((*an)->next);
+        }
+    }
+    if (!newan) {
+        newan = malloc(sizeof(ledanim_t) + (2*NUM_COLORS*NUM_GROUPS+1)*sizeof(int));
+        if (!newan) {
+            fprintf(stderr, "Allocation for animation failed!\n");
+            return -1;
+        }
+        newan->next = NULL;
+        newan->type = ANIMATION_COLORS;
+        newan->offset = RING_SIZE;
+        newan->size = RING_SIZE*2;
+        newan->fadein = COLOR_FADE;
+        newan->fadepos = 0;
+        newan->pos = 0;
+        newan->data[0] = NUM_COLORS*NUM_GROUPS;
+        for (int i = 0; i < NUM_COLORS*NUM_GROUPS; i++) {
+            newan->data[2*i+2] = 0;
+        }
+        *an = newan;
+    }
+    if (colors) {
+        for (int i = 0; i < NUM_COLORS*NUM_GROUPS; i++) {
+            newan->data[2*i+1] = colors[i];
+        }
+        newan->fadein = COLOR_FADE;
+    } else {
+        newan->fadein = 0;
+    }
+    return 0;
+}
+
+static int led_animate_colors(ledanim_t *an)
 {
     int blinklist[7];
-    if (++blinkstep >= 60) {
-        blinkstep = 0;
+    if (an->fadepos < an->fadein) an->fadepos += 1;
+    if (an->fadepos > an->fadein) an->fadepos -= 1;
+    if (an->fadepos <= 0) return 0;
+    if (++(an->pos) >= 60) {
+        an->pos = 0;
     }
     for (int g = 0; g < NUM_GROUPS; g++) {
         int group_start = gstarts[g];
@@ -153,9 +236,9 @@ int ledshow_colors(int *colors)
         int group_ring = grings[g];
         for (int c = 0; c < NUM_COLORS; c++) {
             int pos = ((RING_SIZE + group_start + group_dir * c) % RING_SIZE) + group_ring;
-            unsigned int curcol = ledstring.channel[0].leds[pos];
+            unsigned int curcol = an->data[(g*10+c)*2+2];
             unsigned int newcol = 0x00;
-            int thecol = colors[g*10+c];
+            int thecol = an->data[(g*10+c)*2+1];
             int colcnt = 0;
             for (int l = 0; l < 7; l++) {
                 if (thecol & (1 << l)) {
@@ -163,10 +246,15 @@ int ledshow_colors(int *colors)
                 }
             }
             if (colcnt > 0) {
-                newcol = blinklist[(blinkstep * colcnt)/60];
+                newcol = blinklist[(an->pos * colcnt)/60];
             }
-            ledstring.channel[0].leds[pos] = colstep(curcol, newcol);
+            newcol = colstep(curcol, newcol);
+            an->data[(g*10+c)*2+2] = newcol;
+            ledstring.channel[0].leds[pos] = col_fade((double)an->fadepos / COLOR_FADE, 2, ledstring.channel[0].leds[pos], newcol);
         }
+    }
+    for (int b = 0; b < sizeof(gblanks)/sizeof(gblanks[0]); b++) {
+        ledstring.channel[0].leds[b] = col_fade((double)an->fadepos / COLOR_FADE, 2, ledstring.channel[0].leds[b], 0);
     }
     return 0;
 }
@@ -329,6 +417,8 @@ int led_animate(ledanim_t *an) {
             return led_animate_idle(an);
         case ANIMATION_SPIN:
             return led_animate_spin(an);
+        case ANIMATION_COLORS:
+            return led_animate_colors(an);
         case ANIMATION_BLANK:
             return led_animate_blank(an);
         default:
