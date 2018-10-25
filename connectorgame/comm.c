@@ -22,7 +22,6 @@
 
 extern double turbines[3];
 extern double repairlevel;
-extern int ok_count;
 
 static double lastturbines[3];
 static double lastrepairlevel = -1.0;
@@ -58,7 +57,7 @@ int comm_write_connections(clist_t *conns)
     fprintf(f, "],\"turbines\":[");
     for (int sw = 0; sw < 3; sw++) { fprintf(f, "%s%f", sw > 0 ? "," : "", turbines[sw]); }
     fprintf(f, "],\"repairlevel\":%f", repairlevel);
-    fprintf(f, ",\"num_connections\":%d,\"ok_connections\":%d,\"connections\":[", conns->on, ok_count);
+    fprintf(f, ",\"num_connections\":%d,\"connections\":[", conns->on);
     for (int cn = 0; cn < conns->on; cn++) {
         fprintf(f, "%s[%d,%d]", cn > 0 ? "," : "", conns->pins[cn].p1, conns->pins[cn].p2);
     }

@@ -42,10 +42,9 @@ static int plasma_color[4][5] = {
 
 static char c_colors[NUM_PINS];
 
-static int bootcount = 0;
+static int animdelay = 0;
 static int flashdelay = 0;
 static int repairing = 0;
-static int gamestate;
 static int running = 0;
 double turbines[3] = {0.0, 0.0, 0.0};
 double repairlevel = 1.0;
@@ -176,7 +175,13 @@ static int game_checklevel(clist_t *conns)
         repairing = REPAIR_TIMEOUT;
         repairlevel = ((double)okcnt / 20.0);
         if (okcnt != wantok) {
-            engine_hum(25.0 + 25.0*running - (1.0 * (20-okcnt)), 0.25, 0.01 * (20-okcnt), 2.0, 0.01 * (20-okcnt), 0.1, FRAMERATE, FRAMERATE/2, FRAMERATE*2, FRAMERATE);
+            engine_hum(5.0 + 25.0*running + 20.0*repairlevel, 0.25, 0.2 * (1.0-repairlevel), 2.0, 0.2 * (1.0-repairlevel), 0.1, FRAMERATE, FRAMERATE/2, FRAMERATE*2, FRAMERATE);
+        }
+        if ((okcnt != wantok) && (okcnt == 20)) {
+            led_set_swipe(0, FRAMERATE*2, 0, 3, 0x0000ff, 0x0000ff, 0x0000ff);
+            led_set_swipe(1, FRAMERATE*2, 0, 3, 0x888800, 0x888800, 0x888800);
+            led_set_swipe(2, FRAMERATE*2, 12, 3, 0xff0000, 0xff0000, 0xff0000);
+            led_set_swipe(3, FRAMERATE*2, 0, 3, 0x00ff00, 0x00ff00, 0x00ff00);
         }
     } else {
         if (repairing > 0) repairing--;
@@ -304,98 +309,14 @@ static int game_checklevel(clist_t *conns)
     oldrl = repairlevel;
 }
 
-static int game_booting(clist_t *conns)
+static void game_show_colors(clist_t *conns)
 {
-    if (bootcount > 0) {
-        bootcount--;
-        return GAME_BOOTING;
-    } else if (conns->on >= 10) {
-        return GAME_OK;
-    } else {
-        return GAME_BREAK;
-    }
-}
-
-static int game_oking(clist_t *conns)
-{
-    if ((!debugging) && (conns->event & ENGINE_OFF)) {
-        return GAME_RESTART;
-    }
-    if ((conns->buttons[BUTTON_SL].status & BUTTON_CLICKS) >= 3) {
-        return GAME_BREAK;
-    }
-    if (conns->off > 0) {
-        return GAME_BREAK;
-    }
-    if (conns->event & REPAIR && repairlevel < 0.9) {
-        return GAME_BREAK;
-    }
-    return GAME_OKING;
-}
-
-int ok_count = 20;
-static void game_set_mastermind(clist_t *conns, int from, int to)
-{
-    pdebug("game_set_puzzle(%d/%d/%d, %d, %d)", conns->on, conns->newon, conns->off, from, to);
-    for (int i = 0; i < NUM_ROWS; i++) {
-        if (i < from || i >= to) {
-            puzzle.solution[i] = -1;
-        } else {
-            puzzle.solution[i] = randint(i*5, (i+1)*5-1);
-            pdebug("Solution[%d] = %d", i, puzzle.solution[i]);
-        }
-    }
-    /* Midden reserveren voor indicaties */
-    led_remove_animation(1);
-    led_remove_animation(2);
-    ok_count = 20;
-}
-
-static int level = 0;
-
-static int game_breaking(clist_t *conns)
-{
-    level = 1;
-    return GAME_COLOR;
-}
-
-static int game_coloring(clist_t *conns)
-{
-    if ((!debugging) && (conns->event & ENGINE_OFF)) {
-        return GAME_RESTART;
-    }
-    if ((conns->buttons[BUTTON_SL].status & BUTTON_HOLD) && ((conns->buttons[BUTTON_SL].status & BUTTON_CLICKS) >= 5)) {
-        return GAME_BOOT;
-    }
-    if (conns->event & REPAIR && repairlevel > 0.9) {
-        return GAME_FIXED;
-    }
-    if (conns->newon > 0) {
-        // audio_play_file(1, WAV_ON);
-        for (int i = (conns->on - conns->newon); i < conns->on; i++) {
-            pdebug("New connection: %d - %d", conns->pins[i].p[0], conns->pins[i].p[1]);
-        }
-    } else if (conns->off > 0) {
-        // audio_play_file(1, WAV_OFF);
-    } else if (--flashdelay <= 0) {
-        flash_spark();
-        flashdelay = (int)(((double)(FRAMERATE/10 + (random() % (FRAMERATE * 4)))) * (1.0 + (((double)conns->on)/4)));
-    }
     int colors[40] = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
     int *correct = &colors[20];
     /* Kijken voor juiste posities */
     int okcnt = 0;
     for (int i = 0; i < conns->on; i++) {
         char *s = conns->pins[i].p;
-        if (level > 1) {
-            if ((s[0] >= 50) == (s[1] >= 50)) {
-                for (int cc = 0; cc < 2; cc++) {
-                    int r = PIN_ROW(s[cc]);
-                    correct[r] |= BAD;
-                }
-                continue;
-            }
-        }
         for (int cc = 0; cc < 2; cc++) {
             int r = PIN_ROW(s[cc]);
             /* Kijken of de positie klopt */
@@ -411,37 +332,10 @@ static int game_coloring(clist_t *conns)
         }
     }
     ledshow_colors(colors);
-    repairlevel = okcnt / 20.0;
-    if (okcnt < 20) {
-        if (okcnt != ok_count) {
-            ok_count = okcnt;
-            engine_hum(95.0 - (1.0 * (20-okcnt)), 0.25, 0.01 * (20-okcnt), 2.0, 0.01 * (20-okcnt), 0.1, FRAMERATE, FRAMERATE/2, FRAMERATE*2, FRAMERATE);
-        }
-        return GAME_COLORING;
-    } else {
-        return GAME_FIXED;
-    }
 }
 
-static int game_masterminding(clist_t *conns)
+static void game_show_mastermind(clist_t *conns)
 {
-    if ((!debugging) && (conns->event & ENGINE_OFF)) {
-        return GAME_RESTART;
-    }
-    if (conns->event & REPAIR && repairlevel > 0.9) {
-        return GAME_FIXED;
-    }
-    if (conns->newon > 0) {
-        // audio_play_file(1, WAV_ON);
-        for (int i = (conns->on - conns->newon); i < conns->on; i++) {
-            pdebug("New connection: %d - %d", conns->pins[i].p[0], conns->pins[i].p[1]);
-        }
-    } else if (conns->off > 0) {
-        // audio_play_file(1, WAV_OFF);
-    } else if (--flashdelay <= 0) {
-        flash_spark();
-        flashdelay = (int)(((double)(FRAMERATE/10 + (random() % (FRAMERATE * 4)))) * (1.0 + (((double)conns->on)/4)));
-    }
     int colcnts[2] = {0,0};
     int poscnts[2] = {0,0};
     char seenpos[NUM_ROWS];
@@ -488,37 +382,6 @@ static int game_masterminding(clist_t *conns)
     }
     ledshow_mastermind(0, colcnts[0], poscnts[0]);
     ledshow_mastermind(1, colcnts[1], poscnts[1]);
-    if (poscnts[0] < 10 || poscnts[1] < 10) {
-        return GAME_MASTERMINDING;
-    } else {
-        return GAME_FIXED;
-    }
-}
-
-static int game_fixeding(clist_t *conns)
-{
-    if (bootcount > 0) {
-        bootcount--;
-        return GAME_FIXEDING;
-    } else if (conns->on >= 10) {
-        return GAME_OK;
-    } else {
-        return GAME_BREAK;
-    }
-}
-
-static int game_starting(clist_t *conns)
-{
-    if ((conns->buttons[BUTTON_SL].status & BUTTON_HOLD) && ((conns->buttons[BUTTON_SL].status & BUTTON_CLICKS) >= 3)) {
-        return GAME_BOOT;
-    }
-    if (conns->event & ENGINE_ON) {
-        return GAME_BOOT;
-    }
-    if (debugging) {
-        return GAME_BOOT;
-    }
-    return GAME_STARTING;
 }
 
 static int col_fade(double val, int col1, int col2, int col3)
@@ -614,94 +477,13 @@ static void game_doturbines(clist_t *conns)
     }
 }
 
-static int game_dostate(int state, clist_t *conns)
-{
-    switch (state) {
-        default: /* Fallthrough to boot */
-        case GAME_START:
-            pdebug("GAME_START");
-        case GAME_STARTING:
-            return game_starting(conns);
-        case GAME_BOOT:
-            pdebug("GAME_BOOT");
-            // audio_play_file(1, WAV_BOOTING);
-            led_set_swipe(0, FRAMERATE*2, 0, 3, 0x0000ff, 0x0000ff, 0x0000ff);
-            led_set_swipe(1, FRAMERATE*2, 0, 3, 0x888800, 0x888800, 0x888800);
-            led_set_swipe(2, FRAMERATE*2, 12, 3, 0xff0000, 0xff0000, 0xff0000);
-            led_set_swipe(3, FRAMERATE*2, 0, 3, 0x00ff00, 0x00ff00, 0x00ff00);
-            /* Synth hum */
-            engine_hum(100.0, 0.25, 0.0, 2.0, 0.0, 0.05, FRAMERATE*2, FRAMERATE, FRAMERATE*3, FRAMERATE);
-            bootcount = FRAMERATE*2/SCANRATE;
-        case GAME_BOOTING:
-            return game_booting(conns);
-        case GAME_OK:
-            pdebug("GAME_OK");
-            /* Wat leuke animaties */
-            led_set_plasma(0, FRAMERATE*2, 3, 0x003300, 0x002211, 0x000033);
-            led_set_plasma(3, FRAMERATE*2, 4, 0x000033, 0x003300, 0x001133, 0x003311);
-
-            led_set_plasma(1, FRAMERATE*2, 3, 0x002222, 0x002200, 0x000022);
-            led_set_plasma(2, FRAMERATE*2, 3, 0x002222, 0x000022, 0x002200);
-            // audio_play_file(1, WAV_READY);
-        case GAME_OKING:
-            return game_oking(conns);
-        case GAME_BREAK:
-            pdebug("GAME_BREAK");
-            flashdelay = 0;
-            if (repairlevel > 0.9) repairlevel = 0.5;
-            /* Rodere animaties */
-            led_set_plasma(0, 0, 3, 0x330000, 0x221100, 0x000011);
-            led_set_plasma(3, 0, 4, 0x330000, 0x003300, 0x331100, 0x113300);
-            /* Synth hum */
-            engine_hum(80.0, 0.25, 0.1, 2.0, 0.2, 0.1, FRAMERATE*3, FRAMERATE*2, FRAMERATE*5, FRAMERATE*3);
-        case GAME_BREAKING:
-            /* TODO: Broken modus, wachten tot iemand begint met oplossen */
-            return game_breaking(conns);
-        case GAME_COLOR:
-            pdebug("GAME_COLOR");
-            game_set_mastermind(conns,0,20);
-        case GAME_COLORING:
-            return game_coloring(conns);
-        case GAME_MASTERMIND:
-            pdebug("GAME_MASTERMIND");
-            game_set_mastermind(conns,0,20);
-        case GAME_MASTERMINDING:
-            return game_masterminding(conns);
-        case GAME_FIXED:
-            pdebug("GAME_FIXED");
-            if (repairlevel < 0.9) repairlevel = 1.0;
-            led_set_swipe(0, FRAMERATE*3, 12, 3, 0xff0000, 0xff0000, 0xff0000);
-            led_set_swipe(1, FRAMERATE*3, 0, 3, 0x00ff00, 0x00ff00, 0x00ff00);
-            led_set_swipe(2, FRAMERATE*3, 0, 3, 0x888800, 0x888800, 0x888800);
-            led_set_swipe(3, FRAMERATE*3, 0, 3, 0x0000ff, 0x0000ff, 0x0000ff);
-            engine_hum(100.0, 0.25, 0.0, 2.0, 0.0, 0.05, FRAMERATE*4, FRAMERATE*2, FRAMERATE*6, FRAMERATE*2);
-            bootcount = FRAMERATE*3/SCANRATE;
-        case GAME_FIXEDING:
-            return game_fixeding(conns);
-        case GAME_RESTART:
-            led_remove_animation(0);
-            led_remove_animation(1);
-            led_remove_animation(2);
-            led_remove_animation(3);
-            led_set_idle(0, FRAMERATE/4, 0x010002);
-            led_set_idle(2, FRAMERATE/4, 0x010002);
-            led_set_idle(3, FRAMERATE/4, 0x010002);
-            led_set_blank(0, FRAMERATE*2);
-            led_set_blank(1, FRAMERATE);
-            led_set_blank(2, FRAMERATE);
-            led_set_blank(3, FRAMERATE*2);
-            engine_hum(0.0, 0.0, 0.0, 0.0, 0.0, 0.05, FRAMERATE*3, FRAMERATE*1, FRAMERATE*2, FRAMERATE*1);
-            return game_starting(conns);
-    }
-}
-
 void game_mainloop(clist_t *conns)
 {
     game_doturbines(conns);
     game_checklevel(conns);
     if (repairing > 0) {
+        game_show_colors(conns);
     }
-    // gamestate = game_dostate(gamestate, conns);
 }
 
 /* vim: ai:si:expandtab:ts=4:sw=4

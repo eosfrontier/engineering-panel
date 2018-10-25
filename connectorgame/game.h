@@ -1,25 +1,5 @@
 /* Game functions */
 
-enum gamestates {
-    GAME_START,
-    GAME_STARTING,
-    GAME_BOOT,
-    GAME_BOOTING,
-    GAME_OK,
-    GAME_OKING,
-    GAME_BREAK,
-    GAME_BREAKING,
-    GAME_COLOR,
-    GAME_COLORING,
-    GAME_MASTERMIND,
-    GAME_MASTERMINDING,
-    GAME_BALANCE,
-    GAME_BALANCEING,
-    GAME_FIXED,
-    GAME_FIXEDING,
-    GAME_RESTART
-};
-
 enum event {
     ENGINE_OFF = 1,
     ENGINE_ON = 2,
