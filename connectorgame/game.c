@@ -150,12 +150,11 @@ static void game_checklevel(clist_t *conns)
         booting--;
         return;
     }
-    if ((conns->event & REPAIR) && repairlevel < 0.9) {
-        // flash_spark();
-    } else {
-        if (repairlevel > 0.0 && (turbines[0]+turbines[1]+turbines[2]) > 2.0) {
-            repairlevel -= REPAIR_DECAY;
-        }
+    if ((conns->event & REPAIR) && repairlevel > 0.9) {
+        repairing = (FRAMERATE/SCANRATE)*1;
+    }
+    if (repairlevel > 0.0 && (turbines[0]+turbines[1]+turbines[2]) > 2.0) {
+        repairlevel -= REPAIR_DECAY;
     }
     int okcnt = 0;
     int okcnts[conns->on];
@@ -188,6 +187,10 @@ static void game_checklevel(clist_t *conns)
                 newrl = (FRAMERATE/SCANRATE)*1;
             }
         }
+        static connection_t lastconn;
+        if (conns->newon > 0) {
+            lastconn = conns->pins[conns->on-1];
+        }
         /* Checken of het een goed-goed verbinding was die is losgegaan, zo ja de oplossing veranderen */
         for (int i = conns->on; i < conns->on + conns->off; i++) {
             int nokcnt = 0;
@@ -199,7 +202,7 @@ static void game_checklevel(clist_t *conns)
                     nokcnt++;
                 }
             }
-            if (nokcnt == 2) {
+            if ((nokcnt == 2) && memcmp(&lastconn, &(conns->pins[i]), sizeof(lastconn))) {
                 /* Goed-god verbinding los, extra stukmaken */
                 flash_spark();
                 for (int cc = 0; cc < 2; cc++) {
