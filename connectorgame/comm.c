@@ -59,7 +59,7 @@ int comm_write_connections(clist_t *conns)
     fprintf(f, "],\"repairlevel\":%f", repairlevel);
     fprintf(f, ",\"num_connections\":%d,\"connections\":[", conns->on);
     for (int cn = 0; cn < conns->on; cn++) {
-        fprintf(f, "%s[%d,%d]", cn > 0 ? "," : "", conns->pins[cn].p1, conns->pins[cn].p2);
+        fprintf(f, "%s[%d,%d]", cn > 0 ? "," : "", conns->pins[cn].p[0], conns->pins[cn].p[1]);
     }
     fprintf(f, "]}");
     fclose(f);

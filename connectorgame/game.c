@@ -38,7 +38,7 @@ static int plasma_color[4][5] = {
     { 3, 0x002222, 0x002200, 0x000022, 0 },
     { 3, 0x002222, 0x000022, 0x002200, 0 },
     { 4, 0x000033, 0x003300, 0x001133, 0x003311 }
-}
+};
 
 static char c_colors[NUM_PINS];
 
@@ -54,6 +54,34 @@ static struct puzzle {
     int solution[NUM_ROWS];
     int current[NUM_ROWS];
 } puzzle;
+
+static int randint(int from, int to)
+{
+    return from + ((random() % (to - from + 1)));
+}
+
+static double randdbl(double from, double to)
+{
+    return from + ((random() * (1.0 / RAND_MAX) * (to - from)));
+}
+
+static double vary(double val, double var)
+{
+    return val * randdbl(1.0 - var, 1.0 + var);
+}
+
+static void engine_hum(double basefreq, double beatstep, double beatvar, double hibeat, double hivar, double hivol, int fade, int fadevar, int fadehi, int fadehivar)
+{
+    double lowvol = 0.45;
+    audio_synth_freq_vol(0, 0, vary(basefreq * (1.0 + (beatstep * 0.0)), beatvar), lowvol, randint(fade-fadevar, fade+fadevar));
+    audio_synth_freq_vol(0, 2, vary(basefreq * (1.0 + (beatstep * 1.0)), beatvar), lowvol, randint(fade-fadevar, fade+fadevar));
+    audio_synth_freq_vol(0, 1, vary(basefreq * (1.0 + (beatstep * 2.0)), beatvar), lowvol, randint(fade-fadevar, fade+fadevar));
+    audio_synth_freq_vol(0, 3, vary(basefreq * (1.0 + (beatstep * 3.0)), beatvar), lowvol, randint(fade-fadevar, fade+fadevar));
+    audio_synth_freq_vol(0, 5, vary(basefreq * hibeat * (1.0 + (beatstep * 0.0)), hivar), lowvol*hivol, randint(fade-fadehivar, fade+fadehivar));
+    audio_synth_freq_vol(0, 7, vary(basefreq * hibeat * (1.0 + (beatstep * 1.0)), hivar), lowvol*hivol, randint(fade-fadehivar, fade+fadehivar));
+    audio_synth_freq_vol(0, 4, vary(basefreq * hibeat * (1.0 + (beatstep * 2.0)), hivar), lowvol*hivol, randint(fade-fadehivar, fade+fadehivar));
+    audio_synth_freq_vol(0, 6, vary(basefreq * hibeat * (1.0 + (beatstep * 3.0)), hivar), lowvol*hivol, randint(fade-fadehivar, fade+fadehivar));
+}
 
 static void init_engine_hum(void)
 {
@@ -100,34 +128,6 @@ void init_game(void)
     }
 }
 
-static int randint(int from, int to)
-{
-    return from + ((random() % (to - from + 1)));
-}
-
-static double randdbl(double from, double to)
-{
-    return from + ((random() * (1.0 / RAND_MAX) * (to - from)));
-}
-
-static double vary(double val, double var)
-{
-    return val * randdbl(1.0 - var, 1.0 + var);
-}
-
-static void engine_hum(double basefreq, double beatstep, double beatvar, double hibeat, double hivar, double hivol, int fade, int fadevar, int fadehi, int fadehivar)
-{
-    double lowvol = 0.45;
-    audio_synth_freq_vol(0, 0, vary(basefreq * (1.0 + (beatstep * 0.0)), beatvar), lowvol, randint(fade-fadevar, fade+fadevar));
-    audio_synth_freq_vol(0, 2, vary(basefreq * (1.0 + (beatstep * 1.0)), beatvar), lowvol, randint(fade-fadevar, fade+fadevar));
-    audio_synth_freq_vol(0, 1, vary(basefreq * (1.0 + (beatstep * 2.0)), beatvar), lowvol, randint(fade-fadevar, fade+fadevar));
-    audio_synth_freq_vol(0, 3, vary(basefreq * (1.0 + (beatstep * 3.0)), beatvar), lowvol, randint(fade-fadevar, fade+fadevar));
-    audio_synth_freq_vol(0, 5, vary(basefreq * hibeat * (1.0 + (beatstep * 0.0)), hivar), lowvol*hivol, randint(fade-fadehivar, fade+fadehivar));
-    audio_synth_freq_vol(0, 7, vary(basefreq * hibeat * (1.0 + (beatstep * 1.0)), hivar), lowvol*hivol, randint(fade-fadehivar, fade+fadehivar));
-    audio_synth_freq_vol(0, 4, vary(basefreq * hibeat * (1.0 + (beatstep * 2.0)), hivar), lowvol*hivol, randint(fade-fadehivar, fade+fadehivar));
-    audio_synth_freq_vol(0, 6, vary(basefreq * hibeat * (1.0 + (beatstep * 3.0)), hivar), lowvol*hivol, randint(fade-fadehivar, fade+fadehivar));
-}
-
 static void flash_spark(void)
 {
     audio_play_file(1, WAV_SPARK);
@@ -144,7 +144,7 @@ static inline int bitcnt(int bits)
     return cnt;
 }
 
-static int game_checklevel(clist_t *conns)
+static void game_checklevel(clist_t *conns)
 {
     static double oldrl = 1.0;
     if ((conns->event & REPAIR) && repairlevel < 0.9) {
@@ -155,7 +155,7 @@ static int game_checklevel(clist_t *conns)
         }
     }
     int okcnt = 0;
-    char okcnts[conns->on];
+    int okcnts[conns->on];
     int okpc[3] = {0,0,0};
     for (int i = 0; i < conns->on; i++) {
         okcnts[i] = 0;
@@ -316,7 +316,7 @@ static void game_show_colors(clist_t *conns)
     /* Kijken voor juiste posities */
     int okcnt = 0;
     for (int i = 0; i < conns->on; i++) {
-        char *s = conns->pins[i].p;
+        unsigned char *s = conns->pins[i].p;
         for (int cc = 0; cc < 2; cc++) {
             int r = PIN_ROW(s[cc]);
             /* Kijken of de positie klopt */
@@ -350,7 +350,7 @@ static void game_show_mastermind(clist_t *conns)
     }
     /* Eerst kijken voor juiste posities */
     for (int i = 0; i < conns->on; i++) {
-        char *s = conns->pins[i].p;
+        unsigned char *s = conns->pins[i].p;
         for (int cc = 0; cc < 2; cc++) {
             int r = PIN_ROW(s[cc]);
             /* Kijken of de positie klopt */
@@ -364,7 +364,7 @@ static void game_show_mastermind(clist_t *conns)
     }
     /* Dan kijken voor de resterende juiste kleuren */
     for (int i = 0; i < conns->on; i++) {
-        char *s = conns->pins[i].p;
+        unsigned char *s = conns->pins[i].p;
         for (int cc = 0; cc < 2; cc++) {
             int r = PIN_ROW(s[cc]);
             /* Kijken of de kleur klopt */
@@ -458,7 +458,7 @@ static void game_doturbines(clist_t *conns)
     }
     if (running != prev_running) {
         prev_running = running;
-        engine_hum(25.0 + 25.0*running - (1.0 * (20-okcnt)), 0.25, 0.01 * (20-okcnt), 2.0, 0.01 * (20-okcnt), 0.1, FRAMERATE*2, FRAMERATE, FRAMERATE*3, FRAMERATE*2);
+        engine_hum(5.0 + 25.0*running + 20.0*repairlevel, 0.25, 0.2 * (1.0-repairlevel), 2.0, 0.2 * (1.0-repairlevel), 0.1, FRAMERATE*2, FRAMERATE, FRAMERATE*3, FRAMERATE*2);
     }
     if (reached == 1 && !spinning) {
         /* Een turbine is net bij zijn eindpunt geraakt, en geen turbine is niet bij zijn eindpunt */

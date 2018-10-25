@@ -30,7 +30,7 @@ int init_leds(void);
 int fini_leds(void);
 int ledshow_colors(int *colors);
 int ledshow_mastermind(int side, int colors, int correct);
-int led_set_blobs(int ring, int fadein, int num, ...);
+int led_set_plasma(int ring, int fadein, int num, ...);
 int led_remove_animation(int ring);
 int led_set_flash(int ring, int num, ...);
 int led_set_swipe(int ring, int speed, int offset, int num, ...);
