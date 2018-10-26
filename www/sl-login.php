@@ -1,11 +1,11 @@
 <?php
 $spelleider = ($_COOKIE["spelleider"] == "spelleider");
 $melding = "";
-if (isset($_POST["submit"])) {
+if (isset($_POST["password"])) {
   $spelleiderwachtwoord = file_get_contents('../spelleiderwachtwoord.txt');
   if ($_POST["password"] == $spelleiderwachtwoord) {
     $spelleider = true;
-    $_SESSION["spelleider"] = "spelleider";
+    setcookie("spelleider", "spelleider", time()+60*60*24*10);
   } else {
     $melding = "Incorrect wachtwoord";
   }
