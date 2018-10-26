@@ -319,9 +319,12 @@ clist_t *find_connections(void)
             if (buttons[bp].lastoff >= BUTTON_HOLDTIME*2) {
                 buttons[bp].lastoff = BUTTON_HOLDTIME*2;
             }
-            if (buttons[bp].laston >= BUTTON_HOLDTIME) {
+            if (buttons[bp].laston == BUTTON_HOLDTIME) {
                 status = buttons[bp].clicks | BUTTON_HOLD;
+            } else if (buttons[bp].laston > BUTTON_HOLDTIME) {
+                buttons[bp].clicks = 0;
                 buttons[bp].laston = BUTTON_HOLDTIME;
+            } else if (buttons[bp].laston > BUTTON_HOLDTIME) {
             } else if (buttons[bp].laston == BUTTON_CLICKTIME) {
                 buttons[bp].clicks++;
             }

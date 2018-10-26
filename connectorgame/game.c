@@ -176,6 +176,19 @@ static void game_checklevel(clist_t *conns)
         }
         okpc[okcnts[i]]++;
     }
+    int slbtn = conns->buttons[BUTTON_SL].status;
+    if ((slbtn & BUTTON_CLICKS) > 2) {
+        pdebug("SL-Button pressed %d times, flags = %x", (slbtn & BUTTON_CLICKS), slbtn >> 8);
+        if (slbtn & BUTTON_HOLD) {
+            if ((slbtn & BUTTON_CLICKS) >= 4) {
+                repairlevel = 1.0;
+                repairing = (FRAMERATE/SCANRATE)*1;
+            }
+        } else {
+            repairlevel -= 0.1 * (slbtn & BUTTON_CLICKS);
+            if (repairlevel < 0.0) repairlevel = 0.0;
+        }
+    }
     int wantok = ((int)((20.0*repairlevel)+0.5));
     if (!(conns->event & REPAIR) && (conns->newon + conns->off) > 0) {
         /* Iemand heeft iets losgetrokken of ingestoken, solution checken en repairlevel aanpassen */
