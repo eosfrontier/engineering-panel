@@ -33,7 +33,11 @@ function create_display(colors)
         'Y':'yellow'
     }
     var html = []
-    html.push('<tr id="switches" class="switches"><td colspan="5"><div class="button" myval="0.5">Break</div><div class="button" myval="1.0">Fix</div></td>')
+    html.push('<tr id="switches" class="switches"><td colspan="5">')
+    if ($('#connectors').attr('spelleider') == 'true') {
+        html.push('<div class="button" myval="0.5">Break</div><div class="button" myval="1.0">Fix</div>')
+    }
+    html.push('</td>')
     for (var s = 0; s < 3; s++) {
         html.push('<td class="switch switch_',s,'"><div><div class="top"></div><div class="bar"></div></div></td>')
     }
@@ -61,7 +65,7 @@ function set_repair()
     $.post('set_repairlevel.php', { repairlevel: repairlevel }, clicked_repair)
 }
 
-function clicked_repair()
+function clicked_repair(txt)
 {
     $('#switches div.button').removeClass('clicked')
 }
@@ -104,8 +108,8 @@ function display_connections(json)
         $(connectors[map_connector(conn[1])]).addClass('connected')
     }
     for (var r = 0; r < json.rows.length; r++) {
-        var cur = json.rows[r][0];
-        var sol = json.rows[r][1];
+        var cur = json.rows[r][0]
+        var sol = json.rows[r][1]
         for (var p = 0; p < 5; p++) {
             if (cur & (1 << p)) {
                 $(connectors[map_solution(r, p)]).addClass('current')
