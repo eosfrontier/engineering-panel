@@ -39,9 +39,10 @@ function create_display(colors)
     }
     html.push('</td>')
     for (var s = 0; s < 3; s++) {
-        html.push('<td class="switch switch_',s,'"><div><div class="top"></div><div class="bar"></div></div></td>')
+        html.push('<td class="switch switch_',s,'"><div><div class="bar"></div></div></td>')
     }
-    html.push('<td colspan="5"><div id="repairlevel"><div class="full"></div><div class="empty"></div></div></td></tr>')
+    html.push('<td colspan="5">')
+    html.push('<div id="repairlevel"><!--<div class="display"></div>--><div class="full"></div></div></td></tr>')
     html.push('<tr class="connectors">')
     for (var c = 0; c < 100; c++) {
         if (c % 10 == 5) html.push('<td class="center" colspan="3"></td>')
@@ -96,11 +97,10 @@ function display_connections(json)
         }
     }
     for (var t = 0; t < json.turbines.length; t++) {
-        $('#switches .switch_'+t+' div.top').height(100*(1.0-json.turbines[t])+'%')
         $('#switches .switch_'+t+' div.bar').height(100*json.turbines[t]+'%')
     }
     $('#repairlevel .full').width((100*(json.repairlevel))+'%')
-    $('#repairlevel .empty').width((100*(1.0-json.repairlevel))+'%')
+    $('#repairlevel .display').text(Math.round(100*(json.repairlevel))+'%')
     var connectors = $('#connectors td.connector').removeClass('connected current solution').get()
     for (var c = 0; c < json.connections.length; c++) {
         var conn = json.connections[c]
