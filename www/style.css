@@ -108,3 +108,15 @@ body {
 .melding {
 	color: #cc0000;
 }
+
+.volume .button {
+    border: 1px solid #18a;
+    background-color: #3cf;
+    color: #000;
+    font-weight: bold;
+    border-radius: 5px;
+    width: 1em;
+    display: inline-block;
+    text-align: center;
+	cursor: pointer;
+}
