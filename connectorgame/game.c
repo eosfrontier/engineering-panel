@@ -11,8 +11,10 @@
 #include "comm.h"
 #include "game.h"
 
-#define SPINUP_SPEED (1.0/(10*FRAMERATE/SCANRATE))
-#define SPINDOWN_SPEED (1.0/(20*FRAMERATE/SCANRATE))
+#define SPINUP_SEC (settings.spinup.value)
+#define SPINDOWN_SEC (settings.spindown.value)
+#define SPINUP_SPEED (1.0/(SPINUP_SECS*FRAMERATE/SCANRATE))
+#define SPINDOWN_SPEED (1.0/(SPINDOWN_SECS*FRAMERATE/SCANRATE))
 #define SPINUP_LOW1 90.0
 #define SPINUP_LOW2 80.0
 #define SPINUP_FREQ1 200.0
@@ -23,11 +25,13 @@
 #define SPINUP_RINGSPEED1 2000
 #define SPINUP_RINGSPEED2 200
 
-#define ENGINE_VOL 0.2
-#define ENGINE_HIVOL 0.8
-#define ENGINE_BEAT 0.25136
-#define ENGINE_HIBEAT 0.996
-#define ENGINE_BASEVAR 1.01
+#define ENGINE_VOL (settings.humvollo.value)
+#define ENGINE_HIVOL (settings.humvolhi.value)
+#define ENGINE_BEAT (settings.humbeat.value)
+#define ENGINE_HIBEAT (settings.hibeat.value)
+#define ENGINE_BASEVAR (1.0 + (settings.humbasevar.value)
+
+#define DIFFICULTY (settings.difficulty.value)
 
 #define COLOR_FILE COMM_PATH "colors.txt"
 
@@ -76,7 +80,7 @@ static double vary(double val, double var)
 
 static void engine_hum(double basefreq, double beatstep, double beatvar, double hibeat, double hivar, double hivol, int fade, int fadevar, int fadehi, int fadehivar)
 {
-    double lowvol = 0.20;
+    double lowvol = ENGINE_VOL;
     audio_synth_freq_vol(0, 0, vary(basefreq * (1.0 + (beatstep * 0.0)), beatvar), lowvol, randint(fade-fadevar, fade+fadevar));
     audio_synth_freq_vol(0, 2, vary(basefreq * (1.0 + (beatstep * 1.0)), beatvar), lowvol, randint(fade-fadevar, fade+fadevar));
     audio_synth_freq_vol(0, 1, vary(basefreq * (1.0 + (beatstep * 2.0)), beatvar), lowvol, randint(fade-fadevar, fade+fadevar));

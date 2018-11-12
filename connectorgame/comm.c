@@ -20,6 +20,7 @@
 #define COMM_CONNECTION_FILE_NEW COMM_CONNECTION_FILE ".new"
 
 #define COMM_REPAIR_FILE COMM_CMD_PATH "repair.txt"
+#define COMM_SETTINGS_FILE COMM_PATH "settings.txt"
 
 extern double turbines[3];
 extern double repairlevel;
@@ -100,6 +101,32 @@ static int read_repair_file(clist_t *conns)
             pdebug("Read file %s, setting repair level to %f", COMM_REPAIR_FILE, repairlevel);
         }
     }
+    return 0;
+}
+
+struct settings settings;
+
+static int read_settings_file(clist_t *conns)
+{
+    FILE *f = fopen(COMM_SETTINGS_FILE, "r");
+    if (!f) {
+        fprintf(stderr, "Failed to read settings file %s: %s\n", COMM_SETTINGS_FILE, strerror(errno));
+        return -1;
+    }
+    char key[101];
+    double value;
+    setting_t *settinglist = settings;
+    while (fscanf(f, " %100s = %lf", key, &value) == 2) {
+        for (int s = 0; s < sizeof(settings)/sizeof(setting_t); s++) {
+            if (!strcmp(key, settinglist[s].key)) {
+                if (value < settinglist[s].min) value = settinglist[s].min;
+                if (value > settinglist[s].max) value = settinglist[s].max;
+                *(settinglist[s].value) = value;
+            }
+        }
+    }
+    fclose(f);
+
     return 0;
 }
 
