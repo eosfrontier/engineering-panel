@@ -7,6 +7,9 @@ extern struct settings {
     double difficulty;
     double spinup;
     double spindown;
+    double humfreq;
+    double turbinefreq;
+    double repairfreq;
     double humvol;
     double humvolhi;
     double humbeat;

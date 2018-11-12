@@ -111,15 +111,19 @@ struct {
     double *variable;
     double min;
     double max;
+    int event;
 } settingfiles[] = {
-    { "difficulty", &settings.difficulty, 1, 5 },
-    { "spinup",     &settings.spinup, 1, 100 },
-    { "spindown",   &settings.spindown, 1, 100 },
-    { "humvol",     &settings.humvol, 0.01, 1.0 },
-    { "humvolhi",   &settings.humvolhi, 0.01, 1.0 },
-    { "humbeat",    &settings.humbeat, 0.01, 10.0 },
-    { "hibeat",     &settings.hibeat, 0.01, 10.0 },
-    { "humbasevar", &settings.humbasevar, 0.0, 5.0 },
+    { "difficulty", &settings.difficulty, 1, 5, 0 },
+    { "spinup",     &settings.spinup, 1, 100, 0 },
+    { "spindown",   &settings.spindown, 1, 100, 0 },
+    { "humfreq",    &settings.humfreq, 1.0, 500.0, HUMSETTING },
+    { "turbinefreq",&settings.turbinefreq, 1.0, 500.0, HUMSETTING },
+    { "repairfreq", &settings.repairfreq, 1.0, 500.0, HUMSETTING },
+    { "humvol",     &settings.humvol, 0.01, 1.0, HUMSETTING },
+    { "humvolhi",   &settings.humvolhi, 0.01, 1.0, HUMSETTING },
+    { "humbeat",    &settings.humbeat, 0.01, 10.0, HUMSETTING },
+    { "hibeat",     &settings.hibeat, 0.01, 10.0, HUMSETTING },
+    { "humbasevar", &settings.humbasevar, 0.0, 5.0, HUMSETTING },
 };
 
 static int read_settings_file(clist_t *conns)
@@ -142,6 +146,7 @@ static int read_settings_file(clist_t *conns)
             if (*(settingfiles[s].variable) != value) {
                 pdebug("Changed setting %s to %f", settingfiles[s].key, value);
                 *(settingfiles[s].variable) = value;
+                conns->event |= settingfiles[s].event;
             }
         } else {
             fprintf(stderr, "Error reading setting file %s: %s", pathname, strerror(errno));

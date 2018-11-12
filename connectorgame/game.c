@@ -25,6 +25,9 @@
 #define SPINUP_RINGSPEED1 2000
 #define SPINUP_RINGSPEED2 200
 
+#define ENGINE_FREQ (settings.humfreq)
+#define ENGINE_TBFREQ (settings.turbinefreq)
+#define ENGINE_RPFREQ (settings.repairfreq)
 #define ENGINE_VOL (settings.humvol)
 #define ENGINE_HIVOL (settings.humvolhi)
 #define ENGINE_BEAT (settings.humbeat)
@@ -89,6 +92,11 @@ static void engine_hum(double basefreq, double beatstep, double beatvar, double 
     audio_synth_freq_vol(0, 7, vary(basefreq * hibeat * (1.0 + (beatstep * 1.0)), hivar), lowvol*hivol, randint(fade-fadehivar, fade+fadehivar));
     audio_synth_freq_vol(0, 4, vary(basefreq * hibeat * (1.0 + (beatstep * 2.0)), hivar), lowvol*hivol, randint(fade-fadehivar, fade+fadehivar));
     audio_synth_freq_vol(0, 6, vary(basefreq * hibeat * (1.0 + (beatstep * 3.0)), hivar), lowvol*hivol, randint(fade-fadehivar, fade+fadehivar));
+}
+
+static void engine_hum_set(int fade, int fadevar, int fadehi, int fadehivar)
+{
+    engine_hum(ENGINE_FREQ - (ENGINE_TBFREQ*(3-running)) - ENGINE_RPFREQ*(1.0-repairlevel), ENGINE_BEAT, 0.2 * (ENGINE_BASEVAR-repairlevel), ENGINE_HIBEAT, 0.2 * (ENGINE_BASEVAR-repairlevel), ENGINE_HIVOL, fade, fadevar, fadehi, fadehivar);
 }
 
 static void init_engine_hum(void)
@@ -186,6 +194,9 @@ static void game_checklevel(clist_t *conns)
         }
         okpc[okcnts[i]]++;
     }
+    if (conns->event & HUMSETTING) {
+        engine_hum_set(FRAMERATE, FRAMERATE/2, FRAMERATE*2, FRAMERATE);
+    }
     int slbtn = conns->buttons[BUTTON_SL].status;
     if ((slbtn & BUTTON_CLICKS) > 2) {
         pdebug("SL-Button pressed %d times, flags = %x", (slbtn & BUTTON_CLICKS), slbtn >> 8);
@@ -205,7 +216,7 @@ static void game_checklevel(clist_t *conns)
         int newrl = REPAIR_TIMEOUT;
         repairlevel = ((double)okcnt / 20.0);
         if (okcnt != wantok) {
-            engine_hum(5.0 + 25.0*running + 20.0*repairlevel, ENGINE_BEAT, 0.2 * (ENGINE_BASEVAR-repairlevel), ENGINE_HIBEAT, 0.2 * (ENGINE_BASEVAR-repairlevel), ENGINE_HIVOL, FRAMERATE, FRAMERATE/2, FRAMERATE*2, FRAMERATE);
+            engine_hum_set(FRAMERATE, FRAMERATE/2, FRAMERATE*2, FRAMERATE);
             if (okcnt == 20) {
                 newrl = (FRAMERATE/SCANRATE)*1;
             }
@@ -269,7 +280,7 @@ static void game_checklevel(clist_t *conns)
             flash_spark(); /* TODO: Small spark */
         }
         if (okcnt != wantok) {
-            engine_hum(5.0 + 25.0*running + 20.0*repairlevel, ENGINE_BEAT, 0.2 * (ENGINE_BASEVAR-repairlevel), ENGINE_HIBEAT, 0.2 * (ENGINE_BASEVAR-repairlevel), ENGINE_HIVOL, FRAMERATE, FRAMERATE/2, FRAMERATE*2, FRAMERATE);
+            engine_hum_set(FRAMERATE, FRAMERATE/2, FRAMERATE*2, FRAMERATE);
             pdebug("okcnt: %d <> %d : %d, %d, %d", okcnt, wantok, okpc[0], okpc[1], okpc[2]);
         }
         while (okcnt > wantok) {
@@ -582,7 +593,7 @@ static void game_doturbines(clist_t *conns)
     }
     if (running != prev_running) {
         prev_running = running;
-        engine_hum(5.0 + 25.0*running + 20.0*repairlevel, ENGINE_BEAT, 0.2 * (ENGINE_BASEVAR-repairlevel), ENGINE_HIBEAT, 0.2 * (ENGINE_BASEVAR-repairlevel), ENGINE_HIVOL, FRAMERATE*6, FRAMERATE*2, FRAMERATE*9, FRAMERATE*4);
+        engine_hum_set(FRAMERATE*6, FRAMERATE*2, FRAMERATE*9, FRAMERATE*4);
     }
     if (reached == 1 && !spinning) {
         /* Een turbine is net bij zijn eindpunt geraakt, en geen turbine is niet bij zijn eindpunt */

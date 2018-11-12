@@ -3,7 +3,8 @@
 enum event {
     ENGINE_OFF = 1,
     ENGINE_ON = 2,
-    REPAIR = 4
+    REPAIR = 4,
+    HUMSETTING = 8
 };
 
 typedef struct {
