@@ -1,8 +1,0 @@
-difficulty=1
-spinup=10
-spindown=10
-humvol=0.2
-humvolhi=0.8
-humbeat=0.25136
-hibeat=0.996
-humbasevar=0.01

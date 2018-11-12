@@ -20,7 +20,7 @@
 #define COMM_CONNECTION_FILE_NEW COMM_CONNECTION_FILE ".new"
 
 #define COMM_REPAIR_FILE COMM_CMD_PATH "repair.txt"
-#define COMM_SETTINGS_FILE COMM_PATH "settings.txt"
+#define COMM_SETTINGS_PATH COMM_PATH "settings/"
 
 extern double turbines[3];
 extern double repairlevel;
@@ -106,33 +106,55 @@ static int read_repair_file(clist_t *conns)
 
 struct settings settings;
 
+struct {
+    char *key;
+    double *variable;
+    double min;
+    double max;
+} settingfiles[] = {
+    { "difficulty", &settings.difficulty, 1, 5 },
+    { "spinup",     &settings.spinup, 1, 100 },
+    { "spindown",   &settings.spindown, 1, 100 },
+    { "humvol",     &settings.humvol, 0.01, 1.0 },
+    { "humvolhi",   &settings.humvolhi, 0.01, 1.0 },
+    { "humbeat",    &settings.humbeat, 0.01, 10.0 },
+    { "hibeat",     &settings.hibeat, 0.01, 10.0 },
+    { "humbasevar", &settings.humbasevar, 0.0, 5.0 },
+};
+
 static int read_settings_file(clist_t *conns)
 {
-    FILE *f = fopen(COMM_SETTINGS_FILE, "r");
-    if (!f) {
-        fprintf(stderr, "Failed to read settings file %s: %s\n", COMM_SETTINGS_FILE, strerror(errno));
-        return -1;
+    static int reread = 0;
+    if (reread > 0) {
+        reread--;
+        return 0;
     }
-    char key[101];
-    double value;
-    setting_t *settinglist = settings;
-    while (fscanf(f, " %100s = %lf", key, &value) == 2) {
-        for (int s = 0; s < sizeof(settings)/sizeof(setting_t); s++) {
-            if (!strcmp(key, settinglist[s].key)) {
-                if (value < settinglist[s].min) value = settinglist[s].min;
-                if (value > settinglist[s].max) value = settinglist[s].max;
-                *(settinglist[s].value) = value;
+    reread = FRAMERATE*2;
+    char pathname[strlen(COMM_SETTINGS_PATH)+100];
+    for (unsigned int s = 0; s < sizeof(settingfiles)/sizeof(*settingfiles); s++) {
+        strcpy(pathname, COMM_SETTINGS_PATH);
+        strcat(pathname, settingfiles[s].key);
+        FILE *f = fopen(pathname, "r");
+        double value;
+        if (fscanf(f, "%lf", &value) == 1) {
+            if (value < settingfiles[s].min) value = settingfiles[s].min;
+            if (value > settingfiles[s].max) value = settingfiles[s].max;
+            if (*(settingfiles[s].variable) != value) {
+                pdebug("Changed setting %s to %f", settingfiles[s].key, value);
+                *(settingfiles[s].variable) = value;
             }
+        } else {
+            fprintf(stderr, "Error reading setting file %s: %s", pathname, strerror(errno));
         }
+        fclose(f);
     }
-    fclose(f);
-
     return 0;
 }
 
 int comm_read_commands(clist_t *conns)
 {
     read_repair_file(conns);
+    read_settings_file(conns);
     return 0;
 }
 

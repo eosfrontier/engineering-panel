@@ -11,27 +11,27 @@
 #include "comm.h"
 #include "game.h"
 
-#define SPINUP_SEC (settings.spinup.value)
-#define SPINDOWN_SEC (settings.spindown.value)
-#define SPINUP_SPEED (1.0/(SPINUP_SECS*FRAMERATE/SCANRATE))
-#define SPINDOWN_SPEED (1.0/(SPINDOWN_SECS*FRAMERATE/SCANRATE))
+#define SPINUP_SEC (settings.spinup)
+#define SPINDOWN_SEC (settings.spindown)
+#define SPINUP_SPEED (1.0/(SPINUP_SEC*FRAMERATE/SCANRATE))
+#define SPINDOWN_SPEED (1.0/(SPINDOWN_SEC*FRAMERATE/SCANRATE))
 #define SPINUP_LOW1 90.0
 #define SPINUP_LOW2 80.0
 #define SPINUP_FREQ1 200.0
 #define SPINUP_FREQ2 210.0
-#define SPINUP_VOL1 0.7
-#define SPINUP_VOL2 0.7
+#define SPINUP_VOL1 1.0
+#define SPINUP_VOL2 1.0
 #define SPINUP_WAVE SYNTH_TRIANGLE
 #define SPINUP_RINGSPEED1 2000
 #define SPINUP_RINGSPEED2 200
 
-#define ENGINE_VOL (settings.humvollo.value)
-#define ENGINE_HIVOL (settings.humvolhi.value)
-#define ENGINE_BEAT (settings.humbeat.value)
-#define ENGINE_HIBEAT (settings.hibeat.value)
-#define ENGINE_BASEVAR (1.0 + (settings.humbasevar.value)
+#define ENGINE_VOL (settings.humvol)
+#define ENGINE_HIVOL (settings.humvolhi)
+#define ENGINE_BEAT (settings.humbeat)
+#define ENGINE_HIBEAT (settings.hibeat)
+#define ENGINE_BASEVAR (1.0 + (settings.humbasevar))
 
-#define DIFFICULTY (settings.difficulty.value)
+#define DIFFICULTY (settings.difficulty)
 
 #define COLOR_FILE COMM_PATH "colors.txt"
 
@@ -582,7 +582,7 @@ static void game_doturbines(clist_t *conns)
     }
     if (running != prev_running) {
         prev_running = running;
-        engine_hum(5.0 + 25.0*running + 20.0*repairlevel, ENGINE_BEAT, 0.2 * (ENGINE_BASEVAR-repairlevel), ENGINE_HIBEAT, 0.2 * (ENGINE_BASEVAR-repairlevel), ENGINE_HIVOL, FRAMERATE*2, FRAMERATE, FRAMERATE*3, FRAMERATE*2);
+        engine_hum(5.0 + 25.0*running + 20.0*repairlevel, ENGINE_BEAT, 0.2 * (ENGINE_BASEVAR-repairlevel), ENGINE_HIBEAT, 0.2 * (ENGINE_BASEVAR-repairlevel), ENGINE_HIVOL, FRAMERATE*6, FRAMERATE*2, FRAMERATE*9, FRAMERATE*4);
     }
     if (reached == 1 && !spinning) {
         /* Een turbine is net bij zijn eindpunt geraakt, en geen turbine is niet bij zijn eindpunt */
