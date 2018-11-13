@@ -1,7 +1,7 @@
 <?php
 header('Content-Type: application/json');
 $key = $_POST['key'];
-$result = array('settings' => array());
+$result = array();
 if ($key) {
     if (!isset($_COOKIE["spelleider"]) || ($_COOKIE["spelleider"] != "spelleider")) {
         $result["error"] = "Failed to set setting: Unauthorized!";
@@ -24,6 +24,7 @@ if ($key) {
         }
     }
 }
+$result["settings"] = array();
 foreach(scandir('settings/') as $setting) {
     if ($setting[0] != '.') {
         $result["settings"][$setting] = floatval(file_get_contents("settings/$setting"));

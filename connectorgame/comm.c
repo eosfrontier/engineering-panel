@@ -154,7 +154,7 @@ static int write_settings(void)
     }
     fprintf(f, "{\"settings\":[");
     for (unsigned int s = 0; s < sizeof(settingfiles)/sizeof(*settingfiles); s++) {
-        fprintf(f, "%s{\"%s\":{\"value\":%g,\"min\":%g,\"max\":%g,"
+        fprintf(f, "%s{\"key\":\"%s\",\"value\":%g,\"min\":%g,\"max\":%g,"
                 "\"default\":%g,\"description\":\"%s\"}",
                 (s>0?",":""), settingfiles[s].key,
                 *(settingfiles[s].variable),
