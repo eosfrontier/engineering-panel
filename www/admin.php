@@ -17,5 +17,8 @@
 <?php else: ?>
         <div class="volume">Vol: <span id="Volume">?</span>%</div>
 <?php endif; ?>
+<?php if ($_COOKIE["spelleider"] == "spelleider"): ?>
+	<table class="settings"><caption>Settings</caption><tbody id="settings"></tbody></table>
+<?php endif; ?>
     </body>
 </html>
