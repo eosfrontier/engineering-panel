@@ -19,6 +19,9 @@
 #define COMM_CONNECTION_FILE COMM_PATH "connections.json"
 #define COMM_CONNECTION_FILE_NEW COMM_CONNECTION_FILE ".new"
 
+#define COMM_SETTINGS_FILE COMM_PATH "settings.json"
+#define COMM_SETTINGS_FILE_NEW COMM_SETTINGS_FILE ".new"
+
 #define COMM_REPAIR_FILE COMM_CMD_PATH "repair.txt"
 #define COMM_SETTINGS_PATH COMM_PATH "settings/"
 
@@ -29,11 +32,6 @@ extern puzzle_t puzzle;
 static double lastturbines[3];
 static double lastrepairlevel = -1.0;
 static puzzle_t lastpuzzle;
-
-int init_comm(void)
-{
-    return 0;
-}
 
 int comm_write_connections(clist_t *conns)
 {
@@ -60,11 +58,15 @@ int comm_write_connections(clist_t *conns)
         return 0;
     }
     FILE *f = fopen(COMM_CONNECTION_FILE_NEW, "w");
+    if (!f) {
+        fprintf(stderr, "Failed to open %s: %s\n", COMM_CONNECTION_FILE_NEW, strerror(errno));
+        return -1;
+    }
     fprintf(f, "{\"timestamp\":%llu,\"switches\":[", getutime());
     for (int sw = 0; sw < NUM_BUTTONS; sw++) { fprintf(f, "%s%d", sw > 0 ? "," : "", conns->buttons[sw].status); }
     fprintf(f, "],\"turbines\":[");
-    for (int sw = 0; sw < 3; sw++) { fprintf(f, "%s%f", sw > 0 ? "," : "", turbines[sw]); }
-    fprintf(f, "],\"repairlevel\":%f", repairlevel);
+    for (int sw = 0; sw < 3; sw++) { fprintf(f, "%s%g", sw > 0 ? "," : "", turbines[sw]); }
+    fprintf(f, "],\"repairlevel\":%g", repairlevel);
     fprintf(f, ",\"num_connections\":%d,\"connections\":[", conns->on);
     for (int cn = 0; cn < conns->on; cn++) {
         fprintf(f, "%s[%d,%d]", cn > 0 ? "," : "", conns->pins[cn].p[0], conns->pins[cn].p[1]);
@@ -74,9 +76,15 @@ int comm_write_connections(clist_t *conns)
         fprintf(f, "%s[%d,%d]", s > 0 ? "," : "", puzzle.current[s], puzzle.solution[s]);
     }
     fprintf(f, "]}");
-    fclose(f);
+    if (fclose(f) < 0) {
+        fprintf(stderr, "Failed to write %s: %s\n", COMM_CONNECTION_FILE_NEW, strerror(errno));
+        return -1;
+    }
     pdebug("Wrote file %s", COMM_CONNECTION_FILE_NEW);
-    rename(COMM_CONNECTION_FILE_NEW, COMM_CONNECTION_FILE);
+    if (rename(COMM_CONNECTION_FILE_NEW, COMM_CONNECTION_FILE) < 0) {
+        fprintf(stderr, "Failed to rename %s: %s\n", COMM_CONNECTION_FILE_NEW, strerror(errno));
+        return -1;
+    }
     return 0;
 }
 
@@ -98,7 +106,7 @@ static int read_repair_file(clist_t *conns)
             repairlevel = rval;
             conns->event |= REPAIR;
             unlink(COMM_REPAIR_FILE);
-            pdebug("Read file %s, setting repair level to %f", COMM_REPAIR_FILE, repairlevel);
+            pdebug("Read file %s, setting repair level to %g", COMM_REPAIR_FILE, repairlevel);
         }
     }
     return 0;
@@ -111,28 +119,61 @@ struct {
     double *variable;
     double min;
     double max;
+    double dflt;
     int event;
+    char *description;
 } settingfiles[] = {
-    { "difficulty", &settings.difficulty, 1, 5, 0 },
-    { "spinup",     &settings.spinup, 1, 100, 0 },
-    { "spindown",   &settings.spindown, 1, 100, 0 },
-    { "humfreq",    &settings.humfreq, 1.0, 500.0, HUMSETTING },
-    { "turbinefreq",&settings.turbinefreq, 1.0, 500.0, HUMSETTING },
-    { "repairfreq", &settings.repairfreq, 1.0, 500.0, HUMSETTING },
-    { "humvol",     &settings.humvol, 0.01, 1.0, HUMSETTING },
-    { "humvolhi",   &settings.humvolhi, 0.01, 1.0, HUMSETTING },
-    { "humbeat",    &settings.humbeat, 0.01, 10.0, HUMSETTING },
-    { "hibeat",     &settings.hibeat, 0.01, 10.0, HUMSETTING },
-    { "humbasevar", &settings.humbasevar, 0.0, 5.0, HUMSETTING },
-    { "spinvol1"  , &settings.spinvol1, 0.0, 2.0, 0 },
-    { "spinvol2",   &settings.spinvol2, 0.0, 2.0, 0 },
-    { "spinlow1",   &settings.spinlow1, 0.0, 500.0, 0 },
-    { "spinlow2",   &settings.spinlow2, 0.0, 500.0, 0 },
-    { "spinfreq1",  &settings.spinfreq1, 0.0, 2000.0, 0 },
-    { "spinfreq2",  &settings.spinfreq2, 0.0, 2000.0, 0 },
-    { "spinspeed1", &settings.spinspeed1, 1.0, 20000.0, 0 },
-    { "spinspeed2", &settings.spinspeed2, 1.0, 20000.0, 0 },
+    { "difficulty", &settings.difficulty, 1, 5, 1, 0, "Puzzle Difficulty Level" },
+    { "spinup",     &settings.spinup, 1, 100, 10, 0, "Spinup time (sec)" },
+    { "spindown",   &settings.spindown, 1, 100, 20, 0, "SPindown time (sec)" },
+    { "humfreq",    &settings.humfreq, 1, 500, 100, HUMSETTING, "Base hum frequency" },
+    { "turbinefreq",&settings.turbinefreq, 1, 500, 10, HUMSETTING, "Frequency step for off switch" },
+    { "repairfreq", &settings.repairfreq, 1, 500, 5, HUMSETTING, "Max frequency step for breakage" },
+    { "humvol",     &settings.humvol, 0.01, 1.0, 0.2, HUMSETTING, "Base hum volume" },
+    { "humvolhi",   &settings.humvolhi, 0.01, 1.0, 0.8, HUMSETTING, "Harmonics hum volume" },
+    { "humbeat",    &settings.humbeat, 0.01, 10.0, 0.2503, HUMSETTING, "Frequency step for base hum" },
+    { "hibeat",     &settings.hibeat, 0.01, 10.0, 0.996, HUMSETTING, "Frequency multiplier for harmonics" },
+    { "humbasevar", &settings.humbasevar, 0.0, 5.0, 0.01, HUMSETTING, "Variance in base frequencies" },
+    { "spinvol1"  , &settings.spinvol1, 0.0, 3.0, 2.0, 0, "Spinup volume 1" },
+    { "spinvol2",   &settings.spinvol2, 0.0, 3.0, 2.0, 0, "Spinup volume 2" },
+    { "spinlow1",   &settings.spinlow1, 0.0, 500.0, 90, 0, "Spinup start frequency 1" },
+    { "spinlow2",   &settings.spinlow2, 0.0, 500.0, 80, 0, "Spinup start frequency 2" },
+    { "spinfreq1",  &settings.spinfreq1, 0.0, 2000.0, 400, 0, "Spinup end frequency 1" },
+    { "spinfreq2",  &settings.spinfreq2, 0.0, 2000.0, 410, 0, "SPinup end frequency 2" },
+    { "spinspeed1", &settings.spinspeed1, 1.0, 20000.0, 2000, 0, "Spinup ledspin start speed" },
+    { "spinspeed2", &settings.spinspeed2, 1.0, 20000.0, 200, 0, "Spinup ledspin end speed" },
+    { "decaytime",  &settings.decaytime, 0.0, 100000.0, 14400, 0, "Seconds to 100% breakdown" },
 };
+
+static int write_settings(void)
+{
+    FILE *f = fopen(COMM_SETTINGS_FILE_NEW, "w");
+    if (!f) {
+        fprintf(stderr, "Failed to open %s: %s\n", COMM_SETTINGS_FILE_NEW, strerror(errno));
+        return -1;
+    }
+    fprintf(f, "{\"settings\":[");
+    for (unsigned int s = 0; s < sizeof(settingfiles)/sizeof(*settingfiles); s++) {
+        fprintf(f, "%s{\"%s\":{\"value\":%g,\"min\":%g,\"max\":%g,"
+                "\"default\":%g,\"description\":\"%s\"}",
+                (s>0?",":""), settingfiles[s].key,
+                *(settingfiles[s].variable),
+                settingfiles[s].min, settingfiles[s].max,
+                settingfiles[s].dflt, settingfiles[s].description);
+    }
+
+    fprintf(f, "]}");
+    if (fclose(f) < 0) {
+        fprintf(stderr, "Failed to write %s: %s\n", COMM_SETTINGS_FILE_NEW, strerror(errno));
+        return -1;
+    }
+    pdebug("Wrote file %s", COMM_SETTINGS_FILE_NEW);
+    if (rename(COMM_SETTINGS_FILE_NEW, COMM_SETTINGS_FILE) < 0) {
+        fprintf(stderr, "Failed to rename %s: %s\n", COMM_SETTINGS_FILE_NEW, strerror(errno));
+        return -1;
+    }
+    return 0;
+}
 
 static int read_settings_file(clist_t *conns)
 {
@@ -141,8 +182,9 @@ static int read_settings_file(clist_t *conns)
         reread--;
         return 0;
     }
-    reread = FRAMERATE*2;
+    reread = FRAMERATE/4;
     char pathname[strlen(COMM_SETTINGS_PATH)+100];
+    int changed = 0;
     for (unsigned int s = 0; s < sizeof(settingfiles)/sizeof(*settingfiles); s++) {
         strcpy(pathname, COMM_SETTINGS_PATH);
         strcat(pathname, settingfiles[s].key);
@@ -152,7 +194,8 @@ static int read_settings_file(clist_t *conns)
             if (value < settingfiles[s].min) value = settingfiles[s].min;
             if (value > settingfiles[s].max) value = settingfiles[s].max;
             if (*(settingfiles[s].variable) != value) {
-                pdebug("Changed setting %s to %f", settingfiles[s].key, value);
+                changed = 1;
+                pdebug("Changed setting %s to %g", settingfiles[s].key, value);
                 *(settingfiles[s].variable) = value;
                 conns->event |= settingfiles[s].event;
             }
@@ -161,6 +204,7 @@ static int read_settings_file(clist_t *conns)
         }
         fclose(f);
     }
+    if (changed) write_settings();
     return 0;
 }
 
@@ -171,6 +215,10 @@ int comm_read_commands(clist_t *conns)
     return 0;
 }
 
+int init_comm(void)
+{
+    return 0;
+}
 
 /* vim: ai:si:expandtab:ts=4:sw=4
  */

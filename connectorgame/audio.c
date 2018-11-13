@@ -365,7 +365,7 @@ int audio_synth_freq_vol(int channel, int synthchannel, double frequency, double
     if (frequency > 0.0) synth[synthchannel].fto = frequency;
     synth[synthchannel].vto = volume;
     synth[synthchannel].steps = steps;
-    pdebug("audio_synth_freq_vol(%d, %d, %f, %f, %d)", channel, synthchannel, frequency, volume, steps);
+    pdebug("audio_synth_freq_vol(%d, %d, %g, %g, %d)", channel, synthchannel, frequency, volume, steps);
     return 0;
 }
 int audio_synth_modulate(int channel, int synthchannel, int modchannel)

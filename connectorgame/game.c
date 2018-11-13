@@ -39,7 +39,8 @@
 #define COLOR_FILE COMM_PATH "colors.txt"
 
 /* Complete degeneration in 4 hours */
-#define REPAIR_DECAY (1.0 / (4 * 60 * 60 * (FRAMERATE/SCANRATE)))
+#define DECAYTIME (settings.decaytime)
+#define REPAIR_DECAY (1.0 / (DECAYTIME * (FRAMERATE/SCANRATE)))
 
 /* Ophouden met repair-mode na 3 minuten */
 #define REPAIR_TIMEOUT ((FRAMERATE/SCANRATE) * 3 * 60)
@@ -190,7 +191,9 @@ static void game_checklevel(clist_t *conns)
         repairing = (FRAMERATE/SCANRATE)*1;
     }
     if (repairlevel > 0.0 && (turbines[0]+turbines[1]+turbines[2]) > 2.0) {
-        repairlevel -= REPAIR_DECAY;
+        if (DECAYTIME > 0) {
+            repairlevel -= REPAIR_DECAY;
+        }
     }
     int okcnt = 0;
     int okcnts[conns->on];
