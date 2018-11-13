@@ -429,6 +429,22 @@ static void game_checklevel(clist_t *conns)
     }
 }
 
+static void sort_colors(int *colors, int *correct, int count)
+{
+    for (int i = count-1; i > 0; i--) {
+        for (int j = 0; j < i; j++) {
+            if (correct[j] < correct[j+1]) {
+                int s = correct[j];
+                correct[j] = correct[j+1];
+                correct[j+1] = s;
+                s = colors[j];
+                colors[j] = colors[j+1];
+                colors[j+1] = s;
+            }
+        }
+    }
+}
+
 /* Hint-kleuren laten zien */
 static void game_show_colors(clist_t *conns)
 {
@@ -454,6 +470,12 @@ static void game_show_colors(clist_t *conns)
                 correct[r] |= c_colors[5*r + p];
             }
         }
+    }
+    if (DIFFICULTY >= 3) {
+        sort_colors(colors, correct, 20);
+    } else if (DIFFICULTY >= 2) {
+        sort_colors(colors, correct, 10);
+        sort_colors(colors+10, correct+10, 10);
     }
     led_set_colors(colors);
 }
