@@ -14,11 +14,9 @@
         <div class="temperature">Temp: <span id="CpuTemp">?</span>&#176;C</div>
 <?php if ($_COOKIE["spelleider"] == "spelleider"): ?>
         <div class="volume">Vol: <span class="button" id="VolDown" volchange="-5">-</span> <span id="Volume">?</span>% <span class="button" id="VolUp" volchange="+5">+</span></div>
+	<div class="link"><a href="tweak.php">Tweak settings</a></div>
 <?php else: ?>
         <div class="volume">Vol: <span id="Volume">?</span>%</div>
-<?php endif; ?>
-<?php if ($_COOKIE["spelleider"] == "spelleider"): ?>
-	<table class="settings"><caption>Settings</caption><tbody id="settings"></tbody></table>
 <?php endif; ?>
     </body>
 </html>

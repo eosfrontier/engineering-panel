@@ -42,7 +42,13 @@ function create_display(colors)
         html.push('<td class="switch switch_',s,'"><div><div class="bar"></div></div></td>')
     }
     html.push('<td colspan="5">')
-    html.push('<div id="repairlevel"><!--<div class="display"></div>--><div class="full"></div></div></td></tr>')
+    html.push('<div id="difficulty">')
+    if ($('#connectors').attr('spelleider') == 'true') {
+        html.push('<span class="button lower" myval="-1">&lt;</span><span class="value"></span><span class="button higher" myval="+1">&gt;</span>')
+    } else {
+        html.push('<span class="value"></span>')
+    }
+    html.push('<div id="repairlevel"><div class="full"></div></div></td></tr>')
     html.push('<tr class="connectors">')
     for (var c = 0; c < 100; c++) {
         if (c % 10 == 5) html.push('<td class="center" colspan="3"></td>')
@@ -56,7 +62,37 @@ function create_display(colors)
         $(connectors[map_connector(c)]).addClass(colormap[colors[c]])
     }
     $('#switches div.button').click(set_repair)
+    $('#difficulty .button').click(set_difficulty)
+    $.get('set_setting.php', show_settings)
     reload()
+}
+
+function set_difficulty()
+{
+    if (!$(this).hasClass('disabled')) {
+        var d = $(this).attr('myval')
+        if (d) {
+            $.post('set_setting.php', { key: 'difficulty', value: d }, show_settings)
+        }
+    }
+}
+
+function show_settings(json)
+{
+    if (json.settings) {
+        var d = json.settings.difficulty
+        $('#difficulty .value').text(d)
+        if (d > 1) {
+            $('#difficulty .lower').removeClass('disabled').attr('myval', d-1)
+        } else {
+            $('#difficulty .lower').addClass('disabled').attr('myval', d)
+        }
+        if (d < 2) {
+            $('#difficulty .higher').removeClass('disabled').attr('myval', d+1)
+        } else {
+            $('#difficulty .higher').addClass('disabled').attr('myval', d)
+        }
+    }
 }
 
 function set_repair()
