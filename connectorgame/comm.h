@@ -15,6 +15,14 @@ extern struct settings {
     double humbeat;
     double hibeat;
     double humbasevar;
+    double spinvol1;
+    double spinvol2;
+    double spinlow1;
+    double spinlow2;
+    double spinfreq1;
+    double spinfreq2;
+    double spinspeed1;
+    double spinspeed2;
 } settings;
 
 int init_comm(void);

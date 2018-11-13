@@ -124,6 +124,14 @@ struct {
     { "humbeat",    &settings.humbeat, 0.01, 10.0, HUMSETTING },
     { "hibeat",     &settings.hibeat, 0.01, 10.0, HUMSETTING },
     { "humbasevar", &settings.humbasevar, 0.0, 5.0, HUMSETTING },
+    { "spinvol1"  , &settings.spinvol1, 0.0, 2.0, 0 },
+    { "spinvol2",   &settings.spinvol2, 0.0, 2.0, 0 },
+    { "spinlow1",   &settings.spinlow1, 0.0, 500.0, 0 },
+    { "spinlow2",   &settings.spinlow2, 0.0, 500.0, 0 },
+    { "spinfreq1",  &settings.spinfreq1, 0.0, 2000.0, 0 },
+    { "spinfreq2",  &settings.spinfreq2, 0.0, 2000.0, 0 },
+    { "spinspeed1", &settings.spinspeed1, 1.0, 20000.0, 0 },
+    { "spinspeed2", &settings.spinspeed2, 1.0, 20000.0, 0 },
 };
 
 static int read_settings_file(clist_t *conns)

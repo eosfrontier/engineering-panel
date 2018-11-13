@@ -362,7 +362,7 @@ int audio_synth_freq_vol(int channel, int synthchannel, double frequency, double
 {
     struct synth_s *synth = get_synth(channel, synthchannel);
     if (!synth) return -1;
-    synth[synthchannel].fto = frequency;
+    if (frequency > 0.0) synth[synthchannel].fto = frequency;
     synth[synthchannel].vto = volume;
     synth[synthchannel].steps = steps;
     pdebug("audio_synth_freq_vol(%d, %d, %f, %f, %d)", channel, synthchannel, frequency, volume, steps);

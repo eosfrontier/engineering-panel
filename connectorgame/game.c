@@ -15,15 +15,15 @@
 #define SPINDOWN_SEC (settings.spindown)
 #define SPINUP_SPEED (1.0/(SPINUP_SEC*FRAMERATE/SCANRATE))
 #define SPINDOWN_SPEED (1.0/(SPINDOWN_SEC*FRAMERATE/SCANRATE))
-#define SPINUP_LOW1 90.0
-#define SPINUP_LOW2 80.0
-#define SPINUP_FREQ1 200.0
-#define SPINUP_FREQ2 210.0
-#define SPINUP_VOL1 1.0
-#define SPINUP_VOL2 1.0
+#define SPINUP_LOW1 (settings.spinlow1)
+#define SPINUP_LOW2 (settings.spinlow2)
+#define SPINUP_FREQ1 (settings.spinfreq1)
+#define SPINUP_FREQ2 (settings.spinfreq2)
+#define SPINUP_VOL1 (settings.spinvol1)
+#define SPINUP_VOL2 (settings.spinvol2)
 #define SPINUP_WAVE SYNTH_TRIANGLE
-#define SPINUP_RINGSPEED1 2000
-#define SPINUP_RINGSPEED2 200
+#define SPINUP_RINGSPEED1 (settings.spinspeed1)
+#define SPINUP_RINGSPEED2 (settings.spinspeed2)
 
 #define ENGINE_FREQ (settings.humfreq)
 #define ENGINE_TBFREQ (settings.turbinefreq)
@@ -81,9 +81,8 @@ static double vary(double val, double var)
     return val * randdbl(1.0 - var, 1.0 + var);
 }
 
-static void engine_hum(double basefreq, double beatstep, double beatvar, double hibeat, double hivar, double hivol, int fade, int fadevar, int fadehi, int fadehivar)
+static void engine_hum(double lowvol, double basefreq, double beatstep, double beatvar, double hibeat, double hivar, double hivol, int fade, int fadevar, int fadehi, int fadehivar)
 {
-    double lowvol = ENGINE_VOL;
     audio_synth_freq_vol(0, 0, vary(basefreq * (1.0 + (beatstep * 0.0)), beatvar), lowvol, randint(fade-fadevar, fade+fadevar));
     audio_synth_freq_vol(0, 2, vary(basefreq * (1.0 + (beatstep * 1.0)), beatvar), lowvol, randint(fade-fadevar, fade+fadevar));
     audio_synth_freq_vol(0, 1, vary(basefreq * (1.0 + (beatstep * 2.0)), beatvar), lowvol, randint(fade-fadevar, fade+fadevar));
@@ -94,9 +93,28 @@ static void engine_hum(double basefreq, double beatstep, double beatvar, double 
     audio_synth_freq_vol(0, 6, vary(basefreq * hibeat * (1.0 + (beatstep * 3.0)), hivar), lowvol*hivol, randint(fade-fadehivar, fade+fadehivar));
 }
 
+static void engine_volume(void)
+{
+    double lowvol = ENGINE_VOL;
+    double turbinefade = (turbines[0]+turbines[1]+turbines[2]);
+    if (turbinefade < 1.0) lowvol *= turbinefade;
+    double hivol = ENGINE_HIVOL;
+    audio_synth_freq_vol(0, 0, 0, lowvol, 2);
+    audio_synth_freq_vol(0, 2, 0, lowvol, 2);
+    audio_synth_freq_vol(0, 1, 0, lowvol, 2);
+    audio_synth_freq_vol(0, 3, 0, lowvol, 2);
+    audio_synth_freq_vol(0, 5, 0, lowvol*hivol, 2);
+    audio_synth_freq_vol(0, 7, 0, lowvol*hivol, 2);
+    audio_synth_freq_vol(0, 4, 0, lowvol*hivol, 2);
+    audio_synth_freq_vol(0, 6, 0, lowvol*hivol, 2);
+}
+
 static void engine_hum_set(int fade, int fadevar, int fadehi, int fadehivar)
 {
-    engine_hum(ENGINE_FREQ - (ENGINE_TBFREQ*(3-running)) - ENGINE_RPFREQ*(1.0-repairlevel), ENGINE_BEAT, 0.2 * (ENGINE_BASEVAR-repairlevel), ENGINE_HIBEAT, 0.2 * (ENGINE_BASEVAR-repairlevel), ENGINE_HIVOL, fade, fadevar, fadehi, fadehivar);
+    double lowvol = ENGINE_VOL;
+    double turbinefade = 5.0 * (turbines[0]+turbines[1]+turbines[2]);
+    if (turbinefade < 1.0) lowvol *= turbinefade;
+    engine_hum(lowvol, ENGINE_FREQ - (ENGINE_TBFREQ*(3-running)) - ENGINE_RPFREQ*(1.0-repairlevel), ENGINE_BEAT, 0.2 * (ENGINE_BASEVAR-repairlevel), ENGINE_HIBEAT, 0.2 * (ENGINE_BASEVAR-repairlevel), ENGINE_HIVOL, fade, fadevar, fadehi, fadehivar);
 }
 
 static void init_engine_hum(void)
@@ -108,7 +126,7 @@ static void init_engine_hum(void)
         audio_synth_wave(0, i+8, SPINUP_WAVE);
         audio_synth_modulate(0, i+8, i);
     }
-    engine_hum(0.0, 0.0, 0.0, 0.0, 0.0, 0.05, 1, 0, 1, 0);
+    engine_hum(0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.05, 1, 0, 1, 0);
 }
 
 void init_game(void)
@@ -575,6 +593,7 @@ static void game_setturbine(int sw)
     } else {
         led_set_spin(spinup_ring[sw], (int)(turbines[sw] * (double)(SPINUP_RINGSPEED2-SPINUP_RINGSPEED1))+SPINUP_RINGSPEED1, col_fade(turbines[sw], 4, 0x000000, spinup_color[sw], spinup_color[sw], 0x33ffff));
     }
+    engine_volume();
 }
 
 static void game_doturbines(clist_t *conns)
