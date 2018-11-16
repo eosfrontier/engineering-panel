@@ -34,20 +34,18 @@ function create_display(colors)
     }
     var html = []
     html.push('<tr id="switches" class="switches"><td colspan="5">')
-    if ($('#connectors').attr('spelleider') == 'true') {
-        html.push('<div class="button" myval="0.5">Break</div><div class="button" myval="1.0">Fix</div>')
-    }
-    html.push('</td>')
-    for (var s = 0; s < 3; s++) {
-        html.push('<td class="switch switch_',s,'"><div><div class="bar"></div></div></td>')
-    }
-    html.push('<td colspan="5">')
-    html.push('<div id="difficulty">')
+    html.push('<div id="difficulty"><div>Difficulty</div>')
     if ($('#connectors').attr('spelleider') == 'true') {
         html.push('<span class="button lower" myval="-1">&lt;</span><span class="value"></span><span class="button higher" myval="+1">&gt;</span>')
     } else {
         html.push('<span class="value"></span>')
     }
+    html.push('</div></td>')
+    for (var s = 0; s < 3; s++) {
+        html.push('<td class="switch switch_',s,'"><div><div class="bar"></div></div></td>')
+    }
+    html.push('<td colspan="5">')
+    html.push('<div>Power</div>')
     html.push('<div id="repairlevel"><div class="full"></div></div></td></tr>')
     html.push('<tr class="connectors">')
     for (var c = 0; c < 100; c++) {
@@ -61,7 +59,7 @@ function create_display(colors)
     for (var c = 0; c < colors.length; c++) {
         $(connectors[map_connector(c)]).addClass(colormap[colors[c]])
     }
-    $('#switches div.button').click(set_repair)
+    $('table.break .button').click(set_repair)
     $('#difficulty .button').click(set_difficulty)
     $.get('set_setting.php', show_settings)
     reload()
