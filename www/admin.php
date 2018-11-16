@@ -10,7 +10,8 @@
 	<p>Panel-PI status</p>
         <div class="memory">Mem: <span id="Memory"></span></div>
         <div class="cpuload">Load: <span id="LoadAvg1">?</span> <span id="LoadAvg5">?</span> <span id="LoadAvg15">?</span></div>
-        <div class="cpuload">UpTime: <span id="UpTime">?</span></div>
+        <div class="cpuperc">CPU: <span id="CpuUsage">?</span>%</div>
+        <div class="uptime">UpTime: <span id="UpTime">?</span></div>
         <div class="temperature">Temp: <span id="CpuTemp">?</span>&#176;C</div>
 <?php if ($_COOKIE["spelleider"] == "spelleider"): ?>
         <div class="volume">Vol: <span class="button" id="VolDown" volchange="-5">-</span> <span id="Volume">?</span>% <span class="button" id="VolUp" volchange="+5">+</span></div>

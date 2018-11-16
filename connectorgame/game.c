@@ -360,7 +360,9 @@ static void game_checklevel(clist_t *conns)
         }
         /* Kijken of repairlevel gedaald of gestegen is, evt solution aanpassen */
         if (okcnt > wantok) {
-            flash_spark(); /* TODO: Small spark */
+            if (repairlevel <= 0.9) {
+                flash_spark(); /* TODO: Small spark */
+            }
         }
         if (okcnt != wantok) {
             /* Geluid aanpassen aan hoe stuk het is */

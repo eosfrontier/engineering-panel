@@ -51,5 +51,11 @@ if (preg_match('/([\d.]+)\s*([\d.]+)/', file_get_contents('/proc/uptime'), $matc
     $sysinfo["IdleTimeSecs"] = floatval($matches[2]);
     $sysinfo["UpTime"] = gmdate("H:i:s", $sysinfo["UpTimeSecs"]);
 }
+if (preg_match('/^cpu\s*([\d]+)\s*([\d]+)\s*([\d]+)\s*([\d]+)/', file_get_contents('/proc/stat'), $matches)) {
+    $sysinfo["CpuUser"] = intval($matches[1]);
+    $sysinfo["CpuNice"] = intval($matches[2]);
+    $sysinfo["CpuSystem"] = intval($matches[3]);
+    $sysinfo["CpuIdle"] = intval($matches[4]);
+}
 echo json_encode(array("sysinfo"=>$sysinfo));
 ?>
