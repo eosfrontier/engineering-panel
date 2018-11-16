@@ -21,7 +21,9 @@ enum led_animation_types {
     ANIMATION_SPIN,
     ANIMATION_COLORS,
     ANIMATION_BLANK,
-    ANIMATION_FLASH = 0x80
+    ANIMATION_BLINK,
+    ANIMATION_FLASH = 0x80,
+    ANIMATION_STATIC,
 };
 
 #define TARGET_FREQ             WS2811_TARGET_FREQ
@@ -68,6 +70,11 @@ typedef struct ledanim {
 } ledanim_t;
 
 static ledanim_t *led_animations = NULL;
+
+static int randint(int from, int to)
+{
+    return from + ((random() % (to - from + 1)));
+}
 
 static int col_fade(double val, int num, ...)
 {
@@ -159,7 +166,6 @@ static unsigned int colstep(unsigned int from, unsigned int to)
     return rescol;
 }
 
-static int blinkstep = 0;
 static unsigned int colorlist[] = {
     BLACK_COLOR,
     BLUE_COLOR,
@@ -179,7 +185,7 @@ int led_set_colors(int *colors)
             newan = *an;
             if (newan->next) {
                 if (!(newan->next->type & ANIMATION_FLASH)) {
-                    /* Altijd naar het einde van de lijst zetten, behalve flasg */
+                    /* Altijd naar het einde van de lijst zetten, behalve flash */
                     *an = newan->next;
                     newan->next = NULL;
                     while (*an && !((*an)->type & ANIMATION_FLASH)) {
@@ -333,8 +339,8 @@ static int led_animate_flash(ledanim_t *an)
         dpos += an->data[dp+0];
         if (an->pos <= dpos) return 0;
         dpos += an->data[dp+1];
-        int col = an->data[dp+2];
         if (an->pos <= dpos) {
+            int col = an->data[dp+2];
             for (int ip = 0; ip < an->size; ip++) {
                 ledstring.channel[0].leds[an->offset+ip] = col;
             }
@@ -342,6 +348,24 @@ static int led_animate_flash(ledanim_t *an)
         }
     }
     return 1;
+}
+
+static int led_animate_blink(ledanim_t *an)
+{
+    an->pos += 1;
+    int dpos = 0;
+    for (int dp = 1; dp < an->data[0]; dp += 2) {
+        dpos += an->data[dp+0];
+        if (an->pos <= dpos) {
+            int col = an->data[dp+1];
+            for (int ip = 0; ip < an->size; ip++) {
+                ledstring.channel[0].leds[an->offset+ip] = col;
+            }
+            return 0;
+        }
+    }
+    an->pos = 0;
+    return led_animate_blink(an);
 }
 
 static int led_animate_swipe(ledanim_t *an)
@@ -388,6 +412,21 @@ static int led_animate_idle(ledanim_t *an)
     return 0;
 }
 
+static int led_animate_static(ledanim_t *an)
+{
+    if (an->pos == 0) {
+        an->pos = an->speed + randint(0, an->data[0]);
+        int r = randint((an->data[1] >> 16) & 0xff, (an->data[2] >> 16) & 0xff);
+        int g = randint((an->data[1] >>  8) & 0xff, (an->data[2] >>  8) & 0xff);
+        int b = randint((an->data[1]      ) & 0xff, (an->data[2]      ) & 0xff);
+        int ip = an->offset+randint(0, an->size-1);
+        ledstring.channel[0].leds[ip] = r << 16 | g << 8 | b;
+    } else {
+        an->pos -= 1;
+    }
+    return 0;
+}
+
 static int led_animate_spin(ledanim_t *an)
 {
     an->pos = (an->pos + 1000000) % (an->speed * an->size * 1000);
@@ -430,6 +469,10 @@ int led_animate(ledanim_t *an) {
             return led_animate_colors(an);
         case ANIMATION_BLANK:
             return led_animate_blank(an);
+        case ANIMATION_BLINK:
+            return led_animate_blink(an);
+        case ANIMATION_STATIC:
+            return led_animate_static(an);
         default:
             fprintf(stderr, "Unknown animation type %d\n", an->type);
             return -1;
@@ -530,6 +573,49 @@ int led_set_flash(int ring, int num, ...)
     return 0;
 }
 
+/* ring, num, [ontime, color]... */
+int led_set_blink(int ring, int num, ...)
+{
+    va_list argp;
+    va_start(argp, num);
+    ledanim_t **an;
+    for (an = &led_animations; *an;) {
+        if (((*an)->offset == ring*RING_SIZE) && (((*an)->type == ANIMATION_BLINK) || ((*an)->type == ANIMATION_STATIC))) {
+            ledanim_t *f = *an;
+            *an = (*an)->next;
+            free(f);
+        } else {
+            an = &((*an)->next);
+        }
+    }
+    ledanim_t *newan = malloc(sizeof(ledanim_t) + (1+(num*2))*sizeof(int));
+    if (!newan) {
+        fprintf(stderr, "Allocation for animation failed!\n");
+        return -1;
+    }
+    newan->next = NULL;
+    newan->type = ANIMATION_BLINK;
+    newan->offset = ring*RING_SIZE;
+    newan->size = RING_SIZE;
+    newan->speed = 32;
+    newan->fadein = 0;
+    newan->fadepos = 0;
+    newan->pos = 0;
+    newan->data[0] = 2*num+1;
+    for (int i = 0; i < num; i++) {
+        newan->data[2*i+1] = va_arg(argp, unsigned int);
+        newan->data[2*i+2] = va_arg(argp, unsigned int);
+        if (newan->data[2*i+1] == 0) {
+            fprintf(stderr, "Failed blink animation, steptime %d = 0", i);
+            free(newan);
+            return -1;
+        }
+    }
+    va_end(argp);
+    *an = newan;
+    return 0;
+}
+
 /* ring, speed, offset, num, [color]... */
 int led_set_swipe(int ring, int speed, int offset, int num, ...)
 {
@@ -561,7 +647,7 @@ int led_set_swipe(int ring, int speed, int offset, int num, ...)
 }
 
 /* ring, speed, color */
-int led_set_idle(int ring, int speed, unsigned int color)
+int led_set_idle(int ring, int speed, int pos, unsigned int color)
 {
     ledanim_t **an = &led_animations;
     while (*an) an = &((*an)->next);
@@ -577,7 +663,7 @@ int led_set_idle(int ring, int speed, unsigned int color)
     newan->speed = speed;
     newan->fadein = 0;
     newan->fadepos = 0;
-    newan->pos = 0;
+    newan->pos = pos;
     newan->data[0] = color;
     *an = newan;
     return 0;
@@ -645,6 +731,41 @@ int led_set_blank(int ring, int fadein)
     for (int i = 0; i < RING_SIZE; i++) {
         newan->data[i] = ledstring.channel[0].leds[newan->offset+i];
     }
+    *an = newan;
+    return 0;
+}
+
+int led_set_static(int ring, int speed, int variance, unsigned int mincol, unsigned int maxcol)
+{
+    pdebug("led_set_static(%d, %d, %d, %06x, %06x)", ring, speed, variance, mincol, maxcol);
+    /* Find previous spin */
+    ledanim_t *newan = NULL, **an;
+    for (an = &led_animations; *an;) {
+        if (((*an)->offset == ring*RING_SIZE) && (((*an)->type == ANIMATION_BLINK) || ((*an)->type == ANIMATION_STATIC))) {
+            ledanim_t *f = *an;
+            *an = (*an)->next;
+            free(f);
+        } else {
+            an = &((*an)->next);
+        }
+    }
+    if (speed < 0) return 0;
+    newan = malloc(sizeof(ledanim_t) + (3)*sizeof(int));
+    if (!newan) {
+        fprintf(stderr, "Allocation for animation failed!\n");
+        return -1;
+    }
+    newan->next = NULL;
+    newan->type = ANIMATION_STATIC;
+    newan->offset = ring*RING_SIZE;
+    newan->size = RING_SIZE;
+    newan->fadein = 0;
+    newan->fadepos = 0;
+    newan->pos = 0;
+    newan->speed = speed;
+    newan->data[0] = variance;
+    newan->data[1] = mincol;
+    newan->data[2] = maxcol;
     *an = newan;
     return 0;
 }

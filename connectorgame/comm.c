@@ -125,7 +125,7 @@ struct {
 } settingfiles[] = {
     { "difficulty", &settings.difficulty, 1, 5, 1, 0, "Puzzle Difficulty Level" },
     { "spinup",     &settings.spinup, 1, 100, 10, 0, "Spinup time (sec)" },
-    { "spindown",   &settings.spindown, 1, 100, 20, 0, "SPindown time (sec)" },
+    { "spindown",   &settings.spindown, 1, 100, 20, 0, "Spindown time (sec)" },
     { "humfreq",    &settings.humfreq, 1, 500, 100, HUMSETTING, "Base hum frequency" },
     { "turbinefreq",&settings.turbinefreq, 1, 500, 10, HUMSETTING, "Frequency step for off switch" },
     { "repairfreq", &settings.repairfreq, 1, 500, 5, HUMSETTING, "Max frequency step for breakage" },
@@ -139,10 +139,11 @@ struct {
     { "spinlow1",   &settings.spinlow1, 0.0, 500.0, 90, 0, "Spinup start frequency 1" },
     { "spinlow2",   &settings.spinlow2, 0.0, 500.0, 80, 0, "Spinup start frequency 2" },
     { "spinfreq1",  &settings.spinfreq1, 0.0, 2000.0, 400, 0, "Spinup end frequency 1" },
-    { "spinfreq2",  &settings.spinfreq2, 0.0, 2000.0, 410, 0, "SPinup end frequency 2" },
+    { "spinfreq2",  &settings.spinfreq2, 0.0, 2000.0, 410, 0, "Spinup end frequency 2" },
     { "spinspeed1", &settings.spinspeed1, 1.0, 20000.0, 2000, 0, "Spinup ledspin start speed" },
     { "spinspeed2", &settings.spinspeed2, 1.0, 20000.0, 200, 0, "Spinup ledspin end speed" },
-    { "decaytime",  &settings.decaytime, 0.0001, 500.0, 4.0, 0, "Hours to 100% breakdown" },
+    { "decaytime",  &settings.decaytime, 0.0, 500.0, 4.0, 0, "Hours to 100% breakdown (0 = off)" },
+    { "breakdown",  &settings.breakdown, 0.0, 1.0, 0.2, 0, "Total breakdown at level" },
 };
 
 static int write_settings(void)

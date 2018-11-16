@@ -34,7 +34,14 @@
 #define ENGINE_HIBEAT (settings.hibeat)
 #define ENGINE_BASEVAR (1.0 + (settings.humbasevar))
 
+#define BREAKDOWN (settings.breakdown)
+
 #define DIFFICULTY (settings.difficulty)
+
+#define STATIC_SPEED (repairlevel*20)
+#define STATIC_VARIANCE (repairlevel*20)
+#define STATIC_MINCOLOR 0x440000
+#define STATIC_MAXCOLOR 0x884444
 
 #define COLOR_FILE COMM_PATH "colors.txt"
 
@@ -112,10 +119,42 @@ static void engine_volume(void)
 
 static void engine_hum_set(int fade, int fadevar, int fadehi, int fadehivar)
 {
-    double lowvol = ENGINE_VOL;
-    double turbinefade = 5.0 * (turbines[0]+turbines[1]+turbines[2]);
-    if (turbinefade < 1.0) lowvol *= turbinefade;
-    engine_hum(lowvol, ENGINE_FREQ - (ENGINE_TBFREQ*(3-running)) - ENGINE_RPFREQ*(1.0-repairlevel), ENGINE_BEAT, 0.2 * (ENGINE_BASEVAR-repairlevel), ENGINE_HIBEAT, 0.2 * (ENGINE_BASEVAR-repairlevel), ENGINE_HIVOL, fade, fadevar, fadehi, fadehivar);
+            if (repairlevel <= BREAKDOWN) {
+                /* Helemaal stuk, engine valt uit */
+                if (turbines[0]+turbines[1]+turbines[2] > 0.1) {
+                    engine_hum(ENGINE_VOL, 1.0, 1.0, 1.0, 1.0, 1.0, ENGINE_HIVOL, FRAMERATE*7, FRAMERATE*4, FRAMERATE*6, FRAMERATE*4);
+                    led_set_blink(0, 2, FRAMERATE/2, 0xff0000, FRAMERATE/3, 0x000000);
+                    led_set_blink(1, 1, FRAMERATE, 0x000000);
+                    led_set_blink(2, 2, FRAMERATE/2, 0xff0000, FRAMERATE/3, 0x000000);
+                    led_set_blink(3, 2, FRAMERATE/2, 0xff0000, FRAMERATE/3, 0x000000);
+                    led_set_blank(0, FRAMERATE);
+                    led_set_blank(1, FRAMERATE);
+                    led_set_blank(2, FRAMERATE);
+                    led_set_blank(3, FRAMERATE);
+                } else {
+                    engine_hum(0.0, 1.0, 1.0, 1.0, 1.0, 1.0, ENGINE_HIVOL, FRAMERATE*7, FRAMERATE*4, FRAMERATE*6, FRAMERATE*4);
+                    led_set_static(0, -1, 0, 0, 0); /* Remove static */
+                    led_set_static(1, -1, 0, 0, 0); /* Remove static */
+                    led_set_static(2, -1, 0, 0, 0); /* Remove static */
+                    led_set_static(3, -1, 0, 0, 0); /* Remove static */
+                }
+            } else {
+                double lowvol = ENGINE_VOL;
+                double turbinefade = 5.0 * (turbines[0]+turbines[1]+turbines[2]);
+                if (turbinefade < 1.0) lowvol *= turbinefade;
+                engine_hum(lowvol, ENGINE_FREQ - (ENGINE_TBFREQ*(3-running)) - ENGINE_RPFREQ*(1.0-repairlevel), ENGINE_BEAT, 0.2 * (ENGINE_BASEVAR-repairlevel), ENGINE_HIBEAT, 0.2 * (ENGINE_BASEVAR-repairlevel), ENGINE_HIVOL, fade, fadevar, fadehi, fadehivar);
+                if (repairlevel <= 0.9) {
+                    led_set_static(0, (int)(STATIC_SPEED), (int)(STATIC_VARIANCE), STATIC_MINCOLOR, STATIC_MAXCOLOR);
+                    led_set_static(1, (int)(STATIC_SPEED), (int)(STATIC_VARIANCE), STATIC_MINCOLOR, STATIC_MAXCOLOR);
+                    led_set_static(2, (int)(STATIC_SPEED), (int)(STATIC_VARIANCE), STATIC_MINCOLOR, STATIC_MAXCOLOR);
+                    led_set_static(3, (int)(STATIC_SPEED), (int)(STATIC_VARIANCE), STATIC_MINCOLOR, STATIC_MAXCOLOR);
+                } else {
+                    led_set_static(0, -1, 0, 0, 0); /* Remove static */
+                    led_set_static(1, -1, 0, 0, 0); /* Remove static */
+                    led_set_static(2, -1, 0, 0, 0); /* Remove static */
+                    led_set_static(3, -1, 0, 0, 0); /* Remove static */
+                }
+            }
 }
 
 static void init_engine_hum(void)
@@ -135,9 +174,10 @@ void init_game(void)
     init_engine_hum();
     repairlevel = 1.0;
     booting = 10;
-    led_set_idle(0, FRAMERATE/4, 0x010002);
-    led_set_idle(2, FRAMERATE/4, 0x010002);
-    led_set_idle(3, FRAMERATE/4, 0x010002);
+    led_set_idle(0, FRAMERATE/4, 0, 0x010002);
+    led_set_idle(1, FRAMERATE/4, 6*(FRAMERATE/4), 0x010002);
+    led_set_idle(2, FRAMERATE/4, 12*(FRAMERATE/4), 0x010002);
+    led_set_idle(3, FRAMERATE/4, 18*(FRAMERATE/4), 0x010002);
     FILE *f = fopen(COLOR_FILE, "r");
     if (!f) {
         fprintf(stderr, "Failed to open colors file %s: %s\n", COLOR_FILE, strerror(errno));
@@ -188,19 +228,22 @@ static void game_checklevel(clist_t *conns)
         return;
     }
     if ((conns->event & REPAIR) && repairlevel > 0.9) {
+        /* Iemand heeft extern een 'fix' gedaan.  Zorg dat het fixed-effect afgaat */
         repairing = (FRAMERATE/SCANRATE)*1;
     }
     if (repairlevel > 0.0 && (turbines[0]+turbines[1]+turbines[2]) > 2.0) {
+        /* Als de boel draait, gaat het langzaam stuk. (Helemaal stuk na X uur) */
         if (DECAYTIME > 0) {
             repairlevel -= REPAIR_DECAY;
         }
     }
-    int okcnt = 0;
-    int okcnts[conns->on];
-    int okpc[3] = {0,0,0};
+    int okcnt = 0;         // Telt hoeveel goede connectors er zijn
+    int okcnts[conns->on]; // Hoeveel connecties er goed zijn per kabel
+    int okpc[3] = {0,0,0}; // Aantal connecties met 0, 1 of 2 goede stekkers
     for (int i = 0; i < NUM_ROWS; i++) {
         puzzle.current[i] = 0;
     }
+    /* Tellen hoeveel conecties er goed zijn */
     for (int i = 0; i < conns->on; i++) {
         okcnts[i] = 0;
         for (int cc = 0; cc < 2; cc++) {
@@ -216,10 +259,12 @@ static void game_checklevel(clist_t *conns)
         okpc[okcnts[i]]++;
     }
     if (conns->event & HUMSETTING) {
+        /* Iemand heeft geluids settings aangepast (tweak.php) */
         engine_hum_set(FRAMERATE, FRAMERATE/2, FRAMERATE*2, FRAMERATE);
     }
     int slbtn = conns->buttons[BUTTON_SL].status;
     if ((slbtn & (BUTTON_CLICKED|BUTTON_HOLD)) && (slbtn & BUTTON_CLICKS) > 2) {
+        /* Het kleine knopje achter de power connector als backup voor admin interface */
         pdebug("SL-Button pressed %d times, flags = %x", (slbtn & BUTTON_CLICKS), slbtn >> 8);
         if (slbtn & BUTTON_HOLD) {
             if ((slbtn & BUTTON_CLICKS) >= 4) {
@@ -232,6 +277,7 @@ static void game_checklevel(clist_t *conns)
         }
     }
     for (int sw = 0; sw < 3; sw++) {
+        /* Als iemand een schakelaar snel aan en uit zet dan gaat het stuk */
         int clicks = conns->buttons[sw].status & BUTTON_CLICKS;
         if (clicks > 4) {
             pdebug("Switch toggled %d times", clicks);
@@ -242,6 +288,7 @@ static void game_checklevel(clist_t *conns)
             }
         }
     }
+    /* Hoeveel connecties er goed zouden moeten zijn volgens repairlevel */
     int wantok = ((int)((20.0*repairlevel)+0.5));
     if (!(conns->event & REPAIR) && (conns->newon + conns->off) > 0) {
         /* Iemand heeft iets losgetrokken of ingestoken, solution checken en repairlevel aanpassen */
@@ -255,6 +302,7 @@ static void game_checklevel(clist_t *conns)
         }
         static connection_t lastconn;
         if (conns->newon > 0) {
+            /* Laast vastgestoken kabel onthouden ivm debounce */
             lastconn = conns->pins[conns->on-1];
         }
         /* Checken of het een goed-goed verbinding was die is losgegaan, zo ja de oplossing veranderen */
@@ -269,7 +317,7 @@ static void game_checklevel(clist_t *conns)
                 }
             }
             if ((nokcnt == 2) && memcmp(&lastconn, &(conns->pins[i]), sizeof(lastconn))) {
-                /* Goed-god verbinding los, extra stukmaken */
+                /* Goed-goed verbinding los, extra stukmaken.  Maar alleen als het niet de laatst vastgestoken kabel was, ivm bounce */
                 flash_spark();
                 for (int cc = 0; cc < 2; cc++) {
                     int p = conns->pins[i].p[cc];
@@ -277,6 +325,7 @@ static void game_checklevel(clist_t *conns)
                     p = p % 5;
                     int pc = puzzle.solution[r];
                     int ccnt = bitcnt(pc ^ 0x1f);
+                    /* Nieuwe 'goede' connector in deze rij kiezen */
                     if (ccnt > 0) {
                         ccnt = randint(0, ccnt-1);
                         for (int np = 0; np < 5; np++) {
@@ -293,12 +342,14 @@ static void game_checklevel(clist_t *conns)
                 }
             }
         }
+        /* Geeft aan of er iemand met de kabels bezig is wordt, dan tonen we de 'puzzel' voor een bepaalde tijd */
         repairing = newrl;
     } else {
         if (repairing > 0) {
             /* Na bepaalde tijd hint-kleuren weer weghalen */
             if (--repairing <= 0) {
                 if (okcnt == 20) {
+                    /* 'Felicitatie' rainbow-swipe om te tonen dat alles weer OK is */
                     led_set_swipe(0, FRAMERATE*2, 0, 3, 0x0000ff, 0x0000ff, 0x0000ff);
                     led_set_swipe(1, FRAMERATE*2, 0, 3, 0x888800, 0x888800, 0x888800);
                     led_set_swipe(2, FRAMERATE*2, 12, 3, 0xff0000, 0xff0000, 0xff0000);
@@ -312,6 +363,7 @@ static void game_checklevel(clist_t *conns)
             flash_spark(); /* TODO: Small spark */
         }
         if (okcnt != wantok) {
+            /* Geluid aanpassen aan hoe stuk het is */
             engine_hum_set(FRAMERATE, FRAMERATE/2, FRAMERATE*2, FRAMERATE);
             pdebug("okcnt: %d <> %d : %d, %d, %d", okcnt, wantok, okpc[0], okpc[1], okpc[2]);
         }
@@ -322,6 +374,8 @@ static void game_checklevel(clist_t *conns)
             for (int okwc = 1; okwc <= 2; okwc++) {
                 int bcon = -1;
                 pdebug("okcnt: %d > %d : %d, %d, %d okpc[%d] = %d", okcnt, wantok, okpc[0], okpc[1], okpc[2], okwc, okpc[okwc]);
+                /* okpc houdt bij hoeveel kabels er X goede verbindingen hebben,
+                 * hiermee kunnen we er een random kiezen met een gericht aantal goede verbindingen */
                 if (okpc[okwc] > 0) {
                     /* Random een connectie kiezen die okwc (1 of 2) juiste connecties heeft */
                     int ri = randint(0, okpc[okwc]-1);
@@ -345,6 +399,7 @@ static void game_checklevel(clist_t *conns)
                         int r = PIN_ROW(p);
                         p = p % 5;
                         if (puzzle.solution[r] & (1 << p)) {
+                            /* Tellers bijwerken */
                             okpc[okwc]--;
                             okpc[okwc-1]++;
                             okcnts[bcon]--;
@@ -380,6 +435,7 @@ static void game_checklevel(clist_t *conns)
                 }
             }
             if (!didbreak) {
+                /* Safety: Eindeloze lus voorkomen */
                 wantok = okcnt;
                 repairlevel = ((double)okcnt / 20.0);
                 break;
@@ -452,6 +508,7 @@ static void game_checklevel(clist_t *conns)
                 }
             }
             if (!didfix) {
+                /* Safety: Eindeloze lus voorkomen */
                 wantok = okcnt;
                 repairlevel = ((double)okcnt / 20.0);
                 break;

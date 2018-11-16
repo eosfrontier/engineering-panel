@@ -34,9 +34,11 @@ int ledshow_mastermind(int side, int colors, int correct);
 int led_set_plasma(int ring, int fadein, int num, ...);
 int led_remove_animation(int ring);
 int led_set_flash(int ring, int num, ...);
+int led_set_blink(int ring, int num, ...);
 int led_set_swipe(int ring, int speed, int offset, int num, ...);
-int led_set_idle(int ring, int speed, unsigned int color);
+int led_set_idle(int ring, int speed, int pos, unsigned int color);
 int led_set_spin(int ring, int speed, unsigned int color);
+int led_set_static(int ring, int speed, int variance, unsigned int mincol, unsigned int maxcol);
 int led_set_blank(int ring, int fade);
 int leds_mainloop(void);
 
