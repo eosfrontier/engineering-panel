@@ -677,6 +677,15 @@ static void game_doturbines(clist_t *conns)
     static int prev_running = 0;
     running = 0;
     /* Kijken of de schakelaars zijn omgezet */
+    if (booting > 0) {
+        for (int sw = 0; sw < 3; sw++) {
+            if (conns->buttons[sw].status & BUTTON_ON) {
+                turbines[sw] = 0.99;
+            } else {
+                turbines[sw] = 0.0;
+            }
+        }
+    }
     for (int sw = 0; sw < 3; sw++) {
         if (conns->buttons[sw].status & BUTTON_ON) {
             running++;

@@ -1,9 +1,10 @@
 [Unit]
 Description=service to start shuttle pannel connectorgame
 DefaultDependencies=false
+Wants=network-online.target
 Wants=home.mount
 Wants=sound.target
-After=home.mount
+After=network-online.target
 
 [Service]
 ExecStart=/home/pi/shuttle-panels/connectorgame/connectorgame
@@ -11,4 +12,4 @@ Restart=always
 RestartSec=1
 
 [Install]
-WantedBy=networking.target
+WantedBy=multi-user.target
