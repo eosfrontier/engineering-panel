@@ -142,7 +142,7 @@ struct {
     { "spinfreq2",  &settings.spinfreq2, 0.0, 2000.0, 410, 0, "SPinup end frequency 2" },
     { "spinspeed1", &settings.spinspeed1, 1.0, 20000.0, 2000, 0, "Spinup ledspin start speed" },
     { "spinspeed2", &settings.spinspeed2, 1.0, 20000.0, 200, 0, "Spinup ledspin end speed" },
-    { "decaytime",  &settings.decaytime, 0.0, 100000.0, 14400, 0, "Seconds to 100% breakdown" },
+    { "decaytime",  &settings.decaytime, 0.0001, 500.0, 4.0, 0, "Hours to 100% breakdown" },
 };
 
 static int write_settings(void)

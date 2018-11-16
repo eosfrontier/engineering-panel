@@ -40,7 +40,7 @@
 
 /* Complete degeneration in 4 hours */
 #define DECAYTIME (settings.decaytime)
-#define REPAIR_DECAY (1.0 / (DECAYTIME * (FRAMERATE/SCANRATE)))
+#define REPAIR_DECAY (1.0 / (DECAYTIME * 60 * 60 * (FRAMERATE/SCANRATE)))
 
 /* Ophouden met repair-mode na 3 minuten */
 #define REPAIR_TIMEOUT ((FRAMERATE/SCANRATE) * 3 * 60)
