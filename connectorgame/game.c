@@ -219,7 +219,7 @@ static void game_checklevel(clist_t *conns)
         engine_hum_set(FRAMERATE, FRAMERATE/2, FRAMERATE*2, FRAMERATE);
     }
     int slbtn = conns->buttons[BUTTON_SL].status;
-    if ((slbtn & BUTTON_CLICKS) > 2) {
+    if ((slbtn & (BUTTON_CLICKED|BUTTON_HOLD)) && (slbtn & BUTTON_CLICKS) > 2) {
         pdebug("SL-Button pressed %d times, flags = %x", (slbtn & BUTTON_CLICKS), slbtn >> 8);
         if (slbtn & BUTTON_HOLD) {
             if ((slbtn & BUTTON_CLICKS) >= 4) {
@@ -229,6 +229,17 @@ static void game_checklevel(clist_t *conns)
         } else {
             repairlevel -= 0.1 * (slbtn & BUTTON_CLICKS);
             if (repairlevel < 0.0) repairlevel = 0.0;
+        }
+    }
+    for (int sw = 0; sw < 3; sw++) {
+        int clicks = conns->buttons[sw].status & BUTTON_CLICKS;
+        if (clicks > 4) {
+            pdebug("Switch toggled %d times", clicks);
+            if (repairlevel > (1.0 - 0.1 * (clicks-2))) {
+                repairlevel = (1.0 - 0.1 * clicks);
+                if (repairlevel < 0.0) repairlevel = 0.0;
+                pdebug("Switch toggled break level %g", repairlevel);
+            }
         }
     }
     int wantok = ((int)((20.0*repairlevel)+0.5));

@@ -320,6 +320,7 @@ clist_t *find_connections(void)
                 buttons[bp].lastoff = BUTTON_HOLDTIME*2;
             }
             if (buttons[bp].laston == BUTTON_HOLDTIME) {
+                pdebug("Button %d clicked %d times and held", bp, buttons[bp].clicks);
                 status = buttons[bp].clicks | BUTTON_HOLD;
             } else if (buttons[bp].laston > BUTTON_HOLDTIME) {
                 buttons[bp].clicks = 0;
@@ -342,16 +343,19 @@ clist_t *find_connections(void)
             if (buttons[bp].lastoff >= BUTTON_HOLDTIME) {
                 buttons[bp].lastoff = BUTTON_HOLDTIME;
                 if (buttons[bp].clicks > 0) {
+                    status |= BUTTON_CLICKED;
                     pdebug("Button %d clicked %d times", bp, buttons[bp].clicks);
-                    if (buttons[bp].clicks > 100) {
-                        status = 100;
-                    } else {
-                        status = buttons[bp].clicks;
-                    }
-                    buttons[bp].clicks = 0;
                 }
             }
             status &= ~BUTTON_ON;
+        }
+        if (buttons[bp].clicks > 100) {
+            status |= 100;
+        } else {
+            status |= buttons[bp].clicks;
+        }
+        if (status & BUTTON_CLICKED) {
+            buttons[bp].clicks = 0;
         }
         if (status != buttons[bp].laststatus) {
             buttons[bp].laststatus = status;
