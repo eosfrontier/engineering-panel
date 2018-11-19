@@ -318,7 +318,9 @@ static void game_checklevel(clist_t *conns)
             }
             if ((nokcnt == 2) && memcmp(&lastconn, &(conns->pins[i]), sizeof(lastconn))) {
                 /* Goed-goed verbinding los, extra stukmaken.  Maar alleen als het niet de laatst vastgestoken kabel was, ivm bounce */
-                flash_spark();
+                if (turbines[0]+turbines[1]+turbines[2] > 0.5) {
+                    flash_spark();
+                }
                 for (int cc = 0; cc < 2; cc++) {
                     int p = conns->pins[i].p[cc];
                     int r = PIN_ROW(p);
@@ -361,7 +363,9 @@ static void game_checklevel(clist_t *conns)
         /* Kijken of repairlevel gedaald of gestegen is, evt solution aanpassen */
         if (okcnt > wantok) {
             if (repairlevel <= 0.9) {
-                flash_spark(); /* TODO: Small spark */
+                if (turbines[0]+turbines[1]+turbines[2] > 0.5) {
+                    flash_spark(); /* TODO: Small spark */
+                }
             }
         }
         if (okcnt != wantok) {
