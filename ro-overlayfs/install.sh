@@ -27,10 +27,10 @@ systemctl daemon-reload
 systemctl enable syncoverlayfs.service
 
 # Change boot cmdline
-perl -pie 's{rootwait( noswap fastboot ro)?}{rootwait noswap fastboot ro}' /boot/cmdline.txt
+perl -pi -e 's{rootwait( noswap fastboot ro)?}{rootwait noswap fastboot ro}' /boot/cmdline.txt
 
 # Edit /etc/fstab
-perl -pie 's{(/boot\s*vfat\s*defaults)}{$1,ro}' /etc/fstab
+perl -pi -e 's{(/boot\s*vfat\s*defaults)}{$1,ro}' /etc/fstab
 cat fstab.add >> /etc/fstab
 
 for D in /home /var
