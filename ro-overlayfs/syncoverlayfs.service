@@ -1,0 +1,14 @@
+[Unit]
+Description=Sync Overlay Filesystems 
+# Change the below line to contain all overlayfs mounts
+RequiresMountsFor=/var /home 
+
+[Service]
+ExecStart=/etc/init.d/saveoverlays start
+ExecStop=/etc/init.d/saveoverlays stop
+Type=oneshot
+RemainAfterExit=yes
+TimeoutStopSec=5min
+
+[Install]
+WantedBy=multi-user.target
