@@ -3,8 +3,11 @@ HEADERS = main.h mcp.h leds.h audio.h game.h comm.h
 %.o: %.c $(HEADERS)
 	gcc -O2 -Wno-unused -W -Wall -o $@ -c $<
 
-connectorgame: main.o mcp.o leds.o audio.o game.o comm.o
-	gcc -O2 -Wno-unused -W -Wall -o $@ $^ -lm -lwiringPi -lws2811 -lasound
+connectorgame: main.o mcp.o leds.o audio.o game.o comm.o ../rpi_ws281x/libws2811.a
+	gcc -O2 -Wno-unused -W -Wall -o $@ $^ -lm -lwiringPi ../rpi_ws281x/libws2811.a -lasound
+
+../rpi_ws281x/libws2811.a:
+	scons -C ../rpi_ws281x
 
 test: connectorgame
 	sudo systemctl stop connectorgame.service

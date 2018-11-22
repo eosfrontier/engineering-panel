@@ -12,7 +12,7 @@
 #include <math.h>
 #include "main.h"
 #include "leds.h"
-#include "../../source/rpi_ws281x/ws2811.h"
+#include "../rpi_ws281x/ws2811.h"
 
 enum led_animation_types {
     ANIMATION_PLASMA,
