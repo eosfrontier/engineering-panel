@@ -1,7 +1,7 @@
 #!/bin/bash
 
 sudo apt-get -q -y update
-sudo apt-get -q -y install wiringpi scons git lighttpd php7.0-fpm libasound2-dev fuse lsof
+sudo apt-get -q -y install wiringpi scons git lighttpd php7.0-fpm libasound2-dev
 
 sudo systemctl stop lighttpd php7.0-fpm
 

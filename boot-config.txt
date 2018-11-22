@@ -1,2 +1,2 @@
-dtparam=i2c_arm=on,i2c1_arm_baudrate=800000
+dtparam=i2c_arm=on,i2c1_baudrate=800000
 dtoverlay=hifiberry-dac
