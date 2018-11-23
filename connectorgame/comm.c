@@ -144,6 +144,7 @@ struct {
     { "spinspeed2", &settings.spinspeed2, 1.0, 20000.0, 200, 0, "Spinup ledspin end speed" },
     { "decaytime",  &settings.decaytime, 0.0, 500.0, 4.0, 0, "Hours to 100% breakdown (0 = off)" },
     { "breakdown",  &settings.breakdown, 0.0, 1.0, 0.2, 0, "Total breakdown at level" },
+    { "breakspeed", &settings.breakspeed, 0.001, 100.0, 1.0, 0, "Turbine spindown time at breakdown (sec)" },
 };
 
 static int write_settings(void)

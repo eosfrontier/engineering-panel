@@ -25,6 +25,7 @@ extern struct settings {
     double spinspeed2;
     double decaytime;
     double breakdown;
+    double breakspeed;
 } settings;
 
 int init_comm(void);

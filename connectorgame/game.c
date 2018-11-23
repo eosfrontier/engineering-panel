@@ -13,8 +13,10 @@
 
 #define SPINUP_SEC (settings.spinup)
 #define SPINDOWN_SEC (settings.spindown)
+#define BREAKDOWN_SEC (settings.breakspeed)
 #define SPINUP_SPEED (1.0/(SPINUP_SEC*FRAMERATE/SCANRATE))
 #define SPINDOWN_SPEED (1.0/(SPINDOWN_SEC*FRAMERATE/SCANRATE))
+#define BREAKDOWN_SPEED (1.0/(BREAKDOWN_SEC*FRAMERATE/SCANRATE))
 #define SPINUP_LOW1 (settings.spinlow1)
 #define SPINUP_LOW2 (settings.spinlow2)
 #define SPINUP_FREQ1 (settings.spinfreq1)
@@ -690,31 +692,41 @@ static void game_doturbines(clist_t *conns)
             }
         }
     }
-    for (int sw = 0; sw < 3; sw++) {
-        if (conns->buttons[sw].status & BUTTON_ON) {
-            running++;
-            if (turbines[sw] < 1.0) {
-                /* Turbine spinup: omhooggaand geluid */
-                turbines[sw] += SPINUP_SPEED;
-                if (turbines[sw] >= 1.0) {
-                    turbines[sw] = 1.0;
-                    reached = 1;
-                } else {
-                    spinning = 1;
-                }
+    if (repairlevel <= BREAKDOWN) {
+        for (int sw = 0; sw < 3; sw++) {
+            if (turbines[sw] > 0.0) {
+                turbines[sw] -= vary(BREAKDOWN_SPEED, 0.8);
+                if (turbines[sw] <= 0.0) turbines[sw] = 0.0;
                 game_setturbine(sw);
             }
-        } else {
-            if (turbines[sw] > 0.0) {
-                /* Turbine spindown: omlaaggaand geluid */
-                turbines[sw] -= SPINDOWN_SPEED;
-                if (turbines[sw] <= 0.0) {
-                    turbines[sw] = 0.0;
-                    reached = 1;
-                } else {
-                    spinning = 1;
+        }
+    } else {
+        for (int sw = 0; sw < 3; sw++) {
+            if (conns->buttons[sw].status & BUTTON_ON) {
+                running++;
+                if (turbines[sw] < 1.0) {
+                    /* Turbine spinup: omhooggaand geluid */
+                    turbines[sw] += SPINUP_SPEED;
+                    if (turbines[sw] >= 1.0) {
+                        turbines[sw] = 1.0;
+                        reached = 1;
+                    } else {
+                        spinning = 1;
+                    }
+                    game_setturbine(sw);
                 }
-                game_setturbine(sw);
+            } else {
+                if (turbines[sw] > 0.0) {
+                    /* Turbine spindown: omlaaggaand geluid */
+                    turbines[sw] -= SPINDOWN_SPEED;
+                    if (turbines[sw] <= 0.0) {
+                        turbines[sw] = 0.0;
+                        reached = 1;
+                    } else {
+                        spinning = 1;
+                    }
+                    game_setturbine(sw);
+                }
             }
         }
     }
