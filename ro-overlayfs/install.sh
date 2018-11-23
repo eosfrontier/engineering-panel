@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # INstall packages
-apt-get install fuse lsof
+apt-get install -q -y fuse lsof
 
 # Swap off
 dphys-swapfile swapoff
