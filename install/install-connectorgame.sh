@@ -5,7 +5,7 @@ sudo apt-get -q -y install wiringpi scons git lighttpd php7.0-fpm libasound2-dev
 
 sudo systemctl stop lighttpd php7.0-fpm
 
-git clone --recursive git://github.com/willemm/shuttle-panels.git /home/pi/shuttle-panels
+git clone --recursive https://github.com/willemm/shuttle-panels.git /home/pi/shuttle-panels
 
 sudo chown -R pi.pi /var/log/lighttpd
 
