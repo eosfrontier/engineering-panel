@@ -9,10 +9,10 @@ git clone --recursive git://github.com/willemm/shuttle-panels.git /home/pi/shutt
 
 sudo chown -R pi.pi /var/log/lighttpd
 
-sudo cp /home/pi/shuttle-panels/asound.conf /etc/asound.conf
-sudo cp /home/pi/shuttle-panels/boot-config.txt /boot/config.txt
-sudo cp /home/pi/shuttle-panels/lighttpd.conf /etc/lighttpd/lighttpd.conf
-cat /home/pi/shuttle-panels/fpm-www.conf | sudo tee -a /etc/php/7.0/fpm/pool.d/www.conf
+sudo cp /home/pi/shuttle-panels/install/asound.conf /etc/asound.conf
+sudo cp /home/pi/shuttle-panels/install/boot-config.txt /boot/config.txt
+sudo cp /home/pi/shuttle-panels/install/lighttpd.conf /etc/lighttpd/lighttpd.conf
+cat /home/pi/shuttle-panels/install/fpm-www.conf | sudo tee -a /etc/php/7.0/fpm/pool.d/www.conf
 
 make -C /home/pi/shuttle-panels/connectorgame install
 
