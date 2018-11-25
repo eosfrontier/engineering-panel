@@ -7,8 +7,7 @@
         <script type="text/javascript" src="admin.js"></script>
     </head>
     <body>
-	<p>Panel-PI status</p>
-        <div class="memory">Mem: <span id="Memory"></span></div>
+        <div class="memory">MemFree: <span id="Memory"></span></div>
         <div class="cpuload">Load: <span id="LoadAvg1">?</span> <span id="LoadAvg5">?</span> <span id="LoadAvg15">?</span></div>
         <div class="cpuperc">CPU: <span id="CpuUsage">?</span>%</div>
         <div class="uptime">UpTime: <span id="UpTime">?</span></div>
@@ -19,5 +18,12 @@
 <?php else: ?>
         <div class="volume">Vol: <span id="Volume">?</span>%</div>
 <?php endif; ?>
+	<div class="profile">Time/cpu(conns): <span id="Profile_0">?</div>
+	<div class="profile">Time/cpu(read): <span id="Profile_1">?</div>
+	<div class="profile">Time/cpu(game): <span id="Profile_2">?</div>
+	<div class="profile">Time/cpu(write): <span id="Profile_3">?</div>
+	<div class="profile">Time/cpu(leds): <span id="Profile_4">?</div>
+	<div class="profile">Time/cpu(audio): <span id="Profile_5">?</div>
+	<div class="profile">Time/cpu(sleep): <span id="Profile_6">?</div>
     </body>
 </html>

@@ -18,6 +18,7 @@ function set_volume()
 function reload()
 {
     $.get('sysinfo.php', show_info)
+    $.get('profile.json', show_profile)
 }
 
 var prevcpu = {
@@ -42,6 +43,21 @@ function show_info(json)
         prevcpu.system = json.sysinfo.CpuSystem
         prevcpu.idle = json.sysinfo.CpuIdle
         $('#CpuUsage').text((100*(user+nice+system)/(user+nice+system+idle)).toFixed(1))
+    }
+}
+
+function show_profile(json)
+{
+    var tottime = 0
+    var totcpu = 0
+    for (var i = 0; i < 7; i++) {
+        tottime += json.profile[i].time
+        totcpu += json.profile[i].cpu
+    }
+    for (var i = 0; i < 7; i++) {
+        perctime = (100 * (json.profile[i].time / tottime)).toFixed(1)
+        perccpu = (100 * (json.profile[i].cpu / totcpu)).toFixed(1)
+        $('#Profile_'+i).text(perctime + '% / ' + perccpu + '%')
     }
 }
 

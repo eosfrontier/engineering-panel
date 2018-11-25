@@ -100,7 +100,7 @@ int main(int argc, char *argv[])
     /* Opstarten */
     running = 1;
     int scanrate = SCANRATE;
-    int profierate = 1000;
+    int profilerate = 1000;
     while (running) {
         int64_t timertime = getutime(); // Om de framerate gelijk te houden
         profile(0);
@@ -125,7 +125,7 @@ int main(int argc, char *argv[])
         profile(7);
         if (--profilerate <= 0) {
             profilerate = 1000;
-            comm_write_profile(profile);
+            comm_write_profile(profiling);
         }
     }
     fini_leds();
