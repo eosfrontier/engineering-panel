@@ -19,6 +19,9 @@
 #define COMM_CONNECTION_FILE COMM_PATH "connections.json"
 #define COMM_CONNECTION_FILE_NEW COMM_CONNECTION_FILE ".new"
 
+#define COMM_PROFILE_FILE COMM_PATH "profile.json"
+#define COMM_PROFILE_FILE_NEW COMM_PROFILE_FILE ".new"
+
 #define COMM_SETTINGS_FILE COMM_PATH "settings.json"
 #define COMM_SETTINGS_FILE_NEW COMM_SETTINGS_FILE ".new"
 
@@ -83,6 +86,30 @@ int comm_write_connections(clist_t *conns)
     pdebug("Wrote file %s", COMM_CONNECTION_FILE_NEW);
     if (rename(COMM_CONNECTION_FILE_NEW, COMM_CONNECTION_FILE) < 0) {
         fprintf(stderr, "Failed to rename %s: %s\n", COMM_CONNECTION_FILE_NEW, strerror(errno));
+        return -1;
+    }
+    return 0;
+}
+
+int comm_write_profile(double profiling[16])
+{
+    FILE *f = fopen(COMM_PROFILE_FILE_NEW, "w");
+    if (!f) {
+        fprintf(stderr, "Failed to open %s: %s\n", COMM_PROFILE_FILE_NEW, strerror(errno));
+        return -1;
+    }
+    fprintf(f, "{\"timestamp\":%llu,\"profile\":[", getutime());
+    for (int i = 1; i < 8; i++) {
+        fprintf(f, "%s{\"time\":%g,\"cpu\":%g}", (i > 1 ? "," : ""), profiling[i*2], profiling[i*2+1]);
+    }
+    fprintf(f, "]}");
+    if (fclose(f) < 0) {
+        fprintf(stderr, "Failed to write %s: %s\n", COMM_PROFILE_FILE_NEW, strerror(errno));
+        return -1;
+    }
+    pdebug("Wrote file %s", COMM_PROFILE_FILE_NEW);
+    if (rename(COMM_PROFILE_FILE_NEW, COMM_PROFILE_FILE) < 0) {
+        fprintf(stderr, "Failed to rename %s: %s\n", COMM_PROFILE_FILE_NEW, strerror(errno));
         return -1;
     }
     return 0;

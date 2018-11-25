@@ -68,6 +68,20 @@ int64_t getutime(void)
     return ((((int64_t)tv.tv_sec) * 1000000) + (int64_t)tv.tv_usec);
 }
 
+double profiling[16];
+
+static inline void profile(int step)
+{
+    static int64_t pt1 = 0, pt2 = 0;
+    static clock_t pc1 = 0, pc2 = 0;
+    pt2 = getutime();
+    pc2 = clock();
+    profiling[2*step]   += (double)(pt2-pt1);
+    profiling[2*step+1] += (double)(pc2-pc1);
+    pt1 = pt2;
+    pc1 = pc2;
+}
+
 int main(int argc, char *argv[])
 {
     if (argc > 1 && argv[1][0] == 'd') {
@@ -86,20 +100,33 @@ int main(int argc, char *argv[])
     /* Opstarten */
     running = 1;
     int scanrate = SCANRATE;
+    int profierate = 1000;
     while (running) {
         int64_t timertime = getutime(); // Om de framerate gelijk te houden
+        profile(0);
         if (--scanrate <= 0) {
             scanrate = SCANRATE;
             clist_t *conns = find_connections(); // Altijd uitlezen
+            profile(1);
             comm_read_commands(conns);
+            profile(2);
             game_mainloop(conns);
+            profile(3);
             comm_write_connections(conns);
             free(conns);
+            profile(4);
         }
         leds_mainloop();
+        profile(5);
         audio_mainloop();
+        profile(6);
         int64_t sleeptime = SLEEPTIME - (getutime() - timertime);
         if (sleeptime > 0) usleep(sleeptime);
+        profile(7);
+        if (--profilerate <= 0) {
+            profilerate = 1000;
+            comm_write_profile(profile);
+        }
     }
     fini_leds();
     fini_mcps();

@@ -32,5 +32,6 @@ extern struct settings {
 int init_comm(void);
 int comm_read_commands(clist_t *conns);
 int comm_write_connections(clist_t *conns);
+int comm_write_profile(double profiling[16]);
 /* vim: ai:si:expandtab:ts=4:sw=4
  */
