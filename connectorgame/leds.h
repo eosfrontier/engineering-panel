@@ -26,6 +26,7 @@
 #define RING_SIZE               24
 #define GROUP_DIRS              {-1,1,-1,1}
 #define GROUP_BLANKS            {24,35,36,37,48,59,60,61}
+#define GROUP_BLANKS2           {24,36,48,60}
 
 int init_leds(void);
 int fini_leds(void);

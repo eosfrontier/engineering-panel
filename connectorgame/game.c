@@ -79,6 +79,7 @@ puzzle_t puzzle;
 
 static int randint(int from, int to)
 {
+    if (to < from) return from;
     return from + ((random() % (to - from + 1)));
 }
 
@@ -489,7 +490,7 @@ static void game_check_colors(clist_t *conns)
 
 static void game_check_balance(clist_t *conns)
 {
-    int okcnt = 0;         // Telt hoeveel goede connectors er zijn
+    int okcnt = 20;         // Telt hoeveel goede connectors er zijn
     for (int i = 0; i < 5; i++) {
         puzzle.curcount[i] = 0;
     }
@@ -504,6 +505,12 @@ static void game_check_balance(clist_t *conns)
             }
         }
     }
+    for (int c = 0; c < 5; c++) {
+        if (puzzle.curcount[c] != puzzle.solcount[c]) {
+            okcnt -= abs(puzzle.curcount[c] - puzzle.solcount[c]);
+        }
+    }
+    if (okcnt < 0) okcnt = 0;
     /* Hoeveel connecties er goed zouden moeten zijn volgens repairlevel */
     int wantok = ((int)((20.0*repairlevel)+0.5));
     if (!(conns->event & REPAIR) && (conns->newon + conns->off) > 0) {
@@ -532,6 +539,7 @@ static void game_check_balance(clist_t *conns)
                 if (turbines[0]+turbines[1]+turbines[2] > 0.5) {
                     flash_spark();
                 }
+                pdebug("Broke good connection (%d/%d) = (%d/%d), solution was %d->%d %d->%d %d->%d %d->%d %d->%d", col1, col2, puzzle.solcount[col1], puzzle.solcount[col2], puzzle.curcount[0], puzzle.solcount[0], puzzle.curcount[1], puzzle.solcount[1], puzzle.curcount[2], puzzle.solcount[2], puzzle.curcount[3], puzzle.solcount[3], puzzle.curcount[4], puzzle.solcount[4]);
                 puzzle.solcount[col1] = puzzle.curcount[col1];
                 puzzle.solcount[col2] = puzzle.curcount[col2];
                 int totcnt = 0;
@@ -551,10 +559,25 @@ static void game_check_balance(clist_t *conns)
                     for (int c = 0; c < 5; c++) {
                         if (c != col1 && c != col2 && puzzle.solcount[c] >= puzzle.curcount[c]) {
                             if (--fc <= 0) {
+                                pdebug("Upping color balance %d to reach total of 20", c);
                                 puzzle.solcount[c]++;
                                 totcnt++;
                                 didfix = 1;
                                 break;
+                            }
+                        }
+                    }
+                    if (!didfix) {
+                        fc = randint(1, 5);
+                        for (int c = 0; c < 5; c++) {
+                            if (c != col1 && c != col2 && puzzle.solcount[c] >= puzzle.curcount[c]) {
+                                if (--fc <= 0) {
+                                    pdebug("Upping color balance %d to reach total of 20", c);
+                                    puzzle.solcount[c]++;
+                                    totcnt++;
+                                    didfix = 1;
+                                    break;
+                                }
                             }
                         }
                     }
@@ -602,6 +625,7 @@ static void game_check_balance(clist_t *conns)
                     nccnt++;
                 }
             }
+            pdebug(" %d <> %d, Finding one of %d to unbalance", okcnt, wantok, nccnt);
             int fc = randint(1, nccnt);
             for (int c = 0; c < 5; c++) {
                 if (puzzle.solcount[c] > 0 && puzzle.solcount[c] < 20) {
@@ -609,14 +633,16 @@ static void game_check_balance(clist_t *conns)
                         if (puzzle.solcount[c] <= puzzle.curcount[c]) {
                             int nccnt2 = 0;
                             for (int c2 = 0; c2 < 5; c2++) {
-                                if (puzzle.solcount[c2] < 20 && puzzle.solcount[c2] >= puzzle.curcount[c2]) {
+                                if (c != c2 && puzzle.solcount[c2] < 20 && puzzle.solcount[c2] >= puzzle.curcount[c2]) {
                                     nccnt2++;
                                 }
                             }
+                            pdebug("  Finding one of %d to unbalance with %d", nccnt2, c);
                             int fc2 = randint(1, nccnt2);
                             for (int c2 = 0; c2 < 5; c2++) {
-                                if (puzzle.solcount[c2] < 20 && puzzle.solcount[c2] >= puzzle.curcount[c2]) {
+                                if (c2 != c && puzzle.solcount[c2] < 20 && puzzle.solcount[c2] >= puzzle.curcount[c2]) {
                                     if (--fc2 <= 0) {
+                                        pdebug("  Unbalancing %d (--) with %d (++)", c, c2);
                                         puzzle.solcount[c]--;
                                         puzzle.solcount[c2]++;
                                         didbreak = 1;
@@ -627,14 +653,16 @@ static void game_check_balance(clist_t *conns)
                         } else {
                             int nccnt2 = 0;
                             for (int c2 = 0; c2 < 5; c2++) {
-                                if (puzzle.solcount[c2] > 0 && puzzle.solcount[c2] <= puzzle.curcount[c2]) {
+                                if (c2 != c && puzzle.solcount[c2] > 0 && puzzle.solcount[c2] <= puzzle.curcount[c2]) {
                                     nccnt2++;
                                 }
                             }
+                            pdebug("  Finding one of %d to unbalance with %d", nccnt2, c);
                             int fc2 = randint(1, nccnt2);
                             for (int c2 = 0; c2 < 5; c2++) {
-                                if (puzzle.solcount[c2] > 0 && puzzle.solcount[c2] <= puzzle.curcount[c2]) {
+                                if (c2 != c && puzzle.solcount[c2] > 0 && puzzle.solcount[c2] <= puzzle.curcount[c2]) {
                                     if (--fc2 <= 0) {
+                                        pdebug("  Unbalancing %d (++) with %d (--)", c, c2);
                                         puzzle.solcount[c]++;
                                         puzzle.solcount[c2]--;
                                         didbreak = 1;
@@ -654,7 +682,7 @@ static void game_check_balance(clist_t *conns)
                 repairlevel = ((double)okcnt / 20.0);
                 break;
             }
-            okcnt--;
+            okcnt -= 2;
         }
         while (okcnt < wantok) {
             int didfix = 0;
@@ -665,6 +693,7 @@ static void game_check_balance(clist_t *conns)
                     nccnt++;
                 }
             }
+            pdebug(" %d <> %d, Finding one of %d to balance", okcnt, wantok, nccnt);
             int fc = randint(1, nccnt);
             for (int c = 0; c < 5; c++) {
                 if (puzzle.solcount[c] != puzzle.curcount[c]) {
@@ -676,10 +705,12 @@ static void game_check_balance(clist_t *conns)
                                     nccnt2++;
                                 }
                             }
+                            pdebug("  Finding one of %d to balance with %d", nccnt2, c);
                             int fc2 = randint(1, nccnt2);
                             for (int c2 = 0; c2 < 5; c2++) {
                                 if (puzzle.solcount[c2] > puzzle.curcount[c2]) {
                                     if (--fc2 <= 0) {
+                                        pdebug("  Balancing %d (++) with %d (--)", c, c2);
                                         puzzle.solcount[c]++;
                                         puzzle.solcount[c2]--;
                                         didfix = 1;
@@ -694,10 +725,12 @@ static void game_check_balance(clist_t *conns)
                                     nccnt2++;
                                 }
                             }
+                            pdebug("  Finding one of %d to balance with %d", nccnt2, c);
                             int fc2 = randint(1, nccnt2);
                             for (int c2 = 0; c2 < 5; c2++) {
                                 if (puzzle.solcount[c2] < puzzle.curcount[c2]) {
                                     if (--fc2 <= 0) {
+                                        pdebug("  Balancing %d (--) with %d (++)", c, c2);
                                         puzzle.solcount[c]--;
                                         puzzle.solcount[c2]++;
                                         didfix = 1;
@@ -717,7 +750,7 @@ static void game_check_balance(clist_t *conns)
                 repairlevel = ((double)okcnt / 20.0);
                 break;
             }
-            okcnt++;
+            okcnt += 2;
         }
     }
 }

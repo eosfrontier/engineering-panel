@@ -144,10 +144,11 @@ int fini_leds(void)
     return 0;
 }
 
-static int gstarts[] = GROUP_STARTS;
-static int gdirs[]   = GROUP_DIRS;
-static int gblanks[] = GROUP_BLANKS;
-static int grings[]  = GROUP_RINGS;
+static int gstarts[]  = GROUP_STARTS;
+static int gdirs[]    = GROUP_DIRS;
+static int gblanks[]  = GROUP_BLANKS;
+static int gblanks2[] = GROUP_BLANKS2;
+static int grings[]   = GROUP_RINGS;
 
 static unsigned int colstep(unsigned int from, unsigned int to)
 {
@@ -356,25 +357,25 @@ static int led_animate_balance(ledanim_t *an)
         int bar = an->data[g+1]+5;
         int blink = 0;
         if (abs(an->data[g+1]) >= 4) blink = 1;
-        if (blink && an->pos < 10) {
+        if (blink && an->pos < 20) {
             for (int b = 0; b < 11; b++) {
-                int pos = ((RING_SIZE + group_start + group_dir * b) % RING_SIZE) + group_ring;
+                int pos = ((RING_SIZE + group_start + group_dir * (b-1)) % RING_SIZE) + group_ring;
                 ledstring.channel[0].leds[pos] = col_fade((double)an->fadepos / COLOR_FADE, 2, ledstring.channel[0].leds[pos], 0x000000);
             }
         } else {
             if (bar < 0) bar = 0;
             if (bar > 10) bar = 10;
             for (int b = 0; b < 11; b++) {
-                int pos = ((RING_SIZE + group_start + group_dir * b) % RING_SIZE) + group_ring;
+                int pos = ((RING_SIZE + group_start + group_dir * (b-1)) % RING_SIZE) + group_ring;
                 int col = colorlist[g+1];
-                if (b < bar) col = col_fade(0.4, 2, 0x000000, col);
-                if (b > bar) col = col_fade(0.1, 2, 0x000000, col);
+                if (b > bar) col = 0;
+                if (b != 5) col = col_fade(0.05, 2, 0x000000, col);
                 ledstring.channel[0].leds[pos] = col_fade((double)an->fadepos / COLOR_FADE, 2, ledstring.channel[0].leds[pos], col);
             }
         }
     }
-    for (unsigned int b = 0; b < sizeof(gblanks)/sizeof(gblanks[0]); b++) {
-        ledstring.channel[0].leds[gblanks[b]] = col_fade((double)an->fadepos / COLOR_FADE, 2, ledstring.channel[0].leds[gblanks[b]], 0);
+    for (unsigned int b = 0; b < sizeof(gblanks2)/sizeof(gblanks2[0]); b++) {
+        ledstring.channel[0].leds[gblanks2[b]] = col_fade((double)an->fadepos / COLOR_FADE, 2, ledstring.channel[0].leds[gblanks2[b]], 0);
     }
     return 0;
 }
