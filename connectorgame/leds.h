@@ -30,6 +30,7 @@
 int init_leds(void);
 int fini_leds(void);
 int led_set_colors(int *colors);
+int led_set_balance(int *bars);
 int ledshow_mastermind(int side, int colors, int correct);
 int led_set_plasma(int ring, int fadein, int num, ...);
 int led_remove_animation(int ring);

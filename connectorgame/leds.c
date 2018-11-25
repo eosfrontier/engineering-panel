@@ -182,7 +182,7 @@ int led_set_colors(int *colors)
     ledanim_t *newan = NULL, **an;
     /* Concurrent uitschakelen */
     for (an = &led_animations; *an;) {
-        if (((*an)->offset == ring*RING_SIZE) && !((*an)->type == ANIMATION_BALANCE)) {
+        if (((*an)->offset == RING_SIZE) && ((*an)->type == ANIMATION_BALANCE)) {
             ledanim_t *f = *an;
             *an = (*an)->next;
             free(f);
@@ -245,7 +245,7 @@ int led_set_balance(int *bars)
     ledanim_t *newan = NULL, **an;
     /* Concurrent uitschakelen */
     for (an = &led_animations; *an;) {
-        if (((*an)->offset == ring*RING_SIZE) && !((*an)->type == ANIMATION_COLORS)) {
+        if (((*an)->offset == RING_SIZE) && ((*an)->type == ANIMATION_COLORS)) {
             ledanim_t *f = *an;
             *an = (*an)->next;
             free(f);

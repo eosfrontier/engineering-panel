@@ -122,42 +122,42 @@ static void engine_volume(void)
 
 static void engine_hum_set(int fade, int fadevar, int fadehi, int fadehivar)
 {
-            if (repairlevel <= BREAKDOWN) {
-                /* Helemaal stuk, engine valt uit */
-                if (turbines[0]+turbines[1]+turbines[2] > 0.1) {
-                    engine_hum(ENGINE_VOL, 1.0, 1.0, 1.0, 1.0, 1.0, ENGINE_HIVOL, FRAMERATE*7, FRAMERATE*4, FRAMERATE*6, FRAMERATE*4);
-                    led_set_blink(0, 2, FRAMERATE/2, 0xff0000, FRAMERATE/3, 0x000000);
-                    led_set_blink(1, 1, FRAMERATE, 0x000000);
-                    led_set_blink(2, 2, FRAMERATE/2, 0xff0000, FRAMERATE/3, 0x000000);
-                    led_set_blink(3, 2, FRAMERATE/2, 0xff0000, FRAMERATE/3, 0x000000);
-                    led_set_blank(0, FRAMERATE);
-                    led_set_blank(1, FRAMERATE);
-                    led_set_blank(2, FRAMERATE);
-                    led_set_blank(3, FRAMERATE);
-                } else {
-                    engine_hum(0.0, 1.0, 1.0, 1.0, 1.0, 1.0, ENGINE_HIVOL, FRAMERATE*7, FRAMERATE*4, FRAMERATE*6, FRAMERATE*4);
-                    led_set_static(0, -1, 0, 0, 0); /* Remove static */
-                    led_set_static(1, -1, 0, 0, 0); /* Remove static */
-                    led_set_static(2, -1, 0, 0, 0); /* Remove static */
-                    led_set_static(3, -1, 0, 0, 0); /* Remove static */
-                }
-            } else {
-                double lowvol = ENGINE_VOL;
-                double turbinefade = 5.0 * (turbines[0]+turbines[1]+turbines[2]);
-                if (turbinefade < 1.0) lowvol *= turbinefade;
-                engine_hum(lowvol, ENGINE_FREQ - (ENGINE_TBFREQ*(3-running)) - ENGINE_RPFREQ*(1.0-repairlevel), ENGINE_BEAT, 0.2 * (ENGINE_BASEVAR-repairlevel), ENGINE_HIBEAT, 0.2 * (ENGINE_BASEVAR-repairlevel), ENGINE_HIVOL, fade, fadevar, fadehi, fadehivar);
-                if (repairlevel <= 0.9) {
-                    led_set_static(0, (int)(STATIC_SPEED), (int)(STATIC_VARIANCE), STATIC_MINCOLOR, STATIC_MAXCOLOR);
-                    led_set_static(1, (int)(STATIC_SPEED), (int)(STATIC_VARIANCE), STATIC_MINCOLOR, STATIC_MAXCOLOR);
-                    led_set_static(2, (int)(STATIC_SPEED), (int)(STATIC_VARIANCE), STATIC_MINCOLOR, STATIC_MAXCOLOR);
-                    led_set_static(3, (int)(STATIC_SPEED), (int)(STATIC_VARIANCE), STATIC_MINCOLOR, STATIC_MAXCOLOR);
-                } else {
-                    led_set_static(0, -1, 0, 0, 0); /* Remove static */
-                    led_set_static(1, -1, 0, 0, 0); /* Remove static */
-                    led_set_static(2, -1, 0, 0, 0); /* Remove static */
-                    led_set_static(3, -1, 0, 0, 0); /* Remove static */
-                }
-            }
+    if (repairlevel <= BREAKDOWN) {
+        /* Helemaal stuk, engine valt uit */
+        if (turbines[0]+turbines[1]+turbines[2] > 0.1) {
+            engine_hum(ENGINE_VOL, 1.0, 1.0, 1.0, 1.0, 1.0, ENGINE_HIVOL, FRAMERATE*7, FRAMERATE*4, FRAMERATE*6, FRAMERATE*4);
+            led_set_blink(0, 2, FRAMERATE/2, 0xff0000, FRAMERATE/3, 0x000000);
+            led_set_blink(1, 1, FRAMERATE, 0x000000);
+            led_set_blink(2, 2, FRAMERATE/2, 0xff0000, FRAMERATE/3, 0x000000);
+            led_set_blink(3, 2, FRAMERATE/2, 0xff0000, FRAMERATE/3, 0x000000);
+            led_set_blank(0, FRAMERATE);
+            led_set_blank(1, FRAMERATE);
+            led_set_blank(2, FRAMERATE);
+            led_set_blank(3, FRAMERATE);
+        } else {
+            engine_hum(0.0, 1.0, 1.0, 1.0, 1.0, 1.0, ENGINE_HIVOL, FRAMERATE*7, FRAMERATE*4, FRAMERATE*6, FRAMERATE*4);
+            led_set_static(0, -1, 0, 0, 0); /* Remove static */
+            led_set_static(1, -1, 0, 0, 0); /* Remove static */
+            led_set_static(2, -1, 0, 0, 0); /* Remove static */
+            led_set_static(3, -1, 0, 0, 0); /* Remove static */
+        }
+    } else {
+        double lowvol = ENGINE_VOL;
+        double turbinefade = 5.0 * (turbines[0]+turbines[1]+turbines[2]);
+        if (turbinefade < 1.0) lowvol *= turbinefade;
+        engine_hum(lowvol, ENGINE_FREQ - (ENGINE_TBFREQ*(3-running)) - ENGINE_RPFREQ*(1.0-repairlevel), ENGINE_BEAT, 0.2 * (ENGINE_BASEVAR-repairlevel), ENGINE_HIBEAT, 0.2 * (ENGINE_BASEVAR-repairlevel), ENGINE_HIVOL, fade, fadevar, fadehi, fadehivar);
+        if (repairlevel <= 0.9) {
+            led_set_static(0, (int)(STATIC_SPEED), (int)(STATIC_VARIANCE), STATIC_MINCOLOR, STATIC_MAXCOLOR);
+            led_set_static(1, (int)(STATIC_SPEED), (int)(STATIC_VARIANCE), STATIC_MINCOLOR, STATIC_MAXCOLOR);
+            led_set_static(2, (int)(STATIC_SPEED), (int)(STATIC_VARIANCE), STATIC_MINCOLOR, STATIC_MAXCOLOR);
+            led_set_static(3, (int)(STATIC_SPEED), (int)(STATIC_VARIANCE), STATIC_MINCOLOR, STATIC_MAXCOLOR);
+        } else {
+            led_set_static(0, -1, 0, 0, 0); /* Remove static */
+            led_set_static(1, -1, 0, 0, 0); /* Remove static */
+            led_set_static(2, -1, 0, 0, 0); /* Remove static */
+            led_set_static(3, -1, 0, 0, 0); /* Remove static */
+        }
+    }
 }
 
 static void init_engine_hum(void)
@@ -224,55 +224,6 @@ static inline int bitcnt(int bits)
     int cnt = 0;
     for (; bits > 0; bits >>= 1) cnt += (bits & 1);
     return cnt;
-}
-
-static void game_checklevel(clist_t *conns)
-{
-    if (booting > 0) {
-        /* Pinnen laten stabiliseren */
-        booting--;
-        return;
-    }
-    if ((conns->event & REPAIR) && repairlevel > 0.9) {
-        /* Iemand heeft extern een 'fix' gedaan.  Zorg dat het fixed-effect afgaat */
-        repairing = (FRAMERATE/SCANRATE)*1;
-    }
-    if (repairlevel > 0.0 && (turbines[0]+turbines[1]+turbines[2]) > 2.0) {
-        /* Als de boel draait, gaat het langzaam stuk. (Helemaal stuk na X uur) */
-        if (DECAYTIME > 0) {
-            repairlevel -= REPAIR_DECAY;
-        }
-    }
-    if (conns->event & HUMSETTING) {
-        /* Iemand heeft geluids settings aangepast (tweak.php) */
-        engine_hum_set(FRAMERATE, FRAMERATE/2, FRAMERATE*2, FRAMERATE);
-    }
-    int slbtn = conns->buttons[BUTTON_SL].status;
-    if ((slbtn & (BUTTON_CLICKED|BUTTON_HOLD)) && (slbtn & BUTTON_CLICKS) > 2) {
-        /* Het kleine knopje achter de power connector als backup voor admin interface */
-        pdebug("SL-Button pressed %d times, flags = %x", (slbtn & BUTTON_CLICKS), slbtn >> 8);
-        if (slbtn & BUTTON_HOLD) {
-            if ((slbtn & BUTTON_CLICKS) >= 4) {
-                repairlevel = 1.0;
-                repairing = (FRAMERATE/SCANRATE)*1;
-            }
-        } else {
-            repairlevel -= 0.1 * (slbtn & BUTTON_CLICKS);
-            if (repairlevel < 0.0) repairlevel = 0.0;
-        }
-    }
-    for (int sw = 0; sw < 3; sw++) {
-        /* Als iemand een schakelaar snel aan en uit zet dan gaat het stuk */
-        int clicks = conns->buttons[sw].status & BUTTON_CLICKS;
-        if (clicks > 4) {
-            pdebug("Switch toggled %d times", clicks);
-            if (repairlevel > (1.0 - 0.1 * (clicks-2))) {
-                repairlevel = (1.0 - 0.1 * clicks);
-                if (repairlevel < 0.0) repairlevel = 0.0;
-                pdebug("Switch toggled break level %g", repairlevel);
-            }
-        }
-    }
 }
 
 static void game_check_colors(clist_t *conns)
@@ -452,6 +403,7 @@ static void game_check_colors(clist_t *conns)
             }
             if (!didbreak) {
                 /* Safety: Eindeloze lus voorkomen */
+                fprintf(stderr, "Unable to break colors, breaking loop\n");
                 wantok = okcnt;
                 repairlevel = ((double)okcnt / 20.0);
                 break;
@@ -525,6 +477,7 @@ static void game_check_colors(clist_t *conns)
             }
             if (!didfix) {
                 /* Safety: Eindeloze lus voorkomen */
+                fprintf(stderr, "Unable to fix colors, breaking loop\n");
                 wantok = okcnt;
                 repairlevel = ((double)okcnt / 20.0);
                 break;
@@ -605,7 +558,7 @@ static void game_check_balance(clist_t *conns)
                             }
                         }
                     }
-                    if (!didbreak) {
+                    if (!didfix) {
                         fprintf(stderr, "Unable to unbalance colors, breaking loop\n");
                         break;
                     }
@@ -639,7 +592,6 @@ static void game_check_balance(clist_t *conns)
         if (okcnt != wantok) {
             /* Geluid aanpassen aan hoe stuk het is */
             engine_hum_set(FRAMERATE, FRAMERATE/2, FRAMERATE*2, FRAMERATE);
-            pdebug("okcnt: %d <> %d : %d, %d, %d", okcnt, wantok, okpc[0], okpc[1], okpc[2]);
         }
         while (okcnt > wantok) {
             int didbreak = 0;
@@ -697,6 +649,7 @@ static void game_check_balance(clist_t *conns)
             }
             if (!didbreak) {
                 /* Safety: Eindeloze lus voorkomen */
+                fprintf(stderr, "Unable to unbalance colors, breaking loop\n");
                 wantok = okcnt;
                 repairlevel = ((double)okcnt / 20.0);
                 break;
@@ -759,12 +712,72 @@ static void game_check_balance(clist_t *conns)
             }
             if (!didfix) {
                 /* Safety: Eindeloze lus voorkomen */
+                fprintf(stderr, "Unable to balance colors, breaking loop\n");
                 wantok = okcnt;
                 repairlevel = ((double)okcnt / 20.0);
                 break;
             }
             okcnt++;
         }
+    }
+}
+
+static void game_checklevel(clist_t *conns)
+{
+    if (booting > 0) {
+        /* Pinnen laten stabiliseren */
+        booting--;
+        return;
+    }
+    if ((conns->event & REPAIR) && repairlevel > 0.9) {
+        /* Iemand heeft extern een 'fix' gedaan.  Zorg dat het fixed-effect afgaat */
+        repairing = (FRAMERATE/SCANRATE)*1;
+    }
+    if (repairlevel > 0.0 && (turbines[0]+turbines[1]+turbines[2]) > 2.0) {
+        /* Als de boel draait, gaat het langzaam stuk. (Helemaal stuk na X uur) */
+        if (DECAYTIME > 0) {
+            repairlevel -= REPAIR_DECAY;
+        }
+    }
+    if (conns->event & HUMSETTING) {
+        /* Iemand heeft geluids settings aangepast (tweak.php) */
+        engine_hum_set(FRAMERATE, FRAMERATE/2, FRAMERATE*2, FRAMERATE);
+    }
+    int slbtn = conns->buttons[BUTTON_SL].status;
+    if ((slbtn & (BUTTON_CLICKED|BUTTON_HOLD)) && (slbtn & BUTTON_CLICKS) > 2) {
+        /* Het kleine knopje achter de power connector als backup voor admin interface */
+        pdebug("SL-Button pressed %d times, flags = %x", (slbtn & BUTTON_CLICKS), slbtn >> 8);
+        if (slbtn & BUTTON_HOLD) {
+            if ((slbtn & BUTTON_CLICKS) >= 4) {
+                repairlevel = 1.0;
+                repairing = (FRAMERATE/SCANRATE)*1;
+            }
+        } else {
+            repairlevel -= 0.1 * (slbtn & BUTTON_CLICKS);
+            if (repairlevel < 0.0) repairlevel = 0.0;
+        }
+    }
+    for (int sw = 0; sw < 3; sw++) {
+        /* Als iemand een schakelaar snel aan en uit zet dan gaat het stuk */
+        int clicks = conns->buttons[sw].status & BUTTON_CLICKS;
+        if (clicks > 4) {
+            pdebug("Switch toggled %d times", clicks);
+            if (repairlevel > (1.0 - 0.1 * (clicks-2))) {
+                repairlevel = (1.0 - 0.1 * clicks);
+                if (repairlevel < 0.0) repairlevel = 0.0;
+                pdebug("Switch toggled break level %g", repairlevel);
+            }
+        }
+    }
+    switch (GAMEMODE) {
+        case 1:
+            game_check_colors(conns);
+            break;
+        case 2:
+            game_check_balance(conns);
+            break;
+        default:
+            fprintf(stderr, "Unknown gamemode %d", GAMEMODE);
     }
 }
 
@@ -1006,20 +1019,12 @@ void game_mainloop(clist_t *conns)
 {
     game_doturbines(conns);
     game_checklevel(conns);
-    switch (GAMEMODE) {
-        case 0:
-            game_check_colors(conns);
-            break;
-        case 1:
-            game_check_balance(conns);
-            break;
-    }
     if (repairing > 0) {
         switch (GAMEMODE) {
-            case 0:
+            case 1:
                 game_show_colors(conns);
                 break;
-            case 1:
+            case 2:
                 game_show_balance(conns);
                 break;
         }
