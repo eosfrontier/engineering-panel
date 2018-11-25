@@ -38,7 +38,8 @@
 
 #define BREAKDOWN (settings.breakdown)
 
-#define DIFFICULTY (settings.difficulty)
+#define DIFFICULTY ((int)settings.difficulty)
+#define GAMEMODE ((int)settings.gamemode)
 
 #define STATIC_SPEED (repairlevel*20)
 #define STATIC_VARIANCE (repairlevel*20)
@@ -199,10 +200,13 @@ void init_game(void)
             case 'R': c_colors[i] = RED;    break;
         }
     }
-    puzzle.type = 0;
     for (int i = 0; i < NUM_ROWS; i++) {
         puzzle.solution[i] = 1 << randint(0,4);
         puzzle.current[i] = 0;
+    }
+    for (int i = 0; i < 5; i++) {
+        puzzle.solcount[i] = 4;
+        puzzle.curcount[i] = 0;
     }
 }
 
@@ -239,27 +243,6 @@ static void game_checklevel(clist_t *conns)
             repairlevel -= REPAIR_DECAY;
         }
     }
-    int okcnt = 0;         // Telt hoeveel goede connectors er zijn
-    int okcnts[conns->on]; // Hoeveel connecties er goed zijn per kabel
-    int okpc[3] = {0,0,0}; // Aantal connecties met 0, 1 of 2 goede stekkers
-    for (int i = 0; i < NUM_ROWS; i++) {
-        puzzle.current[i] = 0;
-    }
-    /* Tellen hoeveel conecties er goed zijn */
-    for (int i = 0; i < conns->on; i++) {
-        okcnts[i] = 0;
-        for (int cc = 0; cc < 2; cc++) {
-            int p = conns->pins[i].p[cc];
-            int r = PIN_ROW(p);
-            p = p % 5;
-            puzzle.current[r] |= (1 << p);
-            if (puzzle.solution[r] & (1 << p)) {
-                okcnt++;
-                okcnts[i]++;
-            }
-        }
-        okpc[okcnts[i]]++;
-    }
     if (conns->event & HUMSETTING) {
         /* Iemand heeft geluids settings aangepast (tweak.php) */
         engine_hum_set(FRAMERATE, FRAMERATE/2, FRAMERATE*2, FRAMERATE);
@@ -289,6 +272,31 @@ static void game_checklevel(clist_t *conns)
                 pdebug("Switch toggled break level %g", repairlevel);
             }
         }
+    }
+}
+
+static void game_check_colors(clist_t *conns)
+{
+    int okcnt = 0;         // Telt hoeveel goede connectors er zijn
+    int okcnts[conns->on]; // Hoeveel connecties er goed zijn per kabel
+    int okpc[3] = {0,0,0}; // Aantal connecties met 0, 1 of 2 goede stekkers
+    for (int i = 0; i < NUM_ROWS; i++) {
+        puzzle.current[i] = 0;
+    }
+    /* Tellen hoeveel conecties er goed zijn */
+    for (int i = 0; i < conns->on; i++) {
+        okcnts[i] = 0;
+        for (int cc = 0; cc < 2; cc++) {
+            int p = conns->pins[i].p[cc];
+            int r = PIN_ROW(p);
+            p = p % 5;
+            puzzle.current[r] |= (1 << p);
+            if (puzzle.solution[r] & (1 << p)) {
+                okcnt++;
+                okcnts[i]++;
+            }
+        }
+        okpc[okcnts[i]]++;
     }
     /* Hoeveel connecties er goed zouden moeten zijn volgens repairlevel */
     int wantok = ((int)((20.0*repairlevel)+0.5));
@@ -526,6 +534,241 @@ static void game_checklevel(clist_t *conns)
     }
 }
 
+static void game_check_balance(clist_t *conns)
+{
+    int okcnt = 0;         // Telt hoeveel goede connectors er zijn
+    for (int i = 0; i < 5; i++) {
+        puzzle.curcount[i] = 0;
+    }
+    for (int i = 0; i < conns->on; i++) {
+        for (int cc = 0; cc < 2; cc++) {
+            int p = conns->pins[i].p[cc];
+            int col = c_colors[p];
+            if (col >= 0 && col <= 5) {
+                puzzle.curcount[col]++;
+            } else {
+                fprintf(stderr, "Error canthappen: Pin %d has unknown color %d\n", p, col);
+            }
+        }
+    }
+    /* Hoeveel connecties er goed zouden moeten zijn volgens repairlevel */
+    int wantok = ((int)((20.0*repairlevel)+0.5));
+    if (!(conns->event & REPAIR) && (conns->newon + conns->off) > 0) {
+        /* Iemand heeft iets losgetrokken of ingestoken, solution checken en repairlevel aanpassen */
+        int newrl = REPAIR_TIMEOUT;
+        repairlevel = ((double)okcnt / 20.0);
+        if (okcnt != wantok) {
+            engine_hum_set(FRAMERATE, FRAMERATE/2, FRAMERATE*2, FRAMERATE);
+            if (okcnt == 20) {
+                newrl = (FRAMERATE/SCANRATE)*1;
+            }
+        }
+        static connection_t lastconn;
+        if (conns->newon > 0) {
+            /* Laast vastgestoken kabel onthouden ivm debounce */
+            lastconn = conns->pins[conns->on-1];
+        }
+        /* Checken of de losgetrokken kabel de oplossing strikt slechter maakt */
+        for (int i = conns->on; i < conns->on + conns->off; i++) {
+            int col1 = c_colors[conns->pins[i].p[0]];
+            int col2 = c_colors[conns->pins[i].p[1]];
+            if ((puzzle.curcount[col1] < puzzle.solcount[col1])
+                    && (puzzle.curcount[col2] < puzzle.solcount[col2])
+                    && memcmp(&lastconn, &(conns->pins[i]), sizeof(lastconn))) {
+                /* Zorgen dat deze connectie niet het repairlevel verhoogt als ie hetzelfde wordt verbonden */
+                if (turbines[0]+turbines[1]+turbines[2] > 0.5) {
+                    flash_spark();
+                }
+                puzzle.solcount[col1] = puzzle.curcount[col1];
+                puzzle.solcount[col2] = puzzle.curcount[col2];
+                int totcnt = 0;
+                /* Totale balans goed krijgen */
+                for (int c = 0; c < 5; c++) {
+                    totcnt += puzzle.solcount[c];
+                }
+                while (totcnt < 20) {
+                    int didfix = 0;
+                    int nccnt = 0;
+                    for (int c = 0; c < 5; c++) {
+                        if (c != col1 && c != col2 && puzzle.solcount[c] >= puzzle.curcount[c]) {
+                            nccnt++;
+                        }
+                    }
+                    int fc = randint(1, nccnt);
+                    for (int c = 0; c < 5; c++) {
+                        if (c != col1 && c != col2 && puzzle.solcount[c] >= puzzle.curcount[c]) {
+                            if (--fc <= 0) {
+                                puzzle.solcount[c]++;
+                                totcnt++;
+                                didfix = 1;
+                                break;
+                            }
+                        }
+                    }
+                    if (!didbreak) {
+                        fprintf(stderr, "Unable to unbalance colors, breaking loop\n");
+                        break;
+                    }
+                }
+            }
+        }
+        /* Geeft aan of er iemand met de kabels bezig is wordt, dan tonen we de 'puzzel' voor een bepaalde tijd */
+        repairing = newrl;
+    } else {
+        if (repairing > 0) {
+            /* Na bepaalde tijd hint-kleuren weer weghalen */
+            if (--repairing <= 0) {
+                if (okcnt == 20) {
+                    /* 'Felicitatie' rainbow-swipe om te tonen dat alles weer OK is */
+                    led_set_swipe(0, FRAMERATE*2, 0, 3, 0x0000ff, 0x0000ff, 0x0000ff);
+                    led_set_swipe(1, FRAMERATE*2, 0, 3, 0x888800, 0x888800, 0x888800);
+                    led_set_swipe(2, FRAMERATE*2, 12, 3, 0xff0000, 0xff0000, 0xff0000);
+                    led_set_swipe(3, FRAMERATE*2, 0, 3, 0x00ff00, 0x00ff00, 0x00ff00);
+                }
+                led_set_colors(NULL);
+            }
+        }
+        /* Kijken of repairlevel gedaald of gestegen is, evt solution aanpassen */
+        if (okcnt > wantok) {
+            if (repairlevel <= 0.9) {
+                if (turbines[0]+turbines[1]+turbines[2] > 0.5) {
+                    flash_spark(); /* TODO: Small spark */
+                }
+            }
+        }
+        if (okcnt != wantok) {
+            /* Geluid aanpassen aan hoe stuk het is */
+            engine_hum_set(FRAMERATE, FRAMERATE/2, FRAMERATE*2, FRAMERATE);
+            pdebug("okcnt: %d <> %d : %d, %d, %d", okcnt, wantok, okpc[0], okpc[1], okpc[2]);
+        }
+        while (okcnt > wantok) {
+            int didbreak = 0;
+            /* Een kleur uit balans brengen */
+            int nccnt = 0;
+            for (int c = 0; c < 5; c++) {
+                if (puzzle.solcount[c] > 0 && puzzle.solcount[c] < 20) {
+                    nccnt++;
+                }
+            }
+            int fc = randint(1, nccnt);
+            for (int c = 0; c < 5; c++) {
+                if (puzzle.solcount[c] > 0 && puzzle.solcount[c] < 20) {
+                    if (--fc <= 0) {
+                        if (puzzle.solcount[c] <= puzzle.curcount[c]) {
+                            int nccnt2 = 0;
+                            for (int c2 = 0; c2 < 5; c2++) {
+                                if (puzzle.solcount[c2] < 20 && puzzle.solcount[c2] >= puzzle.curcount[c2]) {
+                                    nccnt2++;
+                                }
+                            }
+                            int fc2 = randint(1, nccnt2);
+                            for (int c2 = 0; c2 < 5; c2++) {
+                                if (puzzle.solcount[c2] < 20 && puzzle.solcount[c2] >= puzzle.curcount[c2]) {
+                                    if (--fc2 <= 0) {
+                                        puzzle.solcount[c]--;
+                                        puzzle.solcount[c2]++;
+                                        didbreak = 1;
+                                        break;
+                                    }
+                                }
+                            }
+                        } else {
+                            int nccnt2 = 0;
+                            for (int c2 = 0; c2 < 5; c2++) {
+                                if (puzzle.solcount[c2] > 0 && puzzle.solcount[c2] <= puzzle.curcount[c2]) {
+                                    nccnt2++;
+                                }
+                            }
+                            int fc2 = randint(1, nccnt2);
+                            for (int c2 = 0; c2 < 5; c2++) {
+                                if (puzzle.solcount[c2] > 0 && puzzle.solcount[c2] <= puzzle.curcount[c2]) {
+                                    if (--fc2 <= 0) {
+                                        puzzle.solcount[c]++;
+                                        puzzle.solcount[c2]--;
+                                        didbreak = 1;
+                                        break;
+                                    }
+                                }
+                            }
+                        }
+                        break;
+                    }
+                }
+            }
+            if (!didbreak) {
+                /* Safety: Eindeloze lus voorkomen */
+                wantok = okcnt;
+                repairlevel = ((double)okcnt / 20.0);
+                break;
+            }
+            okcnt--;
+        }
+        while (okcnt < wantok) {
+            int didfix = 0;
+            /* Een kleur in balans brengen */
+            int nccnt = 0;
+            for (int c = 0; c < 5; c++) {
+                if (puzzle.solcount[c] != puzzle.curcount[c]) {
+                    nccnt++;
+                }
+            }
+            int fc = randint(1, nccnt);
+            for (int c = 0; c < 5; c++) {
+                if (puzzle.solcount[c] != puzzle.curcount[c]) {
+                    if (--fc <= 0) {
+                        if (puzzle.solcount[c] < puzzle.curcount[c]) {
+                            int nccnt2 = 0;
+                            for (int c2 = 0; c2 < 5; c2++) {
+                                if (puzzle.solcount[c2] > puzzle.curcount[c2]) {
+                                    nccnt2++;
+                                }
+                            }
+                            int fc2 = randint(1, nccnt2);
+                            for (int c2 = 0; c2 < 5; c2++) {
+                                if (puzzle.solcount[c2] > puzzle.curcount[c2]) {
+                                    if (--fc2 <= 0) {
+                                        puzzle.solcount[c]++;
+                                        puzzle.solcount[c2]--;
+                                        didfix = 1;
+                                        break;
+                                    }
+                                }
+                            }
+                        } else {
+                            int nccnt2 = 0;
+                            for (int c2 = 0; c2 < 5; c2++) {
+                                if (puzzle.solcount[c2] < puzzle.curcount[c2]) {
+                                    nccnt2++;
+                                }
+                            }
+                            int fc2 = randint(1, nccnt2);
+                            for (int c2 = 0; c2 < 5; c2++) {
+                                if (puzzle.solcount[c2] < puzzle.curcount[c2]) {
+                                    if (--fc2 <= 0) {
+                                        puzzle.solcount[c]--;
+                                        puzzle.solcount[c2]++;
+                                        didfix = 1;
+                                        break;
+                                    }
+                                }
+                            }
+                        }
+                        break;
+                    }
+                }
+            }
+            if (!didfix) {
+                /* Safety: Eindeloze lus voorkomen */
+                wantok = okcnt;
+                repairlevel = ((double)okcnt / 20.0);
+                break;
+            }
+            okcnt++;
+        }
+    }
+}
+
+/* Bubble sort... Should be fast enough for 20 items */
 static void sort_colors(int *colors, int *correct, int count)
 {
     for (int i = count-1; i > 0; i--) {
@@ -561,10 +804,10 @@ static void game_show_colors(clist_t *conns)
                     correct[r] |= GOOD;
                 } else {
                     /* Kleur zetten */
-                    colors[r]  |= c_colors[5*r + p];
+                    colors[r]  |= (1 << c_colors[5*r + p]);
                 }
             } else if (puzzle.solution[r] & (1 << p)) {
-                correct[r] |= c_colors[5*r + p];
+                correct[r] |= (1 << c_colors[5*r + p]);
             }
         }
     }
@@ -575,6 +818,17 @@ static void game_show_colors(clist_t *conns)
         sort_colors(colors+10, correct+10, 10);
     }
     led_set_colors(colors);
+}
+
+/* Balans-kleuren laten zien */
+static void game_show_balance(clist_t *conns)
+{
+    int bars[4];
+    /* Kleuren bars.  kleur 0 is zwart, die doen we dus niet */
+    for (int c = 1; c < 5; c++) {
+        bars[c-1] = puzzle.curcount[c] - puzzle.solcount[c];
+    }
+    led_set_balance(bars);
 }
 
 static void game_show_mastermind(clist_t *conns)
@@ -752,8 +1006,23 @@ void game_mainloop(clist_t *conns)
 {
     game_doturbines(conns);
     game_checklevel(conns);
+    switch (GAMEMODE) {
+        case 0:
+            game_check_colors(conns);
+            break;
+        case 1:
+            game_check_balance(conns);
+            break;
+    }
     if (repairing > 0) {
-        game_show_colors(conns);
+        switch (GAMEMODE) {
+            case 0:
+                game_show_colors(conns);
+                break;
+            case 1:
+                game_show_balance(conns);
+                break;
+        }
     }
 }
 

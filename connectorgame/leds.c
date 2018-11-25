@@ -20,6 +20,7 @@ enum led_animation_types {
     ANIMATION_IDLE,
     ANIMATION_SPIN,
     ANIMATION_COLORS,
+    ANIMATION_BALANCE,
     ANIMATION_BLANK,
     ANIMATION_BLINK,
     ANIMATION_FLASH = 0x80,
@@ -179,6 +180,16 @@ static unsigned int colorlist[] = {
 int led_set_colors(int *colors)
 {
     ledanim_t *newan = NULL, **an;
+    /* Concurrent uitschakelen */
+    for (an = &led_animations; *an;) {
+        if (((*an)->offset == ring*RING_SIZE) && !((*an)->type == ANIMATION_BALANCE)) {
+            ledanim_t *f = *an;
+            *an = (*an)->next;
+            free(f);
+        } else {
+            an = &((*an)->next);
+        }
+    }
     /* Bestaande anim zoeken */
     for (an = &led_animations; *an;) {
         if ((*an)->type == ANIMATION_COLORS) {
@@ -229,6 +240,69 @@ int led_set_colors(int *colors)
     return 0;
 }
 
+int led_set_balance(int *bars)
+{
+    ledanim_t *newan = NULL, **an;
+    /* Concurrent uitschakelen */
+    for (an = &led_animations; *an;) {
+        if (((*an)->offset == ring*RING_SIZE) && !((*an)->type == ANIMATION_COLORS)) {
+            ledanim_t *f = *an;
+            *an = (*an)->next;
+            free(f);
+        } else {
+            an = &((*an)->next);
+        }
+    }
+    /* Bestaande anim zoeken */
+    for (an = &led_animations; *an;) {
+        if ((*an)->type == ANIMATION_BALANCE) {
+            newan = *an;
+            if (newan->next) {
+                if (!(newan->next->type & ANIMATION_FLASH)) {
+                    /* Altijd naar het einde van de lijst zetten, behalve flash */
+                    *an = newan->next;
+                    newan->next = NULL;
+                    while (*an && !((*an)->type & ANIMATION_FLASH)) {
+                        an = &((*an)->next);
+                    }
+                    *an = newan;
+                }
+            }
+            break;
+        } else {
+            an = &((*an)->next);
+        }
+    }
+    if (!newan) {
+        newan = malloc(sizeof(ledanim_t) + (4+1)*sizeof(int));
+        if (!newan) {
+            fprintf(stderr, "Allocation for animation failed!\n");
+            return -1;
+        }
+        newan->next = NULL;
+        newan->type = ANIMATION_BALANCE;
+        newan->offset = RING_SIZE;
+        newan->size = RING_SIZE*2;
+        newan->fadein = COLOR_FADE;
+        newan->fadepos = 0;
+        newan->pos = 0;
+        newan->data[0] = 4;
+        for (int i = 0; i < 4; i++) {
+            newan->data[i+1] = 0;
+        }
+        *an = newan;
+    }
+    if (bars) {
+        for (int i = 0; i < 4; i++) {
+            newan->data[i+1] = bars[i];
+        }
+        newan->fadein = COLOR_FADE;
+    } else {
+        newan->fadein = 0;
+    }
+    return 0;
+}
+
 static int led_animate_colors(ledanim_t *an)
 {
     int blinklist[7];
@@ -259,6 +333,44 @@ static int led_animate_colors(ledanim_t *an)
             newcol = colstep(curcol, newcol);
             an->data[(g*10+c)*2+2] = newcol;
             ledstring.channel[0].leds[pos] = col_fade((double)an->fadepos / COLOR_FADE, 2, ledstring.channel[0].leds[pos], newcol);
+        }
+    }
+    for (unsigned int b = 0; b < sizeof(gblanks)/sizeof(gblanks[0]); b++) {
+        ledstring.channel[0].leds[gblanks[b]] = col_fade((double)an->fadepos / COLOR_FADE, 2, ledstring.channel[0].leds[gblanks[b]], 0);
+    }
+    return 0;
+}
+
+static int led_animate_balance(ledanim_t *an)
+{
+    if (an->fadepos < an->fadein) an->fadepos += 1;
+    if (an->fadepos > an->fadein) an->fadepos -= 1;
+    if (an->fadepos <= 0) return 0;
+    if (++(an->pos) >= 60) {
+        an->pos = 0;
+    }
+    for (int g = 0; g < NUM_GROUPS; g++) {
+        int group_start = gstarts[g];
+        int group_dir = gdirs[g];
+        int group_ring = grings[g];
+        int bar = an->data[g+1]+5;
+        int blink = 0;
+        if (abs(an->data[g+1]) >= 4) blink = 1;
+        if (blink && an->pos < 10) {
+            for (int b = 0; b < 11; b++) {
+                int pos = ((RING_SIZE + group_start + group_dir * b) % RING_SIZE) + group_ring;
+                ledstring.channel[0].leds[pos] = col_fade((double)an->fadepos / COLOR_FADE, 2, ledstring.channel[0].leds[pos], 0x000000);
+            }
+        } else {
+            if (bar < 0) bar = 0;
+            if (bar > 10) bar = 10;
+            for (int b = 0; b < 11; b++) {
+                int pos = ((RING_SIZE + group_start + group_dir * b) % RING_SIZE) + group_ring;
+                int col = colorlist[g+1];
+                if (b < bar) col = col_fade(0.4, 2, 0x000000, col);
+                if (b > bar) col = col_fade(0.1, 2, 0x000000, col);
+                ledstring.channel[0].leds[pos] = col_fade((double)an->fadepos / COLOR_FADE, 2, ledstring.channel[0].leds[pos], col);
+            }
         }
     }
     for (unsigned int b = 0; b < sizeof(gblanks)/sizeof(gblanks[0]); b++) {
@@ -467,6 +579,8 @@ int led_animate(ledanim_t *an) {
             return led_animate_spin(an);
         case ANIMATION_COLORS:
             return led_animate_colors(an);
+        case ANIMATION_BALANCE:
+            return led_animate_balance(an);
         case ANIMATION_BLANK:
             return led_animate_blank(an);
         case ANIMATION_BLINK:

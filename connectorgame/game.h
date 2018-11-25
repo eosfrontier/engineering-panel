@@ -10,14 +10,15 @@ enum event {
 typedef struct {
     int solution[NUM_ROWS];
     int current[NUM_ROWS];
-    int type;
+    int solcount[5];
+    int curcount[5];
 } puzzle_t;
 
-#define BLACK      0x01
-#define BLUE       0x02
-#define GREEN      0x04
-#define YELLOW     0x08
-#define RED        0x10
+#define BLACK      0
+#define BLUE       1
+#define GREEN      2
+#define YELLOW     3
+#define RED        4
 #define GOOD       0x20
 #define BAD        0x40
 

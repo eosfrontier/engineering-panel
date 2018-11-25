@@ -1,0 +1,48 @@
+Alternatieve spel opties:
+Balans:
+  - Vier kleuren, als 'balkjes' (middelste ringen, links en rechts)
+  - Reactor-niveau wordt aangegeven onder en/of boven, wordt loopt langzaam leger of voller
+  - Als het reactorniveau vol is is het opgelost.
+  - Kleuren-niveaus fluctueren op en neer, als ze in het midden zijn gaat het niveau omhoog
+  - Waarschuwing als kleur buiten marge (knipperen, geluidseffect?)
+  - Als ze te ver uit het midden zijn gaat het omlaag
+  - Kleuren-niveaus zijn afhankelijk van aantal connecties van die kleur, plus random fluctuaties
+  - Moeilijkheids opties:
+    - Marges van kleuren-niveaus (breder/smaller, vol/leegloop snelheid)
+    - Positieve/negatieve feedback van onbalans (Als uit balans, kleur verder uit balans laten raken)
+    - Zelfde kleuren verbonden laten zijn (anders spark-effect en leeglopen?)
+  - Audio extra: Eventueel harmonischen voor verschillende kleuren, en dan dissonant laten worden?
+- C-E-G-c ?
+
+
+- Hoe te linken aan repairlevel?
+  - Proberen naar 5*20% toe te werken ?
+  - Elke 5% is een kleurstap van 1 kleur naar een andere
+  - Huidige balans bepalen, A/B/C/D/E en dan doel bepalen a/b/c/d/e (= aantal stekkers in die kleur)
+  - Voor elke 5% onder de 100:
+    - Random een kleur kiezen (die niet 0 of 20 is) en kijken wat de doeltelling is
+    - Random een tweede kleur kiezen die aan de andere kant van de doeltelling ligt (of nog gelijk is)
+    - Voor deze twee kleuren de doeltelling 1 stap verder van de huidige plaatsen (de ene omhoog, de andere omlaag)
+  - Repairlevel bepalen
+    - De vijf tellingen berekenen, en vergelijken met de doeltellingen
+    - Repairlevel = 100% -5%*tellingsverschil
+    - okcnt = 20 - tellingsverschil  (NB: Kan negatief zijn!)
+    - Bij wijziging connectie: repairlevel op okcnt zetten
+    - Anders:
+      - wantok = repairlevel * 20
+      - als wantok < okcnt, doeltelling verder verwijderen van huidige telling
+        - random kleur kiezen
+        - random tweede kleur kiezen waarvan het doelverschil andersom is dan de eerste kleur
+        - doeltelling beide kleuren verder verwijderen van de huidige telling
+        - Let op dat doeltellingen niet onder 0 of boven 20 mogen uitkomen
+        - Als huidige telling en doeltelling van een kleur 0 zijn, dan die kleur kiezen?
+      - als wantok > okcnt, doeltelling dichter toehalen bij huidige telling
+        - random kleur kiezen met een doelverschil
+        - random tweede kleur kiezen waarvan het doelverschil andersom is dan de eerste kleur
+        - doeltelling beide kleuren dichter bij huidige telling zetten
+- Led kleuren hints
+  - Voor elke kleur (behalve zwart) een helft (links/rechts) van de middelste twee nemen
+  - Elke helft heeft 11 leds.  Alle leds 'donker' oplichten
+  - Vanaf de 6e led naar boven of naar beneden tellen (1 stap voor elke doelafwijking van die kleur)
+  - Die led vol oplichten.  (Alternatief: leds 1 t/m die led oplichten; uitproberen)
+  - Evt knipperen wanneer het erg laag of hoog is

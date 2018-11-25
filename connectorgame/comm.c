@@ -124,6 +124,7 @@ struct {
     char *description;
 } settingfiles[] = {
     { "difficulty", &settings.difficulty, 1, 5, 1, 0, "Puzzle Difficulty Level" },
+    { "gamemode",   &settings.gamemode, 1, 2, 1, 0, "Puzzle Game Mode" },
     { "spinup",     &settings.spinup, 1, 100, 10, 0, "Spinup time (sec)" },
     { "spindown",   &settings.spindown, 1, 100, 20, 0, "Spindown time (sec)" },
     { "humfreq",    &settings.humfreq, 1, 500, 100, HUMSETTING, "Base hum frequency" },

@@ -5,6 +5,7 @@
 
 extern struct settings {
     double difficulty;
+    double gamemode;
     double spinup;
     double spindown;
     double humfreq;
