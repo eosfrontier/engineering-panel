@@ -226,17 +226,28 @@ static void flash_spark(void)
 static void flash_shortspark(void)
 {
     audio_play_file(1, WAV_SPARK_SHORT);
-    led_set_flash(0, 2, 0, randint(2,5), 0xffffff, randint(3,8), randint(2,5), 0x000000);
-    led_set_flash(3, 2, 0, randint(2,5), 0xffccff, randint(3,8), randint(2,5), 0x000000);
-    led_set_flash(1, 2, 0, randint(2,5), 0xff8888, randint(1,4), randint(1,2), 0x000000);
-    led_set_flash(2, 2, 0, randint(2,5), 0xff8888, randint(1,4), randint(1,2), 0x000000);
+    led_set_flash(0, 2, 0, randint(2,5), 0xffffff, randint(3,8), randint(4,7), 0x000000);
+    led_set_flash(3, 2, 0, randint(2,5), 0xffccff, randint(3,8), randint(4,7), 0x000000);
+    led_set_flash(1, 2, 0, randint(2,5), 0xff8888, randint(1,4), randint(3,5), 0x000000);
+    led_set_flash(2, 2, 0, randint(2,5), 0xff8888, randint(1,4), randint(3,5), 0x000000);
 }
 
-static inline int bitcnt(int bits)
+static int randbit(int bits)
 {
     int cnt = 0;
-    for (; bits > 0; bits >>= 1) cnt += (bits & 1);
-    return cnt;
+    for (int b = bits; b > 0; b >>= 1) cnt += (b & 1);
+    if (!cnt) return -1;
+    cnt = random() % cnt;
+    int rb = 0;
+    while (bits) {
+        if (bits & 1) {
+            if (cnt-- <= 0) {
+                break;
+            }
+        }
+        rb++;
+    }
+    return rb;
 }
 
 static void game_check_colors(clist_t *conns)
@@ -300,20 +311,12 @@ static void game_check_colors(clist_t *conns)
                     int r = PIN_ROW(p);
                     p = p % 5;
                     int pc = puzzle.solution[r];
-                    int ccnt = bitcnt(pc ^ 0x1f);
+                    int np = randbit(pc ^ 0x1f);
                     /* Nieuwe 'goede' connector in deze rij kiezen */
-                    if (ccnt > 0) {
-                        ccnt = randint(0, ccnt-1);
-                        for (int np = 0; np < 5; np++) {
-                            if (!(pc & (1 << np))) {
-                                if (ccnt-- <= 0) {
-                                    pdebug("Breaking just broken connection %d: %d -> %d", i, conns->pins[i].p[0], conns->pins[i].p[1]);
-                                    puzzle.solution[r] = (pc & ~(1 << p)) | (1 << np);
-                                    newrl = repairing;
-                                    break;
-                                }
-                            }
-                        }
+                    if (ccnt >= 0) {
+                        pdebug("Breaking just broken connection %d: %d -> %d", i, conns->pins[i].p[0], conns->pins[i].p[1]);
+                        puzzle.solution[r] = (pc & ~(1 << p)) | (1 << np);
+                        newrl = repairing;
                     }
                 }
             }
@@ -388,24 +391,13 @@ static void game_check_colors(clist_t *conns)
                                 int rrr = (rr + r) % NUM_ROWS;
                                 /* Deze gaat stuk: Niet verbonden pin kiezen als nieuwe oplossing */
                                 int pc = puzzle.current[rrr] ^ 0x1f;
-                                int ccnt = bitcnt(pc);
-                                if (ccnt > 0) {
-                                    ccnt = randint(0, ccnt-1);
-                                    for (int i = 0; i < 5; i++) {
-                                        if (pc & (1 << i)) {
-                                            if (ccnt > 0) {
-                                                ccnt--;
-                                            } else {
-                                                /* Deze gaat stuk */
-                                                puzzle.solution[r] &= ~(1 << p);
-                                                /* EN de nieuwe goede wordt dze */
-                                                puzzle.solution[rrr] |= 1 << i;
-                                                didbreak = 1;
-                                                break;
-                                            }
-                                        }
-                                    }
-                                    break;
+                                int np = randbit(pc);
+                                if (np >= 0) {
+                                    /* Deze gaat stuk */
+                                    puzzle.solution[r] &= ~(1 << p);
+                                    /* EN de nieuwe goede wordt dze */
+                                    puzzle.solution[rrr] |= 1 << np;
+                                    didbreak = 1;
                                 }
                             }
                             break;
@@ -465,21 +457,10 @@ static void game_check_colors(clist_t *conns)
                                 int rrr = (rr + r) % NUM_ROWS;
                                 /* Deze oplossing geldt niet meer: Zoek een pin die niet in current zit en wel in solution */
                                 int pc = (puzzle.current[rrr] ^ 0x1f) & puzzle.solution[rrr];
-                                int ccnt = bitcnt(pc);
-                                if (ccnt > 0) {
-                                    ccnt = randint(0, ccnt-1);
-                                    for (int i = 0; i < 5; i++) {
-                                        if (pc & (1 << i)) {
-                                            if (ccnt > 0) {
-                                                ccnt--;
-                                            } else {
-                                                /* En deze niet-goede oplossing is niet meer */
-                                                puzzle.solution[rrr] &= ~(1 << i);
-                                                break;
-                                            }
-                                        }
-                                    }
-                                    break;
+                                int np = randbit(pc);
+                                if (np >= 0) {
+                                    /* En deze niet-goede oplossing is niet meer */
+                                    puzzle.solution[rrr] &= ~(1 << np);
                                 }
                             }
                             break;
@@ -525,6 +506,7 @@ static void game_check_balance(clist_t *conns)
     if (okcnt < 0) okcnt = 0;
     /* Hoeveel connecties er goed zouden moeten zijn volgens repairlevel */
     int wantok = ((int)((20.0*repairlevel)+0.5));
+    int picks[5];
     if (!(conns->event & REPAIR) && (conns->newon + conns->off) > 0) {
         /* Iemand heeft iets losgetrokken of ingestoken, solution checken en repairlevel aanpassen */
         int newrl = REPAIR_TIMEOUT;
@@ -560,43 +542,20 @@ static void game_check_balance(clist_t *conns)
                     totcnt += puzzle.solcount[c];
                 }
                 while (totcnt < 20) {
-                    int didfix = 0;
                     int nccnt = 0;
                     for (int c = 0; c < 5; c++) {
                         if (c != col1 && c != col2 && puzzle.solcount[c] >= puzzle.curcount[c]) {
-                            nccnt++;
+                            picks[nccnt++] = c;
                         }
                     }
-                    int fc = randint(1, nccnt);
-                    for (int c = 0; c < 5; c++) {
-                        if (c != col1 && c != col2 && puzzle.solcount[c] >= puzzle.curcount[c]) {
-                            if (--fc <= 0) {
-                                pdebug("Upping color balance %d to reach total of 20", c);
-                                puzzle.solcount[c]++;
-                                totcnt++;
-                                didfix = 1;
-                                break;
-                            }
-                        }
+                    if (!nccnt) {
+                        nccnt = 5;
+                        picks = { 0, 1, 2, 3, 4 };
                     }
-                    if (!didfix) {
-                        fc = randint(1, 5);
-                        for (int c = 0; c < 5; c++) {
-                            if (c != col1 && c != col2 && puzzle.solcount[c] >= puzzle.curcount[c]) {
-                                if (--fc <= 0) {
-                                    pdebug("Upping color balance %d to reach total of 20", c);
-                                    puzzle.solcount[c]++;
-                                    totcnt++;
-                                    didfix = 1;
-                                    break;
-                                }
-                            }
-                        }
-                    }
-                    if (!didfix) {
-                        fprintf(stderr, "Unable to unbalance colors, breaking loop\n");
-                        break;
-                    }
+                    int fc = picks[randint(0, nccnt-1)];
+                    pdebug("Upping color balance %d to reach total of 20", fc);
+                    puzzle.solcount[fc]++;
+                    totcnt++;
                 }
             }
         }
@@ -628,7 +587,6 @@ static void game_check_balance(clist_t *conns)
             /* Geluid aanpassen aan hoe stuk het is */
             engine_hum_set(FRAMERATE, FRAMERATE/2, FRAMERATE*2, FRAMERATE);
         }
-        int picks[5];
         while (okcnt > wantok) {
             /* Een kleur uit balans brengen */
             int nccnt = 0;
