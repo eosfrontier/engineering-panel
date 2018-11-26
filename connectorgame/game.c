@@ -628,139 +628,112 @@ static void game_check_balance(clist_t *conns)
             /* Geluid aanpassen aan hoe stuk het is */
             engine_hum_set(FRAMERATE, FRAMERATE/2, FRAMERATE*2, FRAMERATE);
         }
+        int picks[5];
         while (okcnt > wantok) {
-            int didbreak = 0;
             /* Een kleur uit balans brengen */
             int nccnt = 0;
             for (int c = 0; c < 5; c++) {
-                if (puzzle.solcount[c] > 0 && puzzle.solcount[c] < 20) {
-                    nccnt++;
+                if ((puzzle.solcount[c] > 0 && puzzle.solcount[c] < 20) || puzzle.solcount[c] == puzzle.curcount[c]) {
+                    picks[nccnt++] = c;
                 }
             }
+            pdebug("Current solution: %d->%d %d->%d %d->%d %d->%d %d->%d", puzzle.curcount[0], puzzle.solcount[0], puzzle.curcount[1], puzzle.solcount[1], puzzle.curcount[2], puzzle.solcount[2], puzzle.curcount[3], puzzle.solcount[3], puzzle.curcount[4], puzzle.solcount[4]);
             pdebug(" %d <> %d, Finding one of %d to unbalance", okcnt, wantok, nccnt);
-            int fc = randint(1, nccnt);
-            for (int c = 0; c < 5; c++) {
-                if (puzzle.solcount[c] > 0 && puzzle.solcount[c] < 20) {
-                    if (--fc <= 0) {
-                        if (puzzle.solcount[c] <= puzzle.curcount[c]) {
-                            int nccnt2 = 0;
-                            for (int c2 = 0; c2 < 5; c2++) {
-                                if (c != c2 && puzzle.solcount[c2] < 20 && puzzle.solcount[c2] >= puzzle.curcount[c2]) {
-                                    nccnt2++;
-                                }
-                            }
-                            pdebug("  Finding one of %d to unbalance with %d", nccnt2, c);
-                            int fc2 = randint(1, nccnt2);
-                            for (int c2 = 0; c2 < 5; c2++) {
-                                if (c2 != c && puzzle.solcount[c2] < 20 && puzzle.solcount[c2] >= puzzle.curcount[c2]) {
-                                    if (--fc2 <= 0) {
-                                        pdebug("  Unbalancing %d (--) with %d (++)", c, c2);
-                                        puzzle.solcount[c]--;
-                                        puzzle.solcount[c2]++;
-                                        didbreak = 1;
-                                        break;
-                                    }
-                                }
-                            }
-                        } else {
-                            int nccnt2 = 0;
-                            for (int c2 = 0; c2 < 5; c2++) {
-                                if (c2 != c && puzzle.solcount[c2] > 0 && puzzle.solcount[c2] <= puzzle.curcount[c2]) {
-                                    nccnt2++;
-                                }
-                            }
-                            pdebug("  Finding one of %d to unbalance with %d", nccnt2, c);
-                            int fc2 = randint(1, nccnt2);
-                            for (int c2 = 0; c2 < 5; c2++) {
-                                if (c2 != c && puzzle.solcount[c2] > 0 && puzzle.solcount[c2] <= puzzle.curcount[c2]) {
-                                    if (--fc2 <= 0) {
-                                        pdebug("  Unbalancing %d (++) with %d (--)", c, c2);
-                                        puzzle.solcount[c]++;
-                                        puzzle.solcount[c2]--;
-                                        didbreak = 1;
-                                        break;
-                                    }
-                                }
-                            }
-                        }
-                        break;
-                    }
-                }
-            }
-            if (!didbreak) {
-                /* Safety: Eindeloze lus voorkomen */
-                fprintf(stderr, "Unable to unbalance colors, breaking loop\n");
-                wantok = okcnt;
+            if (!nccnt) {
+                fprintf(stderr, "No color found to unbalance, breaking loop!");
                 repairlevel = ((double)okcnt / 20.0);
                 break;
+            }
+            int fc = picks[randint(0, nccnt-1)];
+            /* Weg bewegen van current.  Als gelijk, dan toe bewegen naar 4 */
+            if (puzzle.solcount[fc] < puzzle.curcount[fc] || (puzzle.solcount[fc] == puzzle.curcount[fc] && puzzle.curcount[fc] > 4)) {
+                int nccnt2 = 0;
+                for (int c2 = 0; c2 < 5; c2++) {
+                    if (fc != c2 && puzzle.solcount[c2] < 20 && puzzle.solcount[c2] >= puzzle.curcount[c2]) {
+                        picks[nccnt2++] = c2;
+                    }
+                }
+                pdebug("  Finding one of %d to unbalance with %d", nccnt2, fc);
+                if (!nccnt2) {
+                    fprintf(stderr, "No color found to unbalance with %d, breaking loop!", fc);
+                    repairlevel = ((double)okcnt / 20.0);
+                    break;
+                }
+                int fc2 = picks[randint(0, nccnt2-1)];
+                pdebug("  Unbalancing %d (--) with %d (++)", fc, fc2);
+                puzzle.solcount[fc]--;
+                puzzle.solcount[fc2]++;
+            } else {
+                int nccnt2 = 0;
+                for (int c2 = 0; c2 < 5; c2++) {
+                    if (c2 != fc && puzzle.solcount[c2] > 0 && puzzle.solcount[c2] <= puzzle.curcount[c2]) {
+                        picks[nccnt2++] = c2;
+                    }
+                }
+                pdebug("  Finding one of %d to unbalance with %d", nccnt2, fc);
+                if (!nccnt2) {
+                    fprintf(stderr, "No color found to unbalance with %d, breaking loop!", fc);
+                    repairlevel = ((double)okcnt / 20.0);
+                    break;
+                }
+                int fc2 = picks[randint(0, nccnt2-1)];
+                pdebug("  Unbalancing %d (++) with %d (--)", fc, fc2);
+                puzzle.solcount[fc]++;
+                puzzle.solcount[fc2]--;
             }
             okcnt -= 2;
         }
         while (okcnt < wantok) {
-            int didfix = 0;
             /* Een kleur in balans brengen */
             int nccnt = 0;
             for (int c = 0; c < 5; c++) {
                 if (puzzle.solcount[c] != puzzle.curcount[c]) {
-                    nccnt++;
+                    picks[nccnt++] = c;
                 }
             }
+            pdebug("Current solution: %d->%d %d->%d %d->%d %d->%d %d->%d", puzzle.curcount[0], puzzle.solcount[0], puzzle.curcount[1], puzzle.solcount[1], puzzle.curcount[2], puzzle.solcount[2], puzzle.curcount[3], puzzle.solcount[3], puzzle.curcount[4], puzzle.solcount[4]);
             pdebug(" %d <> %d, Finding one of %d to balance", okcnt, wantok, nccnt);
-            int fc = randint(1, nccnt);
-            for (int c = 0; c < 5; c++) {
-                if (puzzle.solcount[c] != puzzle.curcount[c]) {
-                    if (--fc <= 0) {
-                        if (puzzle.solcount[c] < puzzle.curcount[c]) {
-                            int nccnt2 = 0;
-                            for (int c2 = 0; c2 < 5; c2++) {
-                                if (puzzle.solcount[c2] > puzzle.curcount[c2]) {
-                                    nccnt2++;
-                                }
-                            }
-                            pdebug("  Finding one of %d to balance with %d", nccnt2, c);
-                            int fc2 = randint(1, nccnt2);
-                            for (int c2 = 0; c2 < 5; c2++) {
-                                if (puzzle.solcount[c2] > puzzle.curcount[c2]) {
-                                    if (--fc2 <= 0) {
-                                        pdebug("  Balancing %d (++) with %d (--)", c, c2);
-                                        puzzle.solcount[c]++;
-                                        puzzle.solcount[c2]--;
-                                        didfix = 1;
-                                        break;
-                                    }
-                                }
-                            }
-                        } else {
-                            int nccnt2 = 0;
-                            for (int c2 = 0; c2 < 5; c2++) {
-                                if (puzzle.solcount[c2] < puzzle.curcount[c2]) {
-                                    nccnt2++;
-                                }
-                            }
-                            pdebug("  Finding one of %d to balance with %d", nccnt2, c);
-                            int fc2 = randint(1, nccnt2);
-                            for (int c2 = 0; c2 < 5; c2++) {
-                                if (puzzle.solcount[c2] < puzzle.curcount[c2]) {
-                                    if (--fc2 <= 0) {
-                                        pdebug("  Balancing %d (--) with %d (++)", c, c2);
-                                        puzzle.solcount[c]--;
-                                        puzzle.solcount[c2]++;
-                                        didfix = 1;
-                                        break;
-                                    }
-                                }
-                            }
-                        }
-                        break;
-                    }
-                }
-            }
-            if (!didfix) {
-                /* Safety: Eindeloze lus voorkomen */
-                fprintf(stderr, "Unable to balance colors, breaking loop\n");
-                wantok = okcnt;
+            if (!nccnt) {
+                fprintf(stderr, "No color found to balance, breaking loop!");
                 repairlevel = ((double)okcnt / 20.0);
                 break;
+            }
+            int fc = picks[randint(0, nccnt-1)];
+            if (puzzle.solcount[fc] < puzzle.curcount[fc]) {
+                int nccnt2 = 0;
+                for (int c2 = 0; c2 < 5; c2++) {
+                    if (puzzle.solcount[c2] > puzzle.curcount[c2]) {
+                        picks[nccnt2++] = c2;
+                    }
+                }
+                pdebug("  Finding one of %d to balance with %d", nccnt2, fc);
+                if (!nccnt2) {
+                    fprintf(stderr, "No color found to balance with %d, breaking loop!", fc);
+                    repairlevel = ((double)okcnt / 20.0);
+                    break;
+                }
+                int fc2 = picks[randint(0, nccnt2-1)];
+                pdebug("  Balancing %d (++) with %d (--)", fc, fc2);
+                puzzle.solcount[fc]++;
+                puzzle.solcount[fc2]--;
+                break;
+            } else {
+                int nccnt2 = 0;
+                for (int c2 = 0; c2 < 5; c2++) {
+                    if (puzzle.solcount[c2] < puzzle.curcount[c2]) {
+                        picks[nccnt2++] = c2;
+                    }
+                }
+                pdebug("  Finding one of %d to balance with %d", nccnt2, fc);
+                if (!nccnt2) {
+                    fprintf(stderr, "No color found to balance with %d, breaking loop!", fc);
+                    repairlevel = ((double)okcnt / 20.0);
+                    break;
+                }
+                int fc2 = picks[randint(0, nccnt2-1)];
+                pdebug("  Balancing %d (--) with %d (++)", fc, fc2);
+                puzzle.solcount[fc]--;
+                puzzle.solcount[fc2]++;
             }
             okcnt += 2;
         }

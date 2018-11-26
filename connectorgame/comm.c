@@ -78,6 +78,10 @@ int comm_write_connections(clist_t *conns)
     for (int s = 0; s < NUM_ROWS; s++) {
         fprintf(f, "%s[%d,%d]", s > 0 ? "," : "", puzzle.current[s], puzzle.solution[s]);
     }
+    fprintf(f, "],\"balance\":[");
+    for (int s = 0; s < 5; s++) {
+        fprintf(f, "%s[%d,%d]", s > 0 ? "," : "", puzzle.curcount[s], puzzle.solcount[s]);
+    }
     fprintf(f, "]}");
     if (fclose(f) < 0) {
         fprintf(stderr, "Failed to write %s: %s\n", COMM_CONNECTION_FILE_NEW, strerror(errno));
