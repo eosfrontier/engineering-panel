@@ -7,7 +7,7 @@ sudo systemctl stop lighttpd php7.0-fpm
 
 git clone --recursive https://github.com/willemm/shuttle-panels.git /home/pi/shuttle-panels
 
-sudo chown -R pi.pi /var/log/lighttpd
+sudo chown -R pi.pi /var/log/lighttpd /var/cache/lighttpd
 
 sudo cp /home/pi/shuttle-panels/install/asound.conf /etc/asound.conf
 sudo cp /home/pi/shuttle-panels/install/boot-config.txt /boot/config.txt
