@@ -38,6 +38,9 @@
 
 #define BREAKDOWN (settings.breakdown)
 
+#define SPARKLOW (settings.sparklow * (FRAMERATE/SCANRATE))
+#define SPARKHIGH (settings.sparkhigh * (FRAMERATE/SCANRATE))
+
 #define DIFFICULTY ((int)settings.difficulty)
 #define GAMEMODE ((int)settings.gamemode)
 
@@ -218,6 +221,15 @@ static void flash_spark(void)
     led_set_flash(3, 5, 0, randint(2,5), 0xffccff, randint(3,8), randint(2,5), 0xffccff, randint(3,6), randint(2,4), 0xffffff, randint(2,4), randint(5,10), 0x000000, randint(0,3)*6, randint(2,4), 0x000000);
     led_set_flash(1, 3, 0, randint(2,5), 0xff8888, randint(3,8), randint(2,5), 0xffffff, randint(6,12), randint(10,25), 0x000000);
     led_set_flash(2, 3, 0, randint(2,5), 0xff8888, randint(3,8), randint(2,5), 0xffffff, randint(6,12), randint(10,25), 0x000000);
+}
+
+static void flash_shortspark(void)
+{
+    audio_play_file(1, WAV_SPARK_SHORT);
+    led_set_flash(0, 2, 0, randint(2,5), 0xffffff, randint(3,8), randint(2,5), 0x000000);
+    led_set_flash(3, 2, 0, randint(2,5), 0xffccff, randint(3,8), randint(2,5), 0x000000);
+    led_set_flash(1, 2, 0, randint(2,5), 0xff8888, randint(1,4), randint(1,2), 0x000000);
+    led_set_flash(2, 2, 0, randint(2,5), 0xff8888, randint(1,4), randint(1,2), 0x000000);
 }
 
 static inline int bitcnt(int bits)
@@ -811,6 +823,22 @@ static void game_checklevel(clist_t *conns)
             break;
         default:
             fprintf(stderr, "Unknown gamemode %d", GAMEMODE);
+    }
+    static int sparkcnt = 0;
+    if (sparkcnt > 0) {
+        if (repairlevel >= 0.95) {
+            sparkcnt = 0;
+        } else {
+            sparkcnt--;
+            if (sparkcnt == 0) {
+                flash_shortspark();
+            }
+        }
+    }
+    if (sparkcnt == 0 && repairlevel < 0.95 && turbines[0]+turbines[1]+turbines[2] > 0.2) {
+        double sparkdelay = exp(log(SPARKHIGH) * repairlevel + log(SPARKLOW) * (1.0 - repairlevel));
+        sparkcnt = randint((int)(0.5*sparkdelay), (int)(1.5*sparkdelay));
+        pdebug("Set sparkdelay to %d (%d-%d)", sparkcnt,(int)(0.5*sparkdelay), (int)(1.5*sparkdelay));
     }
 }
 

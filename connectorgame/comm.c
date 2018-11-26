@@ -173,6 +173,8 @@ struct {
     { "decaytime",  &settings.decaytime, 0.0, 500.0, 4.0, 0, "Hours to 100% breakdown (0 = off)" },
     { "breakdown",  &settings.breakdown, 0.0, 1.0, 0.2, 0, "Total breakdown at level" },
     { "breakspeed", &settings.breakspeed, 0.001, 100.0, 1.0, 0, "Turbine spindown time at breakdown (sec)" },
+    { "sparklow",   &settings.sparklow, 0.1, 5000, 2.0, 0, "Average spark delay when repair low" },
+    { "sparkhigh",  &settings.sparkhigh, 0.1, 5000, 120.0, 0, "Average spark delay when repair high" },
 };
 
 static int write_settings(void)
