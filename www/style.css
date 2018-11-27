@@ -65,31 +65,43 @@ body {
 
 #switches td.switch {
 	border: 3px solid black;
-	border-radius: 5px;
+	border-radius: 6px;
 	background-color: #000000;
+	padding: 0;
+	overflow: hidden;
 }
 #switches td.switch_0 {
-	border-color: #0000aa;
+	border-color: #000077;
 }
 #switches td.switch_1 {
-	border-color: #880000;
+	border-color: #440000;
 }
 #switches td.switch_2 {
-	border-color: #008800;
+	border-color: #004400;
 }
-#switches td.switch.on {
-	background-color: #666666;
+#switches td.switch_0.on {
+	border-color: #3333ff;
+}
+#switches td.switch_1.on {
+	border-color: #dd3333;
+}
+#switches td.switch_2.on {
+	border-color: #33dd33;
 }
 
 #switches td.switch > div {
-	width: 20px;
-	height: 50px;
+	width: 16px;
+	height: 46px;
+	background-color: #008844;
+	background-image: linear-gradient(#008844, #006644, #004422, #220000);
+	border: 2px solid black;
+	border-radius: 4px;
 }
 #switches div.bar {
-	width: 10px;
+	width: 100%;
 	margin-left: auto;
 	margin-right: auto;
-	background-color: #cccccc;
+	background-color: 0;
 }
 #switches div.button.clicked {
 	border-color: #ffffff;
@@ -97,12 +109,12 @@ body {
 #repairlevel {
 	border: 3px solid #4400cc;
 	border-radius: 6px;
-	background-color: #4400cc;
-	height: 20px;
+	background-color: #000000;
 	overflow: hidden;
 	z-index: 2;
 	width: 100px;
 	position: relative;
+	overflow: hidden;
 }
 #repairlevel .display {
 	position: absolute;
@@ -113,9 +125,37 @@ body {
 	color: #000000;
 	z-index: 3;
 }
+#repairlevel > div {
+	height: 18px;
+	background-color: #22ccaa;
+	background-image: linear-gradient(70deg, #660000, #555500, #008800, #22ccaa);
+	border: 2px solid black;
+	border-radius: 4px;
+	position: static;
+}
 #repairlevel .full {
 	height: 100%;
-	background-color: #6600ff;
+	background-color: #000;
+	position: absolute;
+	right: 0px;
+}
+#repairlevel .tick {
+	height: 100%;
+	position: absolute;
+	top: 0px;
+	width: 1px;
+	background-color: #222;
+	color: #222;
+	font-size: 40%;
+	padding-top: 2px;
+}
+#repairlevel .tick div.tens {
+	position: absolute;
+	right: 1px;
+}
+#repairlevel .tick div.ones {
+	position: absolute;
+	left: 1px;
 }
 .melding {
 	color: #cc0000;

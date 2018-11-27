@@ -45,8 +45,11 @@ function create_display(colors)
         html.push('<td class="switch switch_',s,'"><div><div class="bar"></div></div></td>')
     }
     html.push('<td colspan="5">')
-    html.push('<div>Power</div>')
-    html.push('<div id="repairlevel"><div class="full"></div></div></td></tr>')
+    html.push('<div id="repairlevel"><div><div class="full"></div>')
+    for (var t = 20; t < 100; t += 20) {
+        html.push('<div class="tick" style="left: ',t,'%"><div class="tens">',(t/10),'</div><div class="ones">0</div></div>')
+    }
+    html.push('</div></div></td></tr>')
     html.push('<tr class="connectors">')
     var colorlist = [ 'black', 'blue', 'green', 'yellow', 'red' ]
     for (var c = 0; c < 100; c++) {
@@ -134,9 +137,9 @@ function display_connections(json)
         }
     }
     for (var t = 0; t < json.turbines.length; t++) {
-        $('#switches .switch_'+t+' div.bar').height(100*json.turbines[t]+'%')
+        $('#switches .switch_'+t+' div.bar').height(100*(1-json.turbines[t])+'%')
     }
-    $('#repairlevel .full').width((100*(json.repairlevel))+'%')
+    $('#repairlevel .full').width((100*(1-json.repairlevel))+'%')
     $('#repairlevel .display').text(Math.round(100*(json.repairlevel))+'%')
     var connectors = $('#connectors td.connector').removeClass('connected current solution b_low b_good b_high').get()
     for (var c = 0; c < json.connections.length; c++) {
@@ -151,7 +154,7 @@ function display_connections(json)
     }
     if (json.balance) {
         for (var c in json.balance) {
-            var cls = 'b_good';
+            var cls = 'b_good'
             if (json.balance[c][0] < json.balance[c][1]) cls = 'b_low'
             if (json.balance[c][0] > json.balance[c][1]) cls = 'b_high'
             $('#connectors td.connector.'+c).addClass(cls)
@@ -159,7 +162,7 @@ function display_connections(json)
         $('#connectors td.connector.connected.b_good,#connectors td.connector.connected.b_low').each(function() {
             var mr = $(this).attr('myrow')
             $('#connectors td.connector[myrow='+mr+'].b_low:not(.connected)').removeClass('b_low')
-        });
+        })
     }
 }
 

@@ -9,6 +9,7 @@
     <body>
         <table id="connectors" spelleider="<?= ($_COOKIE["spelleider"] == "spelleider") ? "true" : "false" ?>"></table>
 <?php if ($_COOKIE["spelleider"] == "spelleider"): ?>
+        <a href="admin.php">Admin page</a>
 	<table class="break">
 	    <tr>
 		<td class="button" colspan="2" myval="0.0">00</td>
