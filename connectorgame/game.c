@@ -542,9 +542,15 @@ static void game_check_balance(clist_t *conns)
         for (int i = conns->on; i < conns->on + conns->off; i++) {
             int col1 = c_colors[conns->pins[i].p[0]];
             int col2 = c_colors[conns->pins[i].p[1]];
-            if ((puzzle.curcount[col1] < puzzle.solcount[col1])
-                    && (puzzle.curcount[col2] < puzzle.solcount[col2])
-                    && memcmp(&lastconn, &(conns->pins[i]), sizeof(lastconn))) {
+            int breakit;
+            if (DIFFICULTY > 1) {
+                breakit = ((puzzle.curcount[col1] < puzzle.solcount[col1])
+                    || (puzzle.curcount[col2] < puzzle.solcount[col2]));
+            } else {
+                breakit = ((puzzle.curcount[col1] < puzzle.solcount[col1])
+                    && (puzzle.curcount[col2] < puzzle.solcount[col2]));
+            }
+            if (breakit && memcmp(&lastconn, &(conns->pins[i]), sizeof(lastconn))) {
                 /* Zorgen dat deze connectie niet het repairlevel verhoogt als ie hetzelfde wordt verbonden */
                 if (turbines[0]+turbines[1]+turbines[2] > 0.5) {
                     flash_spark();
