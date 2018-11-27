@@ -4,7 +4,7 @@ DefaultDependencies=false
 Wants=network-online.target
 Wants=home.mount
 Wants=sound.target
-After=network-online.target
+After=multi-user.target
 
 [Service]
 ExecStart=/home/pi/shuttle-panels/connectorgame/connectorgame
@@ -12,4 +12,4 @@ Restart=always
 RestartSec=1
 
 [Install]
-WantedBy=multi-user.target
+WantedBy=graphical.target
