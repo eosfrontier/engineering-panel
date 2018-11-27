@@ -28,13 +28,18 @@
 #define COMM_REPAIR_FILE COMM_CMD_PATH "repair.txt"
 #define COMM_SETTINGS_PATH COMM_PATH "settings/"
 
+#define GAMEMODE ((int)settings.gamemode)
+
 extern double turbines[3];
 extern double repairlevel;
 extern puzzle_t puzzle;
 
 static double lastturbines[3];
 static double lastrepairlevel = -1.0;
+static int lastgamemode = 0;
 static puzzle_t lastpuzzle;
+
+static char *colorlist[] = { "black", "blue", "green", "yellow", "red" };
 
 int comm_write_connections(clist_t *conns)
 {
@@ -45,6 +50,9 @@ int comm_write_connections(clist_t *conns)
             break;
         }
     }
+    if (ch == 0 && lastgamemode != GAMEMODE) {
+        ch = 1;
+    }
     if (ch == 0 && memcmp(lastturbines, turbines, sizeof(lastturbines))) {
         ch = 1;
     }
@@ -54,6 +62,7 @@ int comm_write_connections(clist_t *conns)
     if (fabs(repairlevel - lastrepairlevel) > 0.01) {
         ch = 1;
     }
+    lastgamemode = GAMEMODE;
     lastrepairlevel = repairlevel;
     memcpy(lastturbines, turbines, sizeof(lastturbines));
     memcpy(&lastpuzzle, &puzzle, sizeof(lastpuzzle));
@@ -74,15 +83,27 @@ int comm_write_connections(clist_t *conns)
     for (int cn = 0; cn < conns->on; cn++) {
         fprintf(f, "%s[%d,%d]", cn > 0 ? "," : "", conns->pins[cn].p[0], conns->pins[cn].p[1]);
     }
-    fprintf(f, "],\"rows\":[");
-    for (int s = 0; s < NUM_ROWS; s++) {
-        fprintf(f, "%s[%d,%d]", s > 0 ? "," : "", puzzle.current[s], puzzle.solution[s]);
+    fprintf(f, "]");
+    if (GAMEMODE == 1) {
+        fprintf(f, ",\"solution\":[");
+        char *comma = "";
+        for (int s = 0; s < NUM_ROWS; s++) {
+            for (int p = 0; p < 5; p++) {
+                if (puzzle.solution[s] & (1 << p)) {
+                    fprintf(f, "%s%d", comma, s*5+p);
+                    comma = ",";
+                }
+            }
+        }
+        fprintf(f, "]");
+    } else if (GAMEMODE == 2) {
+        fprintf(f, ",\"balance\":{");
+        for (int s = 0; s < 5; s++) {
+            fprintf(f, "%s\"%s\":[%d,%d]", s > 0 ? "," : "", colorlist[s], puzzle.curcount[s], puzzle.solcount[s]);
+        }
+        fprintf(f, "}");
     }
-    fprintf(f, "],\"balance\":[");
-    for (int s = 0; s < 5; s++) {
-        fprintf(f, "%s[%d,%d]", s > 0 ? "," : "", puzzle.curcount[s], puzzle.solcount[s]);
-    }
-    fprintf(f, "]}");
+    fprintf(f, "}");
     if (fclose(f) < 0) {
         fprintf(stderr, "Failed to write %s: %s\n", COMM_CONNECTION_FILE_NEW, strerror(errno));
         return -1;

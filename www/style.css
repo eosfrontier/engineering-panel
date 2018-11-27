@@ -17,29 +17,50 @@ body {
 	width: 10px;
 	height: 10px;
 }
+#balance td.balance.red,
 #connectors td.connector.red {
 	border-color: #880000;
 }
+#balance td.balance.green,
 #connectors td.connector.green {
 	border-color: #008800;
 }
+#balance td.balance.blue,
 #connectors td.connector.blue {
 	border-color: #2222aa;
 }
+#balance td.balance.yellow,
 #connectors td.connector.yellow {
 	border-color: #888800;
 }
+#balance td.balance.black,
 #connectors td.connector.black {
 	border-color: #444444;
 }
-#connectors td.connector.current {
+#connectors td.connector.connected {
 	background-color: #cc0000;
 }
 #connectors td.connector.solution {
 	background-color: #00cc00;
 }
-#connectors td.connector.current.solution {
+#connectors td.connector.connected.solution {
 	background-color: #cccccc;
+}
+
+#connectors tr.b_good td.connector.b_low {
+	background-color: #000000;
+}
+#connectors td.connector.b_low {
+	background-color: #00cc00;
+}
+#connectors td.connector.connected.b_good {
+	background-color: #cccccc;
+}
+#connectors td.connector.connected.b_low {
+	background-color: #cccccc;
+}
+#connectors td.connector.connected.b_high {
+	background-color: #cc0000;
 }
 
 #switches td.switch {

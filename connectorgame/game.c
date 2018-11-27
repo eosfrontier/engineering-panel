@@ -245,9 +245,26 @@ static int randbit(int bits)
                 break;
             }
         }
+        bits >>= 1;
         rb++;
     }
     return rb;
+}
+
+static void game_set_current(clist_t *conns)
+{
+    for (int i = 0; i < NUM_ROWS; i++) {
+        puzzle.current[i] = 0;
+    }
+    /* Tellen hoeveel conecties er goed zijn */
+    for (int i = 0; i < conns->on; i++) {
+        for (int cc = 0; cc < 2; cc++) {
+            int p = conns->pins[i].p[cc];
+            int r = PIN_ROW(p);
+            p = p % 5;
+            puzzle.current[r] |= (1 << p);
+        }
+    }
 }
 
 static void game_check_colors(clist_t *conns)
@@ -255,9 +272,6 @@ static void game_check_colors(clist_t *conns)
     int okcnt = 0;         // Telt hoeveel goede connectors er zijn
     int okcnts[conns->on]; // Hoeveel connecties er goed zijn per kabel
     int okpc[3] = {0,0,0}; // Aantal connecties met 0, 1 of 2 goede stekkers
-    for (int i = 0; i < NUM_ROWS; i++) {
-        puzzle.current[i] = 0;
-    }
     /* Tellen hoeveel conecties er goed zijn */
     for (int i = 0; i < conns->on; i++) {
         okcnts[i] = 0;
@@ -265,7 +279,6 @@ static void game_check_colors(clist_t *conns)
             int p = conns->pins[i].p[cc];
             int r = PIN_ROW(p);
             p = p % 5;
-            puzzle.current[r] |= (1 << p);
             if (puzzle.solution[r] & (1 << p)) {
                 okcnt++;
                 okcnts[i]++;
@@ -393,11 +406,13 @@ static void game_check_colors(clist_t *conns)
                                 int pc = puzzle.current[rrr] ^ 0x1f;
                                 int np = randbit(pc);
                                 if (np >= 0) {
+                                    pdebug("Solution (%d/%d) becomes (%d/%d)", r, p, rrr, np);
                                     /* Deze gaat stuk */
                                     puzzle.solution[r] &= ~(1 << p);
                                     /* EN de nieuwe goede wordt dze */
                                     puzzle.solution[rrr] |= 1 << np;
                                     didbreak = 1;
+                                    break;
                                 }
                             }
                             break;
@@ -461,6 +476,7 @@ static void game_check_colors(clist_t *conns)
                                 if (np >= 0) {
                                     /* En deze niet-goede oplossing is niet meer */
                                     puzzle.solution[rrr] &= ~(1 << np);
+                                    break;
                                 }
                             }
                             break;
@@ -745,6 +761,7 @@ static void game_checklevel(clist_t *conns)
             }
         }
     }
+    game_set_current(conns);
     switch (GAMEMODE) {
         case 1:
             game_check_colors(conns);

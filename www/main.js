@@ -48,10 +48,13 @@ function create_display(colors)
     html.push('<div>Power</div>')
     html.push('<div id="repairlevel"><div class="full"></div></div></td></tr>')
     html.push('<tr class="connectors">')
+    var colorlist = [ 'black', 'blue', 'green', 'yellow', 'red' ]
     for (var c = 0; c < 100; c++) {
-        if (c % 10 == 5) html.push('<td class="center" colspan="3"></td>')
+        if ((c % 20) == 5) {
+            html.push('<td class="center ',colorlist[(c-5)/20],'" rowspan="2" colspan="3"></td>')
+        }
         if (c > 0 && (c % 10 == 0)) html.push('</tr><tr class="connectors">')
-        html.push('<td class="connector"><div></div></td>')
+        html.push('<td class="connector" myrow="',Math.floor(c/5),'"><div></div></td>')
     }
     html.push('</tr>')
     $('#connectors').html(html.join(''))
@@ -135,23 +138,28 @@ function display_connections(json)
     }
     $('#repairlevel .full').width((100*(json.repairlevel))+'%')
     $('#repairlevel .display').text(Math.round(100*(json.repairlevel))+'%')
-    var connectors = $('#connectors td.connector').removeClass('connected current solution').get()
+    var connectors = $('#connectors td.connector').removeClass('connected current solution b_low b_good b_high').get()
     for (var c = 0; c < json.connections.length; c++) {
         var conn = json.connections[c]
         $(connectors[map_connector(conn[0])]).addClass('connected')
         $(connectors[map_connector(conn[1])]).addClass('connected')
     }
-    for (var r = 0; r < json.rows.length; r++) {
-        var cur = json.rows[r][0]
-        var sol = json.rows[r][1]
-        for (var p = 0; p < 5; p++) {
-            if (cur & (1 << p)) {
-                $(connectors[map_solution(r, p)]).addClass('current')
-            }
-            if (sol & (1 << p)) {
-                $(connectors[map_solution(r, p)]).addClass('solution')
-            }
+    if (json.solution) {
+        for (var r = 0; r < json.solution.length; r++) {
+            $(connectors[map_connector(json.solution[r])]).addClass('solution')
         }
+    }
+    if (json.balance) {
+        for (var c in json.balance) {
+            var cls = 'b_good';
+            if (json.balance[c][0] < json.balance[c][1]) cls = 'b_low'
+            if (json.balance[c][0] > json.balance[c][1]) cls = 'b_high'
+            $('#connectors td.connector.'+c).addClass(cls)
+        }
+        $('#connectors td.connector.connected.b_good,#connectors td.connector.connected.b_low').each(function() {
+            var mr = $(this).attr('myrow')
+            $('#connectors td.connector[myrow='+mr+'].b_low:not(.connected)').removeClass('b_low')
+        });
     }
 }
 
