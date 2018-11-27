@@ -313,7 +313,7 @@ static void game_check_colors(clist_t *conns)
                     int pc = puzzle.solution[r];
                     int np = randbit(pc ^ 0x1f);
                     /* Nieuwe 'goede' connector in deze rij kiezen */
-                    if (ccnt >= 0) {
+                    if (np >= 0) {
                         pdebug("Breaking just broken connection %d: %d -> %d", i, conns->pins[i].p[0], conns->pins[i].p[1]);
                         puzzle.solution[r] = (pc & ~(1 << p)) | (1 << np);
                         newrl = repairing;
@@ -548,11 +548,12 @@ static void game_check_balance(clist_t *conns)
                             picks[nccnt++] = c;
                         }
                     }
-                    if (!nccnt) {
-                        nccnt = 5;
-                        picks = { 0, 1, 2, 3, 4 };
+                    int fc;
+                    if (nccnt) {
+                        fc = picks[randint(0, nccnt-1)];
+                    } else {
+                        fc = randint(0, 4);
                     }
-                    int fc = picks[randint(0, nccnt-1)];
                     pdebug("Upping color balance %d to reach total of 20", fc);
                     puzzle.solcount[fc]++;
                     totcnt++;
@@ -596,7 +597,7 @@ static void game_check_balance(clist_t *conns)
                 }
             }
             pdebug("Current solution: %d->%d %d->%d %d->%d %d->%d %d->%d", puzzle.curcount[0], puzzle.solcount[0], puzzle.curcount[1], puzzle.solcount[1], puzzle.curcount[2], puzzle.solcount[2], puzzle.curcount[3], puzzle.solcount[3], puzzle.curcount[4], puzzle.solcount[4]);
-            pdebug(" %d <> %d, Finding one of %d to unbalance", okcnt, wantok, nccnt);
+            pdebug(" %d > %d, Finding one of %d to unbalance", okcnt, wantok, nccnt);
             if (!nccnt) {
                 fprintf(stderr, "No color found to unbalance, breaking loop!");
                 repairlevel = ((double)okcnt / 20.0);
@@ -650,7 +651,7 @@ static void game_check_balance(clist_t *conns)
                 }
             }
             pdebug("Current solution: %d->%d %d->%d %d->%d %d->%d %d->%d", puzzle.curcount[0], puzzle.solcount[0], puzzle.curcount[1], puzzle.solcount[1], puzzle.curcount[2], puzzle.solcount[2], puzzle.curcount[3], puzzle.solcount[3], puzzle.curcount[4], puzzle.solcount[4]);
-            pdebug(" %d <> %d, Finding one of %d to balance", okcnt, wantok, nccnt);
+            pdebug(" %d < %d, Finding one of %d to balance", okcnt, wantok, nccnt);
             if (!nccnt) {
                 fprintf(stderr, "No color found to balance, breaking loop!");
                 repairlevel = ((double)okcnt / 20.0);
@@ -674,7 +675,6 @@ static void game_check_balance(clist_t *conns)
                 pdebug("  Balancing %d (++) with %d (--)", fc, fc2);
                 puzzle.solcount[fc]++;
                 puzzle.solcount[fc2]--;
-                break;
             } else {
                 int nccnt2 = 0;
                 for (int c2 = 0; c2 < 5; c2++) {
