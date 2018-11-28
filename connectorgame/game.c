@@ -216,7 +216,10 @@ void init_game(void)
 
 static void flash_spark(void)
 {
-    audio_play_file(1, randint(WAV_SPARK1, WAV_SPARK4));
+    char sparkfile[10] = "spark1";
+    sparkfile[5] = randint('1','4');
+    if (repairlevel <= BREAKDOWN) strcpy(sparkfile, "bang");
+    audio_play_file(1, sparkfile);
     led_set_flash(0, 5, 0, randint(2,5), 0xffffff, randint(3,8), randint(2,5), 0xccccff, randint(3,6), randint(2,4), 0xffcccc, randint(2,4), randint(5,10), 0x000000, randint(0,3)*5, randint(2,4), 0x000000);
     led_set_flash(3, 5, 0, randint(2,5), 0xffccff, randint(3,8), randint(2,5), 0xffccff, randint(3,6), randint(2,4), 0xffffff, randint(2,4), randint(5,10), 0x000000, randint(0,3)*6, randint(2,4), 0x000000);
     led_set_flash(1, 3, 0, randint(2,5), 0xff8888, randint(3,8), randint(2,5), 0xffffff, randint(6,12), randint(10,25), 0x000000);
@@ -225,7 +228,7 @@ static void flash_spark(void)
 
 static void flash_shortspark(void)
 {
-    audio_play_file(1, WAV_SPARK_SHORT);
+    audio_play_file(1, "spark-short");
     led_set_flash(0, 2, 0, randint(2,5), 0xffffff, randint(3,8), randint(4,7), 0x000000);
     led_set_flash(3, 2, 0, randint(2,5), 0xffccff, randint(3,8), randint(4,7), 0x000000);
     led_set_flash(1, 2, 0, randint(2,5), 0xff8888, randint(1,4), randint(3,5), 0x000000);
@@ -1020,11 +1023,11 @@ static void game_doturbines(clist_t *conns)
         /* Een turbine is net bij zijn eindpunt geraakt, en geen turbine is niet bij zijn eindpunt */
         if (running == 0) {
             /* Alles uit */
-            audio_play_file(1, WAV_ENGINE_OFF);
+            audio_play_file(1, "engineoff");
             conns->event |= ENGINE_OFF;
         } else if (running == 3) {
             /* Alles aan */
-            audio_play_file(1, WAV_ENGINE_ON);
+            audio_play_file(1, "engineon");
             conns->event |= ENGINE_ON;
         }
     }

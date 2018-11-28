@@ -4,6 +4,7 @@
 #include <string.h>
 #include <unistd.h>
 #include <math.h>
+#include <glob.h>
 #include <alsa/asoundlib.h>
 #include <sys/mman.h>
 #include <sys/types.h>
@@ -19,8 +20,6 @@ static snd_pcm_t *pcm_handle = NULL;
 static unsigned char *mmap_pos = NULL;
 static size_t mmap_len = 0;
 static size_t play_pos = 0;
-
-static char *wav_audiofiles[] = WAV_AUDIOFILES;
 
 static struct {
     int16_t *samples;
@@ -43,10 +42,13 @@ static struct {
 } pcm_channels[WAV_CHANNELS];
 
 static struct {
+    char *name;
     int16_t *samples;
     long length;
     int repeat;
-} wavfiles[WAV_COUNT];
+} *wavfiles;
+
+static int wav_count = 0;
 
 static size_t read_le32(unsigned char *bytes)
 {
@@ -58,13 +60,10 @@ static int read_le16(unsigned char *bytes)
     return bytes[0] + (bytes[1]<<8);
 }
 
-static int read_wavfile(char *name, int wc)
+static int read_wavfile(char *pathname, int wc)
 {
     int fd;
     int err;
-    char pathname[strlen(PCM_PATH)+strlen(name)+1];
-    strcpy(pathname, PCM_PATH);
-    strcat(pathname, name);
     fd = open(pathname, O_RDONLY);
     if (fd < 0) {
         fprintf(stderr, "Failed to open audio %s: %s\n", pathname, strerror(fd));
@@ -109,6 +108,10 @@ static int read_wavfile(char *name, int wc)
         fprintf(stderr, "Wav file size error on %s\n", pathname);
         return -1;
     }
+    char *filename = strdup(strrchr(pathname, '/')+1);
+    *(strrchr(filename, '.')) = 0;
+    pdebug("Mmapped sound '%s'", filename);
+    wavfiles[wc].name = filename;
     wavfiles[wc].samples = (int16_t *)(wavdata+fmtlen+28);
     wavfiles[wc].length = wavdatalen/4;
     wavfiles[wc].repeat = 0;
@@ -118,8 +121,15 @@ static int read_wavfile(char *name, int wc)
 static int read_wavfiles(void)
 {
     int ret = 0;
-    for (int wc = 0; wc < WAV_COUNT; wc++) {
-        if (read_wavfile(wav_audiofiles[wc], wc) < 0) {
+    glob_t wavs;
+    if (glob(PCM_PATH "*.wav", 0, NULL, &wavs)) {
+        fprintf(stderr, "Failed to read wav files from %s: %s\n", PCM_PATH "*.wav", strerror(errno));
+        return -1;
+    }
+    wav_count = wavs.gl_pathc;
+    wavfiles = calloc(wav_count, sizeof(*wavfiles));
+    for (size_t wc = 0; wc < wav_count; wc++) {
+        if (read_wavfile(wavs.gl_pathv[wc], wc) < 0) {
             ret = -1;
             wavfiles[wc].samples = NULL;
         }
@@ -298,18 +308,25 @@ void audio_mainloop(void)
     }
 }
 
-int audio_play_file(int channel, enum wav_sounds sound)
+int audio_play_file(int channel, char *sound)
 {
-    if (channel >= WAV_CHANNELS || sound >= WAV_COUNT) {
+    if (channel >= WAV_CHANNELS) {
         fprintf(stderr, "audio_play_file argument error\n");
         return -1;
     }
-    pcm_channels[channel].samples = wavfiles[sound].samples;
-    pcm_channels[channel].length  = wavfiles[sound].length;
-    pcm_channels[channel].repeat  = wavfiles[sound].repeat;
-    pcm_channels[channel].position = 0;
-    pdebug("audio_play_file(%d, %s)", channel, wav_audiofiles[sound]);
-    return 0;
+    pdebug("audio_play_file(%d, %s)", channel,sound);
+    for (int s = 0; s < wav_count; s++) {
+        if (!strcmp(wavfiles[s].name, sound)) {
+            pcm_channels[channel].samples = wavfiles[s].samples;
+            pcm_channels[channel].length  = wavfiles[s].length;
+            pcm_channels[channel].repeat  = wavfiles[s].repeat;
+            pcm_channels[channel].position = 0;
+            pdebug("audio_play_file(%d, %d (%s))", channel, s, sound);
+            return 0;
+        }
+    }
+    fprintf(stderr, "Unknown sound %s\n", sound);
+    return -1;
 }
 
 struct synth_s *get_synth(int channel, int synthchannel)
