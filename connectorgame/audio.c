@@ -128,7 +128,7 @@ static int read_wavfiles(void)
     }
     wav_count = wavs.gl_pathc;
     wavfiles = calloc(wav_count, sizeof(*wavfiles));
-    for (size_t wc = 0; wc < wav_count; wc++) {
+    for (int wc = 0; wc < wav_count; wc++) {
         if (read_wavfile(wavs.gl_pathv[wc], wc) < 0) {
             ret = -1;
             wavfiles[wc].samples = NULL;
