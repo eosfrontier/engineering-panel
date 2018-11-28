@@ -2,6 +2,14 @@ body {
 	background-color: #000;
 	color: #3cf;
 	font: 20px arial;
+	width: 320px;
+	margin-left: auto;
+	margin-right: auto;
+}
+
+#connectors {
+	margin-left: auto;
+	margin-right: auto;
 }
 
 #connectors td.connector div {
@@ -162,57 +170,109 @@ body {
 }
 
 .volume .button {
-    border: 1px solid #18a;
-    background-color: #3cf;
-    color: #000;
-    font-weight: bold;
-    border-radius: 5px;
-    width: 1em;
-    display: inline-block;
-    text-align: center;
+	border: 1px solid #18a;
+	background-color: #3cf;
+	color: #000;
+	font-weight: bold;
+	border-radius: 5px;
+	width: 1em;
+	display: inline-block;
+	text-align: center;
 	cursor: pointer;
 }
 #difficulty {
-    text-align: center;
-    margin: 4px;
+	text-align: center;
+	margin: 4px;
 }
 #difficulty span {
-    display: inline-block;
+	display: inline-block;
 }
 #difficulty .value {
-    width: 2em;
+	width: 1.5em;
 }
 #difficulty .button {
-    width: 1em;
-    border: 2px solid #1ad;
-    border-radius: 20%;
-    background-color: #3ce;
-    color: #168;
-    cursor: pointer;
+	width: 1em;
+	border: 2px solid #1ad;
+	border-radius: 5px;
+	background-color: #3ce;
+	color: #168;
+	cursor: pointer;
 }
 #difficulty .button.disabled {
-    color: #3ce;
+	color: #3ce;
+}
+#gamemode {
+	text-align: center;
+	margin: 4px;
+}
+#gamemode span {
+	display: inline-block;
+}
+#gamemode .button {
+	border: 2px solid #1ad;
+	border-radius: 5px;
+	background-color: #3ce;
+	width: 32px;
+	color: #168;
+	cursor: pointer;
+	margin: 0 2px;
+	font-size: 95%;
+}
+#gamemode .button.selected {
+	color: #dfd;
+	background-color: #3e8;
+	border-color: #2d6;
 }
 table.break {
-    table-layout: fixed;
-    width: 100%;
-    border-spacing: 5px;
+	table-layout: fixed;
+	width: 100%;
+	border-spacing: 5px;
 }
 table.break tr {
-    height: 2em;
+	height: 2em;
 }
 table.break caption {
-    text-align: center;
+	text-align: center;
 }
 table.break .button {
-    border-radius: 5px;
-    color: #025;
-    text-align: center;
-    margin: 10px 4px;
-    border: 2px solid #660088;
-    padding: 2px 5px;
-    background-color: #9944cc;
-    color: #000000;
-    cursor: pointer;
-    padding: 0;
+	border-radius: 5px;
+	color: #025;
+	text-align: center;
+	margin: 10px 4px;
+	border: 2px solid #660088;
+	padding: 2px 5px;
+	background-color: #9944cc;
+	color: #000000;
+	cursor: pointer;
+	padding: 0;
+}
+td.center {
+	text-align: center;
+}
+td.center a.help {
+	vertical-align: center;
+	display: block;
+	margin-left: auto;
+	margin-right: auto;
+	text-decoration: none;
+	width: 30px;
+	height: 30px;
+	border: 3px solid #416;
+	border-radius: 18px;
+	font-size: 26px;
+	color: #518;
+	background-color: #306;
+}
+body.manual {
+	font: 15px arial;
+}
+p.warning {
+	color: #c13;
+}
+table.settings input {
+	width: 5em;
+	background-color: #315;
+	color: #c3f;
+	border: 1px solid #517;
+	border-radius: 4px;
 }

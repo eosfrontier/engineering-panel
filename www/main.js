@@ -34,13 +34,15 @@ function create_display(colors)
     }
     var html = []
     html.push('<tr id="switches" class="switches"><td colspan="5">')
-    html.push('<div id="difficulty"><div>Difficulty</div>')
     if ($('#connectors').attr('spelleider') == 'true') {
-        html.push('<span class="button lower" myval="-1">&lt;</span><span class="value"></span><span class="button higher" myval="+1">&gt;</span>')
-    } else {
-        html.push('<span class="value"></span>')
+        html.push('<div id="difficulty">')
+        html.push('<span class="button lower" myval="-1">&lt;</span> lvl<span class="value"></span><span class="button higher" myval="+1">&gt;</span>')
+        html.push('</div>')
+        html.push('<div id="gamemode">')
+        html.push('<span class="button" myval="1">pos</span><span class="button" myval="2">num</span>')
+        html.push('</div>')
     }
-    html.push('</div></td>')
+    html.push('</td>')
     for (var s = 0; s < 3; s++) {
         html.push('<td class="switch switch_',s,'"><div><div class="bar"></div></div></td>')
     }
@@ -54,7 +56,11 @@ function create_display(colors)
     var colorlist = [ 'black', 'blue', 'green', 'yellow', 'red' ]
     for (var c = 0; c < 100; c++) {
         if ((c % 20) == 5) {
-            html.push('<td class="center ',colorlist[(c-5)/20],'" rowspan="2" colspan="3"></td>')
+            html.push('<td class="center center',(c+15)/20,' ',colorlist[(c-5)/20],'" rowspan="2" colspan="3">')
+            if (c == 45) {
+                html.push('<a class="help"href="help.php">?</a>')
+            }
+            html.push('</td>')
         }
         if (c > 0 && (c % 10 == 0)) html.push('</tr><tr class="connectors">')
         html.push('<td class="connector" myrow="',Math.floor(c/5),'"><div></div></td>')
@@ -67,6 +73,7 @@ function create_display(colors)
     }
     $('table.break .button').click(set_repair)
     $('#difficulty .button').click(set_difficulty)
+    $('#gamemode .button').click(set_gamemode)
     $.get('set_setting.php', show_settings)
     reload()
 }
@@ -77,6 +84,16 @@ function set_difficulty()
         var d = $(this).attr('myval')
         if (d) {
             $.post('set_setting.php', { key: 'difficulty', value: d }, show_settings)
+        }
+    }
+}
+
+function set_gamemode()
+{
+    if (!$(this).hasClass('selected')) {
+        var d = $(this).attr('myval')
+        if (d) {
+            $.post('set_setting.php', { key: 'gamemode', value: d }, show_settings)
         }
     }
 }
@@ -96,6 +113,9 @@ function show_settings(json)
         } else {
             $('#difficulty .higher').addClass('disabled').attr('myval', d)
         }
+        var g = json.settings.gamemode
+        $('#gamemode .button').removeClass('selected')
+        $('#gamemode .button[myval='+g+']').addClass('selected')
     }
 }
 
