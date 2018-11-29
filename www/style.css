@@ -15,7 +15,13 @@ body {
 #connectors td.connector div {
 	height: 10px;
 	width: 10px;
+	line-height: 10px;
+	padding: 0;
+	font-size: 10px;
+	text-align: center;
+	color: #000000;
 }
+
 #connectors td.center {
 	width: 50px;
 }
@@ -24,24 +30,20 @@ body {
 	border-radius: 10px;
 	width: 10px;
 	height: 10px;
+	vertical-align: center;
 }
-#balance td.balance.red,
 #connectors td.connector.red {
 	border-color: #880000;
 }
-#balance td.balance.green,
 #connectors td.connector.green {
 	border-color: #008800;
 }
-#balance td.balance.blue,
 #connectors td.connector.blue {
 	border-color: #2222aa;
 }
-#balance td.balance.yellow,
 #connectors td.connector.yellow {
 	border-color: #888800;
 }
-#balance td.balance.black,
 #connectors td.connector.black {
 	border-color: #444444;
 }
@@ -55,9 +57,6 @@ body {
 	background-color: #cccccc;
 }
 
-#connectors tr.b_good td.connector.b_low {
-	background-color: #000000;
-}
 #connectors td.connector.b_low {
 	background-color: #00cc00;
 }
@@ -69,6 +68,28 @@ body {
 }
 #connectors td.connector.connected.b_high {
 	background-color: #cc0000;
+}
+#connectors td.connector.connected div::after {
+	content: "X";
+}
+#connectors td.connector.solution div::after {
+	content: "!";
+}
+#connectors td.connector.connected.solution div::after {
+	content: "";
+}
+
+#connectors td.connector.b_low div::after {
+	content: "!";
+}
+#connectors td.connector.connected.b_good div::after {
+	content: "";
+}
+#connectors td.connector.connected.b_low div::after {
+	content: "";
+}
+#connectors td.connector.connected.b_high div::after {
+	content: "X";
 }
 
 #switches td.switch {
