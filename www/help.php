@@ -18,7 +18,7 @@
         <li><p>Remove the protective cover.</p>
         <p>The cover is held on by four quickrelease clips.
         These can be opened with a simple pulling motion.
-        Make sure to release all four clips before removing the access cover, and not to use any force.
+        Make sure to release all four clips before removing the access cover.
         The cover should release easily. Do not use excessive force.</p>
         </li> 
         <li><p>Inspect the cables to see if there are any loose connections.</p>
