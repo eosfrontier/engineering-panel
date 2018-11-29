@@ -6,7 +6,7 @@
         <script type="text/javascript" src="jquery-3.3.1.min.js"></script>
         <script type="text/javascript" src="admin.js"></script>
     </head>
-    <body>
+    <body class="admin">
         <div class="memory">MemFree: <span id="Memory"></span></div>
         <div class="cpuload">Load: <span id="LoadAvg1">?</span> <span id="LoadAvg5">?</span> <span id="LoadAvg15">?</span></div>
         <div class="cpuperc">CPU: <span id="CpuUsage">?</span>%</div>
