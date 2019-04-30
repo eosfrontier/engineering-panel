@@ -53,7 +53,7 @@ network={
 * Insert the SD card on the Pi (ZeroW) mounted to the panel and boot it.
 * Find the new IP address and SSH into the PI
 * Immediately change the password from the default
-* Download the install-connectorgame.sh: wget https://github.com/willemm/shuttle-panels/raw/master/install/install-connectorgame.sh
+* Download the install-connectorgame.sh: wget https://github.com/eosfrontier/engineering-panel/raw/master/install/install-connectorgame.sh
 * Make it executable: chmod +x install-connectorgame.sh
 * Run the script: ./install-connectorgame.sh
 * Add SL password: echo -n <spelleider-wachtwoord> > /home/pi/shuttle-panels/spelleiderwachtwoord.txt
