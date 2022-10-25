@@ -741,6 +741,7 @@ static void game_checklevel(clist_t *conns)
         /* Als de boel draait, gaat het langzaam stuk. (Helemaal stuk na X uur) */
         if (DECAYTIME > 0) {
             repairlevel -= REPAIR_DECAY;
+            if (repairlevel < 0.0) repairlevel = 0.0;
         }
     }
     if (conns->event & HUMSETTING) {

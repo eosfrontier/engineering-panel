@@ -248,22 +248,25 @@ static int read_settings_file(clist_t *conns)
         strcpy(pathname, COMM_SETTINGS_PATH);
         strcat(pathname, settingfiles[s].key);
         FILE *f = fopen(pathname, "r");
-        double value;
-        if (fscanf(f, "%lf", &value) == 1) {
-            if (value < settingfiles[s].min) value = settingfiles[s].min;
-            if (value > settingfiles[s].max) value = settingfiles[s].max;
-            if (*(settingfiles[s].variable) != value) {
-                changed = 1;
-                pdebug("Changed setting %s to %g", settingfiles[s].key, value);
-                *(settingfiles[s].variable) = value;
-                if (conns) {
-                    conns->event |= settingfiles[s].event;
+        *(settingfiles[s].variable) = settingfiles[s].dflt;
+        if (f) {
+            double value;
+            if (fscanf(f, "%lf", &value) == 1) {
+                if (value < settingfiles[s].min) value = settingfiles[s].min;
+                if (value > settingfiles[s].max) value = settingfiles[s].max;
+                if (*(settingfiles[s].variable) != value) {
+                    changed = 1;
+                    pdebug("Changed setting %s to %g", settingfiles[s].key, value);
+                    *(settingfiles[s].variable) = value;
+                    if (conns) {
+                        conns->event |= settingfiles[s].event;
+                    }
                 }
+            } else {
+                fprintf(stderr, "Error reading setting file %s: %s", pathname, strerror(errno));
             }
-        } else {
-            fprintf(stderr, "Error reading setting file %s: %s", pathname, strerror(errno));
+            fclose(f);
         }
-        fclose(f);
     }
     if (changed) write_settings();
     return 0;
