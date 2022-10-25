@@ -29,6 +29,8 @@ extern struct settings {
     double breakspeed;
     double sparklow;
     double sparkhigh;
+    double initrepair;
+    double initspinup;
 } settings;
 
 int init_comm(void);

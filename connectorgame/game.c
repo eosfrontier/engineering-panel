@@ -41,6 +41,9 @@
 #define SPARKLOW (settings.sparklow * (FRAMERATE/SCANRATE))
 #define SPARKHIGH (settings.sparkhigh * (FRAMERATE/SCANRATE))
 
+#define INIT_REPAIR_LEVEL (settings.initrepair)
+#define INIT_SPIN_TURBINES (settings.initspinup >= 0.5)
+
 #define DIFFICULTY ((int)settings.difficulty)
 #define GAMEMODE ((int)settings.gamemode)
 
@@ -179,7 +182,7 @@ static void init_engine_hum(void)
 void init_game(void)
 {
     init_engine_hum();
-    repairlevel = 1.0;
+    repairlevel = INIT_REPAIR_LEVEL;
     booting = 10;
     led_set_idle(0, FRAMERATE/4, 0, 0x010002);
     led_set_idle(1, FRAMERATE/4, 6*(FRAMERATE/4), 0x010002);
@@ -970,7 +973,7 @@ static void game_doturbines(clist_t *conns)
     /* Kijken of de schakelaars zijn omgezet */
     if (booting > 0) {
         for (int sw = 0; sw < 3; sw++) {
-            if (conns->buttons[sw].status & BUTTON_ON) {
+            if ((conns->buttons[sw].status & BUTTON_ON) && (INIT_SPIN_TURBINES)) {
                 turbines[sw] = 0.99;
             } else {
                 turbines[sw] = 0.0;

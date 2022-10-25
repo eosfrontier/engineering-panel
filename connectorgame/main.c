@@ -92,6 +92,7 @@ int main(int argc, char *argv[])
 
     /* Alles initen */
     setup_handlers();
+    init_comm();
     init_mcps();
     init_leds();
     init_audio();

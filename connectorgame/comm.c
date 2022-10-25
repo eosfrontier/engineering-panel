@@ -200,6 +200,8 @@ struct {
     { "breakspeed", &settings.breakspeed, 0.001, 100.0, 1.0, 0, "Turbine spindown time at breakdown (sec)" },
     { "sparklow",   &settings.sparklow, 0.1, 5000, 2.0, 0, "Average spark delay when repair low" },
     { "sparkhigh",  &settings.sparkhigh, 0.1, 5000, 120.0, 0, "Average spark delay when repair high" },
+    { "initrepair", &settings.initrepair, 0.0, 1.0, 1.0, 0, "Repair level on power up" },
+    { "initspinup", &settings.initspinup, 0.0, 1.0, 0.0, 0, "Do spinup turbine sequence on power up" },
 };
 
 static int write_settings(void)
@@ -254,7 +256,9 @@ static int read_settings_file(clist_t *conns)
                 changed = 1;
                 pdebug("Changed setting %s to %g", settingfiles[s].key, value);
                 *(settingfiles[s].variable) = value;
-                conns->event |= settingfiles[s].event;
+                if (conns) {
+                    conns->event |= settingfiles[s].event;
+                }
             }
         } else {
             fprintf(stderr, "Error reading setting file %s: %s", pathname, strerror(errno));
@@ -274,6 +278,7 @@ int comm_read_commands(clist_t *conns)
 
 int init_comm(void)
 {
+    read_settings_file(NULL);
     return 0;
 }
 
